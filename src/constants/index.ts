@@ -19,3 +19,23 @@ export const LAYOUTS: Record<number, Layout> = {
   10: { maxPhotos: 2, width: 6, height: 9, arrangement: "vertical" }, // 6x18" 2 Photo (vertical)
   11: { maxPhotos: 2, width: 6, height: 9, arrangement: "horizontal" }, // 6x18" 2 Photo (horizontal)
 };
+
+export const SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".svg", ".gif"];
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+export const MAX_UPLOAD_COUNT = 10;
+
+// Define element types
+export type ElementType = "image" | "text" | "shape" | "icon";
+export interface Element {
+  id: string;
+  type: ElementType;
+  src?: string; // For images and icons
+  text?: string; // For text
+  shape?: "circle" | "square" | "triangle" | "polygon" | "line"; // For shapes
+  x: number;
+  y: number;
+  rotate: number;
+  width: number;
+  height: number;
+  zIndex: number; // For layer management
+}

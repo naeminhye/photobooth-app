@@ -1,6 +1,5 @@
 // components/CameraFeed.tsx
 import React, { useRef, useEffect, useState } from "react";
-import { LAYOUTS } from "../constants";
 
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
@@ -156,7 +155,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          opacity: isLimitReached || !showCamera ? 0.5 : 1, // Dim video when limit reached or camera interaction disabled
+          opacity: isLimitReached ? 0.5 : 1, // Dim video when limit reached
         }}
       />
       {isLimitReached && (
@@ -178,7 +177,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
             zIndex: 10,
           }}
         >
-          Photo limit reached. Please customize or reset to capture more.
+          Photo limit reached. Please reset to capture more.
         </div>
       )}
       <button
@@ -198,18 +197,15 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
           borderRadius: "50%",
           background: "#fff", // Filled white inner circle
           border: "2px solid #fff", // Thin outer circle
-          cursor: showCamera && !isLimitReached ? "pointer" : "not-allowed",
+          cursor: !isLimitReached ? "pointer" : "not-allowed",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
           transition: "transform 0.2s ease, background 0.2s ease",
-          transform:
-            isHolding && showCamera && !isLimitReached
-              ? "scale(0.8)"
-              : "scale(1)", // Squeeze effect only when interactive
-          opacity: isLimitReached || !showCamera ? 0.5 : 1, // Dim button when limit reached or camera interaction disabled
-          pointerEvents: isLimitReached || !showCamera ? "none" : "auto", // Disable pointer events when limit reached or camera interaction disabled
+          transform: isHolding && !isLimitReached ? "scale(0.8)" : "scale(1)", // Squeeze effect only when interactive
+          opacity: isLimitReached ? 0.5 : 1, // Dim button when limit reached
+          pointerEvents: isLimitReached ? "none" : "auto", // Disable pointer events when limit reached
           outline: "none", // Remove default focus outline
         }}
       >
@@ -220,7 +216,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
             height: "40px",
             borderRadius: "50%",
             background:
-              isHolding && showCamera && !isLimitReached
+              isHolding && !isLimitReached
                 ? "rgba(255, 255, 255, 0.7)"
                 : "#fff",
             transition: "background 0.2s ease",
