@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/photoboot-app/static/css/main.df33ef6e.css",
+    "main.js": "/photoboot-app/static/js/main.684d7e7f.js",
+    "static/js/453.38f1ab57.chunk.js": "/photoboot-app/static/js/453.38f1ab57.chunk.js",
+    "index.html": "/photoboot-app/index.html",
+    "main.df33ef6e.css.map": "/photoboot-app/static/css/main.df33ef6e.css.map",
+    "main.684d7e7f.js.map": "/photoboot-app/static/js/main.684d7e7f.js.map",
+    "453.38f1ab57.chunk.js.map": "/photoboot-app/static/js/453.38f1ab57.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.df33ef6e.css",
+    "static/js/main.684d7e7f.js"
+  ]
+}
