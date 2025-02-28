@@ -66,7 +66,7 @@
   z-index: 10;
 }
 
-.camera-feed button {
+.camera-feed button.shutter-button {
   position: absolute;
   bottom: 20px;
   left: calc(50% - 30px);
@@ -93,10 +93,6 @@
   position: relative;
   flex: 1;
   max-width: calc(100% - 620px);
-}
-
-.photo-strip.full-strip,
-.photo-strip.half-strip {
   width: 100%;
 }
 
@@ -105,7 +101,7 @@
   box-sizing: border-box;
   z-index: 20;
   transition: transform 0.2s ease;
-  margin: 0 5px 5px 0;
+  /* margin: 0 5px 5px 0; */
 }
 
 .photo-container img {
@@ -115,7 +111,7 @@
 }
 
 .photo-strip.half-strip .photo-container {
-  margin: 0 5px 5px 0;
+  /* margin: 0 5px 5px 0; */
 }
 
 .photo-strip.half-strip .photo-container img {
@@ -252,6 +248,7 @@
 .preview-photos-list {
   display: flex;
   flex-wrap: wrap;
+  gap: 8px;
 }
 
 .preview-photos h3 {
@@ -269,8 +266,6 @@
 .preview-photo {
   position: relative;
   display: inline-block;
-  margin-right: 10px;
-  margin-bottom: 10px;
   width: 80px;
   height: 80px;
   cursor: pointer;
@@ -288,12 +283,27 @@
   border-color: #4CAF50;
 }
 
-.check-icon {
+.preview-photo.cannot-select:not(.selected) {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.preview-photo .selected-count {
   position: absolute;
-  top: 5px;
-  left: 5px;
-  color: #4CAF50;
-  font-size: 16px;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  background-color: #ffffff;
+  opacity: 0.3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.preview-photo .selected-count .check-icon {
+  font-size: 24px;
 }
 
 .delete-icon {
@@ -320,12 +330,16 @@
 .upload-placeholder {
   position: relative;
   display: inline-block;
-  margin-right: 10px;
-  margin-bottom: 10px;
   width: 80px;
   height: 80px;
   cursor: pointer;
   transition: background 0.3s ease;
+  border: 2px dashed #999;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .upload-placeholder:hover {
@@ -353,8 +367,7 @@
     aspect-ratio: 4 / 3;
   }
 
-  .photo-strip.full-strip,
-  .photo-strip.half-strip {
+  .photo-strip {
     max-width: 100%;
     width: 100%;
   }

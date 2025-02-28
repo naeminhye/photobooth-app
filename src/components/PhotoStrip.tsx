@@ -5,6 +5,7 @@ import React, {
   useState,
   useCallback,
   forwardRef,
+  useMemo,
 } from "react";
 import {
   DragDropContext,
@@ -30,13 +31,12 @@ interface PhotoStripProps {
   photos: Photo[];
   onPhotoCapture: (photo: string) => void;
   onPhotoOrderChange: (photos: Photo[]) => void;
-  onPhotoUpload: (files: File[]) => void;
+  onPhotoUpload: (files: File[]) => void; // Kept for compatibility, but unused
   frameColor: string;
   backgroundImage: string | null;
   textOverlay: string;
   stickers: Element[];
   onStickerUpdate: (stickers: Element[]) => void;
-  isFullStrip: boolean;
   layout: number;
   foregroundImage: string | null;
 }
@@ -53,7 +53,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       textOverlay,
       stickers,
       onStickerUpdate,
-      isFullStrip,
       layout,
       foregroundImage,
     },
@@ -72,20 +71,20 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     );
     const [rotationAngle, setRotationAngle] = useState<number | null>(null);
 
-    const HALF_STRIP_WIDTH = 3 * 96;
-    const HALF_STRIP_HEIGHT = 9 * 96;
-    const FULL_STRIP_WIDTH = 6 * 96;
-    const FULL_STRIP_HEIGHT = 18 * 96;
-    const PADDING = 0.15 * 96;
-    const TEXT_SPACE = 1 * 96;
+    const HALF_STRIP_WIDTH = 3 * 96; // 288px (3 inches at 96 DPI)
+    const HALF_STRIP_HEIGHT = 9 * 96; // 864px (9 inches at 96 DPI)
+    const FULL_STRIP_WIDTH = 6 * 96; // 576px (6 inches at 96 DPI)
+    const FULL_STRIP_HEIGHT = 18 * 96; // 1728px (18 inches at 96 DPI)
+    const PADDING = 0.15 * 96; // 14.4px
+    const TEXT_SPACE = 1 * 96; // 96px
     const GRID_SIZE = 10;
     const MIN_SIZE = 20;
     const MAX_SIZE = 2000;
 
     const currentLayout = LAYOUTS[layout];
     const maxPhotos = currentLayout.maxPhotos;
-    const frameWidth = `${isFullStrip ? 6 : 3}in`;
-    const frameHeight = `${isFullStrip ? 18 : 9}in`;
+    const frameWidth = `${currentLayout.width}${currentLayout.unit}`;
+    const frameHeight = `${currentLayout.height}${currentLayout.unit}`;
     const aspectRatio = currentLayout.width / currentLayout.height;
 
     useEffect(() => {
@@ -93,7 +92,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         const { width, height } = stripRef.current.getBoundingClientRect();
         setStripDimensions({ width, height });
       }
-    }, [isFullStrip, layout]);
+    }, [layout]);
 
     const onDragEnd = (result: DropResult) => {
       console.log("Drag End Result:", result);
@@ -103,7 +102,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       const [reorderedItem] = newPhotos.splice(result.source.index, 1);
       newPhotos.splice(result.destination.index, 0, reorderedItem);
 
-      if (isFullStrip && currentLayout.arrangement === "grid") {
+      if (currentLayout.arrangement === "grid") {
         const maxCols = 2;
         const newOrder = newPhotos.map((_, index) => {
           const row = Math.floor(index / maxCols);
@@ -237,32 +236,48 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       onStickerUpdate(updatedStickers);
     };
 
+    const photoPadding = useMemo(() => {
+      let top = 0.15;
+      let right = 0.15;
+      let bottom = 0.15;
+      let left = 0.15;
+      const { unit, arrangement, width, height, maxPhotos } = currentLayout;
+      console.log("currentLayout", currentLayout);
+
+      if (arrangement === "grid") {
+        if (width / height <= 1) {
+          // Grid & portrait
+          bottom = 1.15;
+        } else {
+          // grid & landscape
+          right = 1.15;
+        }
+      } else if (arrangement === "vertical") {
+        bottom = 1.15;
+      } else {
+        right = 1.15;
+      }
+
+      return `${top}${unit} ${right}${unit} ${bottom}${unit} ${left}${unit}`;
+    }, [currentLayout]);
+
     return (
       <DragDropContext onDragEnd={onDragEnd}>
         <div
           ref={ref}
-          className={`photo-strip ${isFullStrip ? "full-strip" : "half-strip"}`}
+          className="photo-strip"
           style={{
             width: frameWidth,
             height: frameHeight,
             background: backgroundImage
               ? `url(${backgroundImage}) no-repeat center center / cover`
               : frameColor,
-            backgroundPosition: "center",
-            backgroundSize: "cover",
-            border: "2px solid #000",
+            border: "1px solid #000",
             position: "relative",
-            padding: "0.15in",
-            paddingBottom: "1.15in",
+            padding: photoPadding,
             boxSizing: "border-box",
-            display:
-              isFullStrip && currentLayout.arrangement === "grid"
-                ? "flex"
-                : "block",
-            flexWrap:
-              isFullStrip && currentLayout.arrangement === "grid"
-                ? "wrap"
-                : undefined,
+            display: currentLayout.arrangement === "grid" ? "flex" : "block",
+            flexWrap: currentLayout.arrangement === "grid" ? "wrap" : undefined,
           }}
         >
           {/* Foreground Image Overlay */}
@@ -276,138 +291,109 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 left: 0,
                 width: "100%",
                 height: "100%",
-                zIndex: 1000, // TODO: below stickers
+                zIndex: 1000, // Above photos and stickers
                 pointerEvents: "none",
               }}
             />
           )}
 
-          <Droppable
-            droppableId="photos"
-            direction={
-              isFullStrip && currentLayout.arrangement === "grid"
-                ? "horizontal"
-                : "vertical"
-            }
+          <div
+            style={{
+              display: "flex",
+              flexDirection:
+                currentLayout.arrangement === "horizontal" ? "row" : "column",
+              // currentLayout.arrangement === "grid" ? "flex" : "block",
+              flexWrap:
+                currentLayout.arrangement === "grid" ? "wrap" : undefined,
+              width: "100%",
+              height: "100%",
+              boxSizing: "border-box",
+              position: "relative", // TODO: add gap
+              gap: currentLayout.gap
+                ? `${currentLayout.gap}${currentLayout.unit}`
+                : "0.1in",
+            }}
           >
-            {(provided) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                style={{
-                  display:
-                    isFullStrip && currentLayout.arrangement === "grid"
-                      ? "flex"
-                      : "block",
-                  flexWrap:
-                    isFullStrip && currentLayout.arrangement === "grid"
-                      ? "wrap"
-                      : undefined,
-                  width: "100%",
-                  height: "100%",
-                  boxSizing: "border-box",
-                  position: "relative",
-                }}
-              >
-                {photos.length > 0
-                  ? photos.map((photo, index) => (
-                      <Draggable
-                        key={photo.id}
-                        draggableId={photo.id}
-                        index={index}
-                      >
-                        {(
-                          provided: DraggableProvided,
-                          snapshot: DraggableStateSnapshot
-                        ) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="photo-container"
-                            style={{
-                              ...provided.draggableProps.style,
-                              width: isFullStrip
-                                ? currentLayout.arrangement === "grid"
-                                  ? "50%"
-                                  : "100%"
-                                : "100%",
-                              height: isFullStrip
-                                ? currentLayout.arrangement === "grid"
-                                  ? "50%"
-                                  : `${100 / currentLayout.maxPhotos}%`
-                                : `${100 / currentLayout.maxPhotos}%`,
-                              boxSizing: "border-box",
-                              position: "relative",
-                              zIndex: 20,
-                              margin: "0 5px 5px 0",
-                              cursor: snapshot.isDragging ? "grabbing" : "grab",
-                            }}
-                          >
-                            <img
-                              src={photo.url}
-                              alt={`Photo ${index + 1}`}
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                              }}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))
-                  : Array.from({ length: maxPhotos }, (_, index) => (
-                      <div
-                        key={`placeholder-${index}`}
-                        className="photo-placeholder"
-                        style={{
-                          width: isFullStrip
-                            ? currentLayout.arrangement === "grid"
-                              ? "50%"
-                              : "100%"
-                            : "100%",
-                          height: isFullStrip
-                            ? currentLayout.arrangement === "grid"
-                              ? "50%"
-                              : `${100 / maxPhotos}%`
-                            : `${100 / maxPhotos}%`,
-                          border: "2px dashed #999",
-                          boxSizing: "border-box",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: "transparent",
-                          opacity: 0.5, // Disable interaction
-                          zIndex: 10,
-                          margin: "0 5px 5px 0",
-                        }}
-                      >
-                        <span style={{ fontSize: "24px", color: "#999" }}>
-                          +
-                        </span>
-                      </div>
-                    ))}
-                {provided.placeholder}
-                {guidelines.map((guide, index) => (
+            {Array.from({ length: maxPhotos }, (_, index) => {
+              const photo = photos?.[index];
+              return photo ? (
+                <div
+                  className="photo-container"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flex: `1 1 ${
+                      currentLayout.arrangement === "grid" ? "50%" : "100%"
+                    }`,
+                    boxSizing: "border-box",
+                    position: "relative",
+                    zIndex: 20,
+                  }}
+                >
                   <div
-                    key={`guide-${index}`}
                     style={{
-                      position: "absolute",
-                      background: "rgba(0, 255, 0, 0.5)",
-                      width: guide.x ? 2 : stripDimensions.width,
-                      height: guide.y ? 2 : stripDimensions.height,
-                      left: guide.x || 0,
-                      top: guide.y || 0,
-                      zIndex: 5,
+                      background: `url(${photo.url}) no-repeat center center / cover`,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
                     }}
                   />
-                ))}
-              </div>
-            )}
-          </Droppable>
+                  {/* <img
+                    src={photo.url}
+                    alt={`Photo ${index + 1}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  /> */}
+                </div>
+              ) : (
+                <div
+                  key={`placeholder-${index}`}
+                  className="photo-placeholder"
+                  style={{
+                    border: "1px dashed #999",
+                    boxSizing: "border-box",
+                    background: "transparent",
+                    opacity: 0.5, // Disable interaction
+                    zIndex: 10,
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flex: `1 1 ${
+                      currentLayout.arrangement === "grid" ? "50%" : "100%"
+                    }`,
+                  }}
+                >
+                  <span style={{ fontSize: "24px", color: "#999" }}>+</span>
+                </div>
+              );
+            })}
+            {guidelines.map((guide, index) => (
+              <div
+                key={`guide-${index}`}
+                style={{
+                  position: "absolute",
+                  background: "rgba(0, 255, 0, 0.5)",
+                  width: guide.x ? 2 : stripDimensions.width,
+                  height: guide.y ? 2 : stripDimensions.height,
+                  left: guide.x || 0,
+                  top: guide.y || 0,
+                  zIndex: 5,
+                }}
+              />
+            ))}
+          </div>
 
-          {stickers.map((sticker, index) => {
+          {/* {stickers.map((sticker, index) => {
             const img = new Image();
             img.src = sticker.src || "";
             const naturalWidth = img.width || 100;
@@ -591,7 +577,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 </Resizable>
               </StickerDraggable>
             );
-          })}
+          })} */}
         </div>
       </DragDropContext>
     );

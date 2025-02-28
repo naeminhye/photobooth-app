@@ -3,7 +3,6 @@ import React, { useRef, useEffect, useState } from "react";
 
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
-  isFullStrip: boolean;
   layout: number;
   maxPhotos: number;
   currentPhotos: number;
@@ -12,7 +11,6 @@ interface CameraFeedProps {
 
 const CameraFeed: React.FC<CameraFeedProps> = ({
   onCapture,
-  isFullStrip,
   layout,
   maxPhotos,
   currentPhotos,
@@ -22,14 +20,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const captureButtonRef = useRef<HTMLButtonElement>(null);
   const [isHolding, setIsHolding] = useState(false);
-  const [isLimitReached, setIsLimitReached] = useState(
-    currentPhotos >= maxPhotos
-  );
   const [isVideoReady, setIsVideoReady] = useState(false); // Track video readiness
 
   useEffect(() => {
-    setIsLimitReached(currentPhotos >= maxPhotos);
-    if (showCamera && !isLimitReached) {
+    if (showCamera) {
       startCamera();
     } else {
       stopCamera(); // Stop camera stream when limit is reached or camera interaction disabled
@@ -37,7 +31,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     return () => {
       stopCamera(); // Clean up on unmount
     };
-  }, [showCamera, isLimitReached, layout, isFullStrip]);
+  }, [showCamera, layout]);
 
   const startCamera = async () => {
     try {
@@ -64,13 +58,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const capturePhoto = () => {
-    if (
-      videoRef.current &&
-      canvasRef.current &&
-      !isLimitReached &&
-      showCamera &&
-      isVideoReady
-    ) {
+    if (videoRef.current && canvasRef.current && showCamera && isVideoReady) {
       console.log("Capturing photo, video ready:", isVideoReady); // Debug log
       const context = canvasRef.current.getContext("2d");
       if (context) {
@@ -89,7 +77,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         "Cannot capture photo: Video not ready or conditions not met",
         {
           isVideoReady,
-          isLimitReached,
+          // isLimitReached,
           showCamera,
         }
       );
@@ -97,13 +85,13 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const handleMouseDown = () => {
-    if (showCamera && !isLimitReached) {
+    if (showCamera) {
       setIsHolding(true);
     }
   };
 
   const handleMouseUp = () => {
-    if (showCamera && isHolding && !isLimitReached) {
+    if (showCamera && isHolding) {
       setIsHolding(false);
       capturePhoto();
     }
@@ -116,13 +104,13 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const handleTouchStart = () => {
-    if (showCamera && !isLimitReached) {
+    if (showCamera) {
       setIsHolding(true);
     }
   };
 
   const handleTouchEnd = () => {
-    if (showCamera && isHolding && !isLimitReached) {
+    if (showCamera && isHolding) {
       setIsHolding(false);
       capturePhoto();
     }
@@ -155,31 +143,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          opacity: isLimitReached ? 0.5 : 1, // Dim video when limit reached
         }}
       />
-      {isLimitReached && (
-        <div
-          className="limit-overlay"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0, 0, 0, 0.5)", // Semi-transparent overlay
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            fontSize: "18px",
-            zIndex: 10,
-          }}
-        >
-          Photo limit reached. Please reset to capture more.
-        </div>
-      )}
       <button
         ref={captureButtonRef}
         onMouseDown={handleMouseDown}
@@ -188,25 +153,9 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
+        className="shutter-button"
         style={{
-          position: "absolute",
-          bottom: "20px",
-          left: "calc(50% - 30px)",
-          width: "60px",
-          height: "60px",
-          borderRadius: "50%",
-          background: "#fff", // Filled white inner circle
-          border: "2px solid #fff", // Thin outer circle
-          cursor: !isLimitReached ? "pointer" : "not-allowed",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
-          transition: "transform 0.2s ease, background 0.2s ease",
-          transform: isHolding && !isLimitReached ? "scale(0.8)" : "scale(1)", // Squeeze effect only when interactive
-          opacity: isLimitReached ? 0.5 : 1, // Dim button when limit reached
-          pointerEvents: isLimitReached ? "none" : "auto", // Disable pointer events when limit reached
-          outline: "none", // Remove default focus outline
+          transform: isHolding ? "scale(0.8)" : "scale(1)", // Squeeze effect only when interactive
         }}
       >
         {/* Optional inner circle for visual feedback */}
@@ -215,10 +164,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
             width: "40px",
             height: "40px",
             borderRadius: "50%",
-            background:
-              isHolding && !isLimitReached
-                ? "rgba(255, 255, 255, 0.7)"
-                : "#fff",
+            background: isHolding ? "rgba(255, 255, 255, 0.7)" : "#fff",
             transition: "background 0.2s ease",
           }}
         />

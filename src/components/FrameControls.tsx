@@ -22,8 +22,6 @@ interface FrameControlsProps {
   onForegroundChange: (image: string | null) => void;
   onTextChange: (text: string) => void;
   onStickerAdd: (type: ElementType) => void;
-  isFullStrip: boolean;
-  onStripSizeChange: (isFull: boolean) => void;
   layout: number;
   onLayoutChange: (layout: number) => void;
   capturedPhotos: string[];
@@ -61,8 +59,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   onForegroundChange,
   onTextChange,
   onStickerAdd,
-  isFullStrip,
-  onStripSizeChange,
   layout,
   onLayoutChange,
   capturedPhotos,
@@ -83,12 +79,9 @@ const FrameControls: React.FC<FrameControlsProps> = ({
 
   const layouts = Object.entries(LAYOUTS).map(([id, layout]) => ({
     id: parseInt(id),
-    name: `${isFullStrip ? '6x18"' : '3x9"'} ${layout.maxPhotos} Photo${
-      layout.maxPhotos > 1 ? "s" : ""
-    } (${
+    name: `${layout.maxPhotos} Photo${layout.maxPhotos > 1 ? "s" : ""} (${
       layout.arrangement.charAt(0).toUpperCase() + layout.arrangement.slice(1)
     })`,
-    strip: isFullStrip,
     maxPhotos: layout.maxPhotos,
   }));
 
@@ -99,8 +92,10 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     const photoStrip = photoStripRef.current;
     if (photoStrip) {
       html2canvas(photoStrip, {
-        scale: window.devicePixelRatio,
+        scale: 1, // Use 1:1 scale to avoid distortion
         useCORS: true,
+        allowTaint: true, // Allow cross-origin images
+        backgroundColor: null, // Preserve transparency
       })
         .then((canvas) => {
           const link = document.createElement("a");
@@ -134,40 +129,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
       <hr className="frame-controls-divider" />
 
       <div className="frame-controls-section">
-        <span className="frame-controls-label">Strip Size</span>
-        <div className="frame-controls-radio-group">
-          <label className="frame-controls-radio">
-            <input
-              type="radio"
-              name="stripSize"
-              checked={!isFullStrip}
-              onChange={() => {
-                if (capturedPhotos.length === 0) {
-                  onStripSizeChange(false);
-                }
-              }}
-              disabled={capturedPhotos.length > 0}
-            />
-            <span>Half Strip (3x9")</span>
-          </label>
-          <label className="frame-controls-radio">
-            <input
-              type="radio"
-              name="stripSize"
-              checked={isFullStrip}
-              onChange={() => {
-                if (capturedPhotos.length === 0) {
-                  onStripSizeChange(true);
-                }
-              }}
-              disabled={capturedPhotos.length > 0}
-            />
-            <span>Full Strip (6x18")</span>
-          </label>
-        </div>
-      </div>
-
-      <div className="frame-controls-section">
         <label className="frame-controls-label">Select Layout</label>
         <select
           value={layout}
@@ -180,112 +141,13 @@ const FrameControls: React.FC<FrameControlsProps> = ({
           disabled={capturedPhotos.length > 0}
           className="frame-controls-select"
         >
-          {layouts
-            .filter((layout) => layout.strip === isFullStrip)
-            .map((layout) => (
-              <option key={layout.id} value={layout.id}>
-                {layout.name}
-              </option>
-            ))}
+          {layouts.map((layout) => (
+            <option key={layout.id} value={layout.id}>
+              {layout.name}
+            </option>
+          ))}
         </select>
       </div>
-
-      {/* <div className="frame-controls-section">
-        <input
-          type="file"
-          accept="image/*"
-          multiple // Allow multiple file selection
-          onChange={(e) => {
-            const files = Array.from(e.target.files || []);
-            if (files.length > 0) {
-              onPhotoUpload(files);
-            }
-          }}
-          className="frame-controls-file-input"
-        />
-        <button
-          onClick={() =>
-            (document.querySelector('input[type="file"]') as any)?.click()
-          }
-          className="frame-controls-button"
-        >
-          Upload Photos
-        </button>
-      </div> */}
-
-      {/* <div className="frame-controls-section">
-        <button
-          onClick={() => onStickerAdd("image")}
-          disabled={stickers.length >= MAX_UPLOAD_COUNT}
-          className="frame-controls-button"
-        >
-          Upload Image
-        </button>
-        <button
-          onClick={() => onStickerAdd("text")}
-          className="frame-controls-button"
-        >
-          Add Text
-        </button>
-        <button
-          onClick={() => onStickerAdd("shape")}
-          className="frame-controls-button"
-        >
-          Add Shape
-        </button>
-        <button
-          onClick={() => onStickerAdd("icon")}
-          className="frame-controls-button"
-        >
-          Add Icon
-        </button>
-        {stickers.some(
-          (s) => s.type === "text" && s.id === selectedElementId
-        ) && (
-          <input
-            type="text"
-            value={textInput}
-            onChange={(e) => setTextInput(e.target.value)}
-            onBlur={() => {
-              if (selectedElementId) {
-                const updatedStickers = stickers.map((s) =>
-                  s.id === selectedElementId ? { ...s, text: textInput } : s
-                );
-                onStickerUpdate(updatedStickers);
-              }
-            }}
-            placeholder="Enter text"
-            className="frame-controls-input"
-          />
-        )}
-        {stickers.some(
-          (s) => s.type === "shape" && s.id === selectedElementId
-        ) && (
-          <select
-            onChange={(e) => {
-              if (selectedElementId) {
-                const shape = e.target.value as
-                  | "circle"
-                  | "square"
-                  | "triangle"
-                  | "polygon"
-                  | "line";
-                const updatedStickers = stickers.map((s) =>
-                  s.id === selectedElementId ? { ...s, shape } : s
-                );
-                onStickerUpdate(updatedStickers);
-              }
-            }}
-            className="frame-controls-select"
-          >
-            <option value="circle">Circle</option>
-            <option value="square">Square</option>
-            <option value="triangle">Triangle</option>
-            <option value="polygon">Polygon</option>
-            <option value="line">Line</option>
-          </select>
-        )}
-      </div> */}
 
       <div className="frame-controls-section">
         <label className="frame-controls-label">
@@ -329,43 +191,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
             }}
           />
         )}
-
-        {/* <input
-          type="text"
-          value={textOverlay}
-          onChange={(e) => onTextChange(e.target.value)}
-          placeholder="Add text overlay"
-          className="frame-controls-input"
-        />
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            if (stickers.length < MAX_UPLOAD_COUNT) {
-              const file = e.target.files?.[0];
-              if (
-                file &&
-                SUPPORTED_FORMATS.some((format) =>
-                  file.name.toLowerCase().endsWith(format)
-                ) &&
-                file.size <= MAX_FILE_SIZE
-              ) {
-                const reader = new FileReader();
-                reader.onload = () => onStickerAdd("image");
-                reader.readAsDataURL(file);
-              } else if (file?.size && file?.size > MAX_FILE_SIZE) {
-                alert("File size exceeds 10MB limit.");
-              } else {
-                alert(
-                  "Unsupported file format. Please use .png, .jpg, .jpeg, .svg, or .gif."
-                );
-              }
-            } else {
-              alert("Maximum upload limit of 10 files reached.");
-            }
-          }}
-          className="frame-controls-file-input"
-        /> */}
       </div>
 
       <div className="frame-controls-section">
@@ -386,23 +211,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
           )}
         </div>
       </div>
-
-      {/* <div className="frame-controls-section">
-        <button
-          onClick={() => bringToFront(selectedElementId!)}
-          disabled={!selectedElementId}
-          className="frame-controls-button"
-        >
-          Bring to Front
-        </button>
-        <button
-          onClick={() => sendToBack(selectedElementId!)}
-          disabled={!selectedElementId}
-          className="frame-controls-button"
-        >
-          Send to Back
-        </button>
-      </div> */}
 
       <button
         className="frame-controls-button frame-controls-button-danger"

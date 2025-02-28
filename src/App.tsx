@@ -27,11 +27,10 @@ const App: React.FC = () => {
   const [hasPermission, setHasPermission] = useState(false);
   const [capturedPhotos, setCapturedPhotos] = useState<Photo[]>([]);
   const [previewPhotos, setPreviewPhotos] = useState<Photo[]>([]);
-  const [frameColor, setFrameColor] = useState<string>("#000000");
+  const [frameColor, setFrameColor] = useState<string>("#FFFFFF");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [textOverlay, setTextOverlay] = useState<string>("");
   const [stickers, setStickers] = useState<Element[]>([]);
-  const [isFullStrip, setIsFullStrip] = useState(false);
   const [layout, setLayout] = useState<number>(1); // Default to layout 1 (2x6" 3 Photo)
   const [undoStack, setUndoStack] = useState<Element[][]>([]);
   const [redoStack, setRedoStack] = useState<Element[][]>([]);
@@ -60,17 +59,16 @@ const App: React.FC = () => {
   const resetAll = () => {
     setCapturedPhotos([]);
     setPreviewPhotos([]);
-    setFrameColor("#000000");
+    setFrameColor("#FFF");
     setBackgroundImage(null);
+    setForegroundImage(null);
     setTextOverlay("");
     setStickers([]);
-    setIsFullStrip(false);
     setLayout(1);
     setUndoStack([]);
     setRedoStack([]);
     setSelectedElementId(null);
     setSelectedPreviewPhotos([]);
-    setForegroundImage(null); // Reset foreground image
   };
 
   const handlePhotoCapture = (photo: string) => {
@@ -124,6 +122,9 @@ const App: React.FC = () => {
         prev.filter((photoId) => photoId !== id)
       );
     } else {
+      if (capturedPhotos.length >= LAYOUTS[layout].maxPhotos) {
+        return;
+      }
       const photoToAdd = previewPhotos.find((photo) => photo.id === id);
       if (photoToAdd && capturedPhotos.length < LAYOUTS[layout].maxPhotos) {
         setCapturedPhotos([...capturedPhotos, photoToAdd]);
@@ -250,7 +251,6 @@ const App: React.FC = () => {
                 <div>
                   <CameraFeed
                     onCapture={handlePhotoCapture}
-                    isFullStrip={isFullStrip}
                     layout={layout}
                     maxPhotos={LAYOUTS[layout].maxPhotos}
                     currentPhotos={capturedPhotos.length}
@@ -266,15 +266,22 @@ const App: React.FC = () => {
                             selectedPreviewPhotos.indexOf(photo.id) !== -1
                               ? "selected"
                               : ""
-                          }`}
+                          } ${
+                            capturedPhotos.length >= LAYOUTS[layout].maxPhotos
+                              ? "cannot-select"
+                              : ""
+                          }
+                          `}
                           onClick={() => toggleFromStrip(photo.id)}
                         >
                           <img src={photo.url} alt="Preview" />
                           {selectedPreviewPhotos.indexOf(photo.id) !== -1 && (
-                            <FontAwesomeIcon
-                              icon={faCheck}
-                              className="check-icon"
-                            />
+                            <div className="selected-count">
+                              <FontAwesomeIcon
+                                icon={faCheck}
+                                className="check-icon"
+                              />
+                            </div>
                           )}
                           <button
                             className="delete-icon"
@@ -292,19 +299,9 @@ const App: React.FC = () => {
                           {...getRootProps()}
                           className="upload-placeholder"
                           style={{
-                            width: "80px",
-                            height: "80px",
-                            border: "2px dashed #999",
-                            borderRadius: "5px",
                             background: isDragActive
                               ? "#e1e1e1"
                               : "transparent",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            marginRight: "10px",
-                            marginBottom: "10px",
                           }}
                         >
                           <input {...getInputProps()} />
@@ -325,8 +322,6 @@ const App: React.FC = () => {
                   foregroundImage={foregroundImage}
                   onTextChange={setTextOverlay}
                   onStickerAdd={addElement}
-                  isFullStrip={isFullStrip}
-                  onStripSizeChange={setIsFullStrip}
                   layout={layout}
                   onLayoutChange={(newLayout) => {
                     if (capturedPhotos.length === 0) {
@@ -358,7 +353,6 @@ const App: React.FC = () => {
                   textOverlay={textOverlay}
                   stickers={stickers}
                   onStickerUpdate={handleStickerUpdate}
-                  isFullStrip={isFullStrip}
                   layout={layout}
                   foregroundImage={foregroundImage} // Pass foreground image
                 />
