@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [selectedPreviewPhotos, setSelectedPreviewPhotos] = useState<string[]>(
     []
   );
+  const [foregroundImage, setForegroundImage] = useState<string | null>(null); // New state for foreground image
   const photoStripRef: any = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,6 +70,7 @@ const App: React.FC = () => {
     setRedoStack([]);
     setSelectedElementId(null);
     setSelectedPreviewPhotos([]);
+    setForegroundImage(null); // Reset foreground image
   };
 
   const handlePhotoCapture = (photo: string) => {
@@ -290,7 +292,6 @@ const App: React.FC = () => {
                           {...getRootProps()}
                           className="upload-placeholder"
                           style={{
-                            // display: "inline-block",
                             width: "80px",
                             height: "80px",
                             border: "2px dashed #999",
@@ -319,7 +320,9 @@ const App: React.FC = () => {
                 <FrameControls
                   onColorChange={setFrameColor}
                   onBackgroundChange={setBackgroundImage}
+                  onForegroundChange={setForegroundImage}
                   backgroundImage={backgroundImage}
+                  foregroundImage={foregroundImage}
                   onTextChange={setTextOverlay}
                   onStickerAdd={addElement}
                   isFullStrip={isFullStrip}
@@ -357,6 +360,7 @@ const App: React.FC = () => {
                   onStickerUpdate={handleStickerUpdate}
                   isFullStrip={isFullStrip}
                   layout={layout}
+                  foregroundImage={foregroundImage} // Pass foreground image
                 />
               </div>
             </div>

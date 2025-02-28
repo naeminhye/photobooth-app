@@ -19,6 +19,7 @@ import html2canvas from "html2canvas";
 interface FrameControlsProps {
   onColorChange: (color: string) => void;
   onBackgroundChange: (image: string | null) => void;
+  onForegroundChange: (image: string | null) => void;
   onTextChange: (text: string) => void;
   onStickerAdd: (type: ElementType) => void;
   isFullStrip: boolean;
@@ -37,6 +38,7 @@ interface FrameControlsProps {
   frameColor: string;
   textOverlay: string;
   backgroundImage: string | null;
+  foregroundImage: string | null;
 }
 
 interface Element {
@@ -56,6 +58,7 @@ interface Element {
 const FrameControls: React.FC<FrameControlsProps> = ({
   onColorChange,
   onBackgroundChange,
+  onForegroundChange,
   onTextChange,
   onStickerAdd,
   isFullStrip,
@@ -74,6 +77,7 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   frameColor,
   textOverlay,
   backgroundImage,
+  foregroundImage,
 }) => {
   const [textInput, setTextInput] = useState("");
 
@@ -109,6 +113,18 @@ const FrameControls: React.FC<FrameControlsProps> = ({
         });
     } else {
       console.error("Photo strip element not found");
+    }
+  };
+
+  // Handle foreground image upload
+  const handleForegroundUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => onForegroundChange(reader.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -350,6 +366,25 @@ const FrameControls: React.FC<FrameControlsProps> = ({
           }}
           className="frame-controls-file-input"
         /> */}
+      </div>
+
+      <div className="frame-controls-section">
+        <label className="frame-controls-label">Select Foreground Image</label>
+        <div style={{ marginTop: "20px" }}>
+          <input
+            type="file"
+            accept="image/png" // Recommend PNG for transparency
+            onChange={handleForegroundUpload}
+          />
+          {foregroundImage && (
+            <button
+              onClick={() => onForegroundChange(null)}
+              className="frame-controls-button"
+            >
+              Remove Foreground Image
+            </button>
+          )}
+        </div>
       </div>
 
       {/* <div className="frame-controls-section">

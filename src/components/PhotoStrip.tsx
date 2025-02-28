@@ -30,7 +30,7 @@ interface PhotoStripProps {
   photos: Photo[];
   onPhotoCapture: (photo: string) => void;
   onPhotoOrderChange: (photos: Photo[]) => void;
-  onPhotoUpload: (files: File[]) => void; // Kept for compatibility, but unused
+  onPhotoUpload: (files: File[]) => void;
   frameColor: string;
   backgroundImage: string | null;
   textOverlay: string;
@@ -38,6 +38,7 @@ interface PhotoStripProps {
   onStickerUpdate: (stickers: Element[]) => void;
   isFullStrip: boolean;
   layout: number;
+  foregroundImage: string | null;
 }
 
 const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
@@ -54,6 +55,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       onStickerUpdate,
       isFullStrip,
       layout,
+      foregroundImage,
     },
     ref
   ) => {
@@ -263,6 +265,23 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 : undefined,
           }}
         >
+          {/* Foreground Image Overlay */}
+          {foregroundImage && (
+            <img
+              src={foregroundImage}
+              alt="Foreground Decoration"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                zIndex: 1000, // TODO: below stickers
+                pointerEvents: "none",
+              }}
+            />
+          )}
+
           <Droppable
             droppableId="photos"
             direction={
