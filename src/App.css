@@ -110,14 +110,6 @@
   display: block;
 }
 
-.photo-strip.half-strip .photo-container {
-  /* margin: 0 5px 5px 0; */
-}
-
-.photo-strip.half-strip .photo-container img {
-  aspect-ratio: 4 / 3;
-}
-
 .remove-button {
   position: absolute;
   top: 5px;

@@ -1,40 +1,88 @@
-// constants.ts
+// constants/index.ts
+export interface Paddings {
+  top: number;
+  left: number;
+  bottom: number;
+  right: number;
+}
+
+export interface GridTemplate {
+  columns: number;
+  rows: number;
+}
+
 export interface Layout {
   maxPhotos: number;
   width: number;
   height: number;
   arrangement: "vertical" | "horizontal" | "grid";
   unit: "px" | "in";
-  gap?: number | string;
+  gap?: number;
+  paddings?: Paddings;
+  gridTemplate?: GridTemplate;
 }
 
 export const LAYOUTS: Record<number, Layout> = {
   1: {
     maxPhotos: 4,
-    width: 3,
-    height: 9,
+    width: 288,
+    height: 864,
     arrangement: "vertical",
-    unit: "in",
-    gap: 0.1,
+    unit: "px",
+    gap: 10,
+    paddings: {
+      top: 15,
+      right: 15,
+      left: 15,
+      bottom: 100,
+    },
   },
-  2: { maxPhotos: 3, width: 3, height: 9, arrangement: "vertical", unit: "in" },
+  2: {
+    maxPhotos: 3,
+    width: 288,
+    height: 864,
+    arrangement: "vertical",
+    unit: "px",
+    gap: 10,
+    paddings: {
+      top: 10,
+      right: 10,
+      left: 10,
+      bottom: 20,
+    },
+  },
   3: {
     maxPhotos: 2,
-    width: 3,
-    height: 9,
+    width: 288,
+    height: 864,
     arrangement: "vertical",
-    unit: "in",
-    gap: 0.1,
+    unit: "px",
+    gap: 10,
+    paddings: {
+      top: 10,
+      right: 10,
+      left: 10,
+      bottom: 20,
+    },
   },
-  // 4: {
-  //   maxPhotos: 3,
-  //   width: 9,
-  //   height: 3,
-  //   arrangement: "horizontal",
-  //   unit: "in",
-  // },
-  // 5: { maxPhotos: 4, width: 6, height: 9, arrangement: "grid", unit: "in" },
-  // 6: { maxPhotos: 2, width: 9, height: 6, arrangement: "grid", unit: "in" },
+  4: {
+    maxPhotos: 4,
+    width: 576,
+    height: 864,
+    arrangement: "grid",
+    unit: "px",
+    gap: 10,
+    paddings: {
+      top: 10,
+      right: 10,
+      left: 10,
+      bottom: 50,
+    },
+    gridTemplate: {
+      columns: 2,
+      rows: 2,
+    },
+  },
 };
 
 export const SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".svg", ".gif"];
@@ -55,4 +103,14 @@ export interface Element {
   width: number;
   height: number;
   zIndex: number; // For layer management
+}
+
+export interface Sticker {
+  id: number;
+  image: HTMLImageElement;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
 }
