@@ -1,13 +1,16 @@
+// App.tsx
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import PhotoStrip from "./components/PhotoStrip";
 import FrameControls from "./components/FrameControls";
 import CameraFeed from "./components/CameraFeed";
+import SequentialGif from "./components/SequentialGif";
 import { LAYOUTS } from "./constants";
 import { v4 as uuidv4 } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useDropzone } from "react-dropzone";
+import GradientBackground from "./components/GradientBackground";
 
 interface Photo {
   id: string;
@@ -39,7 +42,11 @@ const App: React.FC = () => {
   const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>(
     []
   );
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [isCreatingGif, setIsCreatingGif] = useState(false);
   const photoStripRef: any = useRef<HTMLDivElement>(null);
+  const sequentialGifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     requestCameraPermission();
@@ -64,6 +71,9 @@ const App: React.FC = () => {
     setSelectedPreviewPhotos([]);
     setStickers([]);
     setUploadedStickers([]);
+    setTimerEnabled(false);
+    setGifUrl(null);
+    setIsCreatingGif(false);
   };
 
   const handlePhotoCapture = (photo: string) => {
@@ -72,7 +82,11 @@ const App: React.FC = () => {
       return;
     }
     const newPhoto: Photo = { id: uuidv4(), url: photo };
-    setPreviewPhotos([...previewPhotos, newPhoto]);
+    setPreviewPhotos((prev) => [...prev, newPhoto]);
+  };
+
+  const handleGifComplete = (gifUrl: string) => {
+    setGifUrl(gifUrl);
   };
 
   const handlePhotoUpload = (files: File[]) => {
@@ -92,7 +106,7 @@ const App: React.FC = () => {
       });
     });
     Promise.all(newPhotos).then((photos) =>
-      setPreviewPhotos([...previewPhotos, ...photos])
+      setPreviewPhotos((prev) => [...prev, ...photos])
     );
   };
 
@@ -106,7 +120,7 @@ const App: React.FC = () => {
     } else if (capturedPhotos.length < LAYOUTS[layout].maxPhotos) {
       const photoToAdd = previewPhotos.find((photo) => photo.id === id);
       if (photoToAdd) {
-        setCapturedPhotos([...capturedPhotos, photoToAdd]);
+        setCapturedPhotos((prev) => [...prev, photoToAdd]);
         setSelectedPreviewPhotos((prev) => [...prev, id]);
       }
     } else {
@@ -115,7 +129,7 @@ const App: React.FC = () => {
   };
 
   const deletePreviewPhoto = (id: string) => {
-    setPreviewPhotos(previewPhotos.filter((photo) => photo.id !== id));
+    setPreviewPhotos((prev) => prev.filter((photo) => photo.id !== id));
     if (selectedPreviewPhotos.includes(id)) {
       setCapturedPhotos((prev) => prev.filter((photo) => photo.id !== id));
       setSelectedPreviewPhotos((prev) =>
@@ -132,7 +146,7 @@ const App: React.FC = () => {
 
   return (
     <div className="app" tabIndex={0}>
-      <h1>Photobooth</h1>
+      <GradientBackground />
       <div className="main-container">
         {hasPermission ? (
           <div className="controls-and-strip">
@@ -141,11 +155,21 @@ const App: React.FC = () => {
                 <div>
                   <CameraFeed
                     onCapture={handlePhotoCapture}
+                    onGifComplete={handleGifComplete}
                     layout={layout}
                     maxPhotos={LAYOUTS[layout].maxPhotos}
                     currentPhotos={capturedPhotos.length}
                     showCamera={true}
+                    timerEnabled={timerEnabled}
+                    setIsCreatingGif={setIsCreatingGif}
                   />
+                  <div style={{ marginTop: "20px" }}>
+                    <SequentialGif
+                      ref={sequentialGifRef}
+                      gifUrl={gifUrl}
+                      isCreatingGif={isCreatingGif}
+                    />
+                  </div>
                   <div className="preview-photos">
                     <h3>Preview Photos</h3>
                     <div className="preview-photos-list">
@@ -220,6 +244,8 @@ const App: React.FC = () => {
                   setStickers={setStickers}
                   uploadedStickers={uploadedStickers}
                   setUploadedStickers={setUploadedStickers}
+                  timerEnabled={timerEnabled}
+                  onTimerToggle={setTimerEnabled}
                 />
                 <PhotoStrip
                   ref={photoStripRef}

@@ -83,6 +83,20 @@ export const LAYOUTS: Record<number, Layout> = {
       rows: 2,
     },
   },
+  5: {
+    maxPhotos: 3,
+    width: 864,
+    height: 288,
+    arrangement: "horizontal",
+    unit: "px",
+    gap: 10,
+    paddings: {
+      top: 15,
+      right: 15,
+      left: 15,
+      bottom: 15,
+    },
+  }
 };
 
 export const SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".svg", ".gif"];
