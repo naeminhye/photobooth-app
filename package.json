@@ -18,6 +18,7 @@
     "@types/react-dom": "^19.0.4",
     "@types/react-resizable": "^3.0.8",
     "framer-motion": "^12.4.7",
+    "gif.js": "^0.2.0",
     "html2canvas": "^1.4.1",
     "motion": "^12.4.7",
     "react": "^18.0.0",
@@ -60,6 +61,7 @@
     ]
   },
   "devDependencies": {
+    "@types/gif.js": "^0.2.5",
     "@types/react-dropzone": "^5.1.0",
     "@types/uuid": "^10.0.0",
     "gh-pages": "^6.3.0"

@@ -1,8 +1,8 @@
+// components/FrameControls/index.tsx
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
 import html2canvas from "html2canvas";
-
 import { LAYOUTS } from "../../constants";
 import "./styles.css";
 
@@ -33,6 +33,8 @@ interface FrameControlsProps {
   setStickers: React.Dispatch<React.SetStateAction<Sticker[]>>;
   uploadedStickers: HTMLImageElement[];
   setUploadedStickers: React.Dispatch<React.SetStateAction<HTMLImageElement[]>>;
+  timerEnabled: boolean;
+  onTimerToggle: (enabled: boolean) => void;
 }
 
 const FrameControls: React.FC<FrameControlsProps> = ({
@@ -52,6 +54,8 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   setStickers,
   uploadedStickers,
   setUploadedStickers,
+  timerEnabled,
+  onTimerToggle,
 }) => {
   const [activeTab, setActiveTab] = useState("Layout");
 
@@ -91,6 +95,17 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     if (file) {
       const reader = new FileReader();
       reader.onload = () => onForegroundChange(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBackgroundUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => onBackgroundChange(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -153,12 +168,22 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                   </option>
                 ))}
               </select>
+              <div className="timer-toggle">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={timerEnabled}
+                    onChange={(e) => onTimerToggle(e.target.checked)}
+                  />
+                  <span>Enable Timer Countdown</span>
+                </label>
+              </div>
             </div>
           )}
           {activeTab === "Background" && (
             <div className="frame-controls-section">
               <label className="frame-controls-label">
-                Select Background Color or Image
+                Background Color or Image
               </label>
               {!backgroundImage && (
                 <input
@@ -169,9 +194,9 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                 />
               )}
               {backgroundImage ? (
-                <div style={{ position: "relative", padding: "1px" }}>
+                <div className="image-preview-container">
                   <img
-                    style={{ width: "100%", border: "1px solid black" }}
+                    className="image-preview"
                     src={backgroundImage}
                     alt="Background Preview"
                   />
@@ -183,63 +208,73 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                   </button>
                 </div>
               ) : (
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = () =>
-                        onBackgroundChange(reader.result as string);
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
+                <label className="upload-button">
+                  <FontAwesomeIcon icon={faUpload} /> Upload Background
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBackgroundUpload}
+                    className="frame-controls-file-input"
+                    hidden
+                  />
+                </label>
               )}
             </div>
           )}
           {activeTab === "Foreground" && (
             <div className="frame-controls-section">
               <label className="frame-controls-label">
-                Select Foreground Image
+                Foreground Image
               </label>
-              <input
-                type="file"
-                accept="image/png"
-                onChange={handleForegroundUpload}
-              />
-              {foregroundImage && (
-                <button
-                  onClick={() => onForegroundChange(null)}
-                  className="frame-controls-button"
-                >
-                  Remove Foreground Image
-                </button>
+              {foregroundImage ? (
+                <div className="image-preview-container">
+                  <img
+                    className="image-preview"
+                    src={foregroundImage}
+                    alt="Foreground Preview"
+                  />
+                  <button
+                    className="remove-button"
+                    onClick={() => onForegroundChange(null)}
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
+              ) : (
+                <label className="upload-button">
+                  <FontAwesomeIcon icon={faUpload} /> Upload Foreground
+                  <input
+                    type="file"
+                    accept="image/png"
+                    onChange={handleForegroundUpload}
+                    className="frame-controls-file-input"
+                    hidden
+                  />
+                </label>
               )}
             </div>
           )}
           {activeTab === "Stickers" && (
             <div className="frame-controls-section">
-              <label className="frame-controls-label">Add Sticker</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleStickerUpload}
-              />
+              <label className="frame-controls-label">Add Stickers</label>
+              <label className="upload-button">
+                <FontAwesomeIcon icon={faUpload} /> Upload Stickers
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleStickerUpload}
+                  className="frame-controls-file-input"
+                  hidden
+                />
+              </label>
               <div className="sticker-preview">
                 {uploadedStickers.map((sticker, index) => (
                   <img
                     key={index}
                     src={sticker.src}
                     alt="Sticker"
-                    style={{
-                      width: "50px",
-                      height: "50px",
-                      margin: "5px",
-                      cursor: "pointer",
-                    }}
+                    className="sticker-item"
                     onClick={() => addStickerToCanvas(sticker)}
                   />
                 ))}
@@ -248,26 +283,26 @@ const FrameControls: React.FC<FrameControlsProps> = ({
           )}
         </div>
       </div>
-      <button
-        className="frame-controls-button frame-controls-button-danger"
-        onClick={onReset}
-        style={{
-          marginTop: "10px",
-          display: capturedPhotos.length > 0 ? "inline-block" : "none",
-        }}
-      >
-        Reset All
-      </button>
-      <button
-        className="frame-controls-button frame-controls-button-success"
-        onClick={downloadImage}
-        style={{
-          marginTop: "10px",
-          display: capturedPhotos.length > 0 ? "inline-block" : "none",
-        }}
-      >
-        Download
-      </button>
+      <div className="frame-controls-actions">
+        <button
+          className="frame-controls-button frame-controls-button-danger"
+          onClick={onReset}
+          style={{
+            display: capturedPhotos.length > 0 ? "inline-block" : "none",
+          }}
+        >
+          Reset All
+        </button>
+        <button
+          className="frame-controls-button frame-controls-button-success"
+          onClick={downloadImage}
+          style={{
+            display: capturedPhotos.length > 0 ? "inline-block" : "none",
+          }}
+        >
+          Download
+        </button>
+      </div>
     </div>
   );
 };

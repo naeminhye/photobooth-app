@@ -1,99 +1,144 @@
-// components/CameraFeed.tsx
+// components/CameraFeed/index.tsx
 import React, { useRef, useEffect, useState } from "react";
+import Webcam from "react-webcam";
+import GIF from "gif.js";
 
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
+  onGifComplete: (gifUrl: string) => void;
   layout: number;
   maxPhotos: number;
   currentPhotos: number;
   showCamera: boolean;
+  timerEnabled: boolean;
+  setIsCreatingGif: (isCreating: boolean) => void;
 }
 
 const CameraFeed: React.FC<CameraFeedProps> = ({
   onCapture,
+  onGifComplete,
   layout,
   maxPhotos,
   currentPhotos,
   showCamera,
+  timerEnabled,
+  setIsCreatingGif,
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const captureButtonRef = useRef<HTMLButtonElement>(null);
   const [isHolding, setIsHolding] = useState(false);
-  const [isVideoReady, setIsVideoReady] = useState(false); // Track video readiness
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const gifFrames = useRef<ImageData[]>([]);
+  const [photoCount, setPhotoCount] = useState(0);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   useEffect(() => {
     if (showCamera) {
-      startCamera();
-    } else {
-      stopCamera(); // Stop camera stream when limit is reached or camera interaction disabled
+      setIsVideoReady(true);
     }
     return () => {
-      stopCamera(); // Clean up on unmount
+      setIsVideoReady(false);
     };
   }, [showCamera, layout]);
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
-          setIsVideoReady(true); // Set video as ready when metadata is loaded
-        };
-      }
-    } catch (error) {
-      console.error("Camera error:", error);
-    }
-  };
-
-  const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
-      setIsVideoReady(false); // Reset video readiness
-    }
-  };
-
   const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current && showCamera && isVideoReady) {
-      console.log("Capturing photo, video ready:", isVideoReady); // Debug log
-      const context = canvasRef.current.getContext("2d");
-      if (context) {
-        canvasRef.current.width = 600; // Fixed width for 600x450
-        canvasRef.current.height = 450; // Fixed height for 600x450
-        try {
-          context.drawImage(videoRef.current, 0, 0, 600, 450);
-          const photo = canvasRef.current.toDataURL("image/png");
-          onCapture(photo);
-        } catch (error) {
-          console.error("Error in drawImage:", error);
-        }
+    if (webcamRef.current && isVideoReady) {
+      const photo = webcamRef.current.getScreenshot();
+      if (photo) {
+        onCapture(photo);
+        setPhotoCount((prev) => prev + 1);
       }
-    } else {
-      console.warn(
-        "Cannot capture photo: Video not ready or conditions not met",
-        {
-          isVideoReady,
-          // isLimitReached,
-          showCamera,
-        }
-      );
     }
+  };
+
+  const captureFrame = () => {
+    if (webcamRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const context = canvas.getContext("2d");
+      if (context) {
+        canvas.width = 600;
+        canvas.height = 450;
+        context.drawImage(webcamRef.current.video!, 0, 0, 600, 450);
+        return context.getImageData(0, 0, 600, 450);
+      }
+    }
+    return null;
+  };
+
+  const createGif = () => {
+    if (!gifFrames.current?.length) {
+      console.error("No frames to create GIF");
+      setIsCapturing(false);
+      setIsCreatingGif(false);
+      return;
+    }
+
+    setIsCreatingGif(true);
+
+    const gif = new GIF({
+      workers: 2,
+      quality: 1,
+      workerScript: process.env.PUBLIC_URL + "/gif.worker.js",
+      width: 600,
+      height: 450,
+    });
+
+    gifFrames.current.forEach((frame) => gif.addFrame(frame, { delay: 200 }));
+
+    gif.on("finished", (blob) => {
+      const gifUrl = URL.createObjectURL(blob);
+      onGifComplete(gifUrl);
+      gifFrames.current = [];
+      setIsCapturing(false);
+      setIsCreatingGif(false);
+    });
+
+    gif.render();
+  };
+
+  const runCountdown = async () => {
+    for (let i = 0; i < maxPhotos; i++) {
+      if (!webcamRef.current) break;
+
+      for (let sec = 10; sec > 0; sec--) {
+        setCountdown(sec);
+        const frame = captureFrame();
+        if (frame) {
+          gifFrames.current.push(frame);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      capturePhoto();
+    }
+
+    setCountdown(null);
+    createGif();
+  };
+
+  const startCountdown = () => {
+    if (photoCount >= maxPhotos || isCapturing) return;
+    setIsCapturing(true);
+    gifFrames.current = [];
+    runCountdown();
   };
 
   const handleMouseDown = () => {
-    if (showCamera) {
+    if (showCamera && photoCount < maxPhotos && !isCapturing) {
       setIsHolding(true);
     }
   };
 
   const handleMouseUp = () => {
-    if (showCamera && isHolding) {
+    if (showCamera && isHolding && photoCount < maxPhotos && !isCapturing) {
       setIsHolding(false);
-      capturePhoto();
+      if (timerEnabled) {
+        startCountdown();
+      } else {
+        capturePhoto();
+      }
     }
   };
 
@@ -104,15 +149,19 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const handleTouchStart = () => {
-    if (showCamera) {
+    if (showCamera && photoCount < maxPhotos && !isCapturing) {
       setIsHolding(true);
     }
   };
 
   const handleTouchEnd = () => {
-    if (showCamera && isHolding) {
+    if (showCamera && isHolding && photoCount < maxPhotos && !isCapturing) {
       setIsHolding(false);
-      capturePhoto();
+      if (timerEnabled) {
+        startCountdown();
+      } else {
+        capturePhoto();
+      }
     }
   };
 
@@ -126,25 +175,47 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     <div
       className="camera-feed"
       style={{
-        width: "600px", // Fixed width
-        height: "450px", // Fixed height
+        width: "600px",
+        height: "450px",
         position: "relative",
-        background: "#000", // Black background for camera view
-        border: "2px solid #fff", // White border for a clean look
-        borderRadius: "10px", // Rounded corners for modern look
+        background: "#000",
+        border: "2px solid #fff",
+        borderRadius: "10px",
         overflow: "hidden",
       }}
     >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-        }}
-      />
+      {showCamera && (
+        <Webcam
+          audio={false}
+          ref={webcamRef}
+          screenshotFormat="image/png"
+          width={600}
+          height={450}
+          mirrored={true}
+          videoConstraints={{
+            width: 600,
+            height: 450,
+            facingMode: "user",
+          }}
+        />
+      )}
+      {countdown !== null && (
+        <div
+          style={{
+            position: "absolute",
+            top: "10px",
+            left: "10px",
+            color: "white",
+            fontSize: "40px",
+            fontWeight: "bold",
+            background: "rgba(0, 0, 0, 0.5)",
+            padding: "5px 10px",
+            borderRadius: "5px",
+          }}
+        >
+          {countdown}
+        </div>
+      )}
       <button
         ref={captureButtonRef}
         onMouseDown={handleMouseDown}
@@ -155,10 +226,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         onTouchCancel={handleTouchCancel}
         className="shutter-button"
         style={{
-          transform: isHolding ? "scale(0.8)" : "scale(1)", // Squeeze effect only when interactive
+          transform: isHolding ? "scale(0.8)" : "scale(1)",
         }}
+        disabled={photoCount >= maxPhotos || isCapturing}
       >
-        {/* Optional inner circle for visual feedback */}
         <div
           style={{
             width: "40px",

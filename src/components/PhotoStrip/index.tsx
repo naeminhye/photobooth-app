@@ -1,4 +1,12 @@
-import React, { useRef, useEffect, useState, forwardRef, useCallback, useMemo } from "react";
+// components/PhotoStrip/index.tsx
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  forwardRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { LAYOUTS } from "../../constants";
 
 interface Photo {
@@ -41,7 +49,9 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
   ) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [selectedSticker, setSelectedSticker] = useState<number | null>(null);
-    const [dragging, setDragging] = useState<"move" | "resize" | "rotate" | null>(null);
+    const [dragging, setDragging] = useState<
+      "move" | "resize" | "rotate" | null
+    >(null);
     const [startX, setStartX] = useState(0);
     const [startY, setStartY] = useState(0);
     const [resizeHandle, setResizeHandle] = useState<number | null>(null);
@@ -64,29 +74,56 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     const gridRows = currentLayout.gridTemplate?.rows || 1;
 
     const photoSize = useMemo<{ width: number; height: number }>(() => {
-      let width = 0, height = 0;
+      let width = 0,
+        height = 0;
       if (arrangement === "grid") {
-        width = (stripWidth - PADDING_LEFT - PADDING_RIGHT - (gridColumns - 1) * GAP) / gridColumns;
-        height = (stripHeight - PADDING_TOP - PADDING_BOTTOM - (gridRows - 1) * GAP) / gridRows;
+        width =
+          (stripWidth -
+            PADDING_LEFT -
+            PADDING_RIGHT -
+            (gridColumns - 1) * GAP) /
+          gridColumns;
+        height =
+          (stripHeight - PADDING_TOP - PADDING_BOTTOM - (gridRows - 1) * GAP) /
+          gridRows;
       } else if (arrangement === "vertical") {
         width = stripWidth - PADDING_LEFT - PADDING_RIGHT;
-        height = (stripHeight - PADDING_TOP - PADDING_BOTTOM - (maxPhotos - 1) * GAP) / maxPhotos;
+        height =
+          (stripHeight - PADDING_TOP - PADDING_BOTTOM - (maxPhotos - 1) * GAP) /
+          maxPhotos;
       } else {
-        width = (stripWidth - PADDING_LEFT - PADDING_RIGHT - (maxPhotos - 1) * GAP) / maxPhotos;
+        width =
+          (stripWidth - PADDING_LEFT - PADDING_RIGHT - (maxPhotos - 1) * GAP) /
+          maxPhotos;
         height = stripHeight - PADDING_TOP - PADDING_BOTTOM;
       }
       return { width, height };
-    }, [stripWidth, stripHeight, arrangement, maxPhotos, GAP, PADDING_TOP, PADDING_BOTTOM, PADDING_LEFT, PADDING_RIGHT, gridColumns, gridRows]);
+    }, [
+      stripWidth,
+      stripHeight,
+      arrangement,
+      maxPhotos,
+      GAP,
+      PADDING_TOP,
+      PADDING_BOTTOM,
+      PADDING_LEFT,
+      PADDING_RIGHT,
+      gridColumns,
+      gridRows,
+    ]);
 
     const backgroundImg = useRef<HTMLImageElement | null>(null);
     const foregroundImg = useRef<HTMLImageElement | null>(null);
     const photoImages = useRef<(HTMLImageElement | null)[]>([]);
 
-    const autoCropImage = (src: string, callback: (croppedImg: HTMLImageElement) => void) => {
+    const autoCropImage = (
+      src: string,
+      callback: (croppedImg: HTMLImageElement) => void
+    ) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
         canvas.width = photoSize.width;
@@ -108,11 +145,21 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           sy = (img.height - sHeight) / 2;
         }
 
-        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, photoSize.width, photoSize.height);
+        ctx.drawImage(
+          img,
+          sx,
+          sy,
+          sWidth,
+          sHeight,
+          0,
+          0,
+          photoSize.width,
+          photoSize.height
+        );
 
         const croppedImg = new Image();
         croppedImg.onload = () => callback(croppedImg);
-        croppedImg.src = canvas.toDataURL('image/jpeg');
+        croppedImg.src = canvas.toDataURL("image/jpeg");
       };
       img.src = src;
     };
@@ -144,7 +191,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         redrawCanvas();
       }
 
-      // Crop và preload photos
+      // Crop & preload photos
       photoImages.current = [];
       photos.forEach((photo, index) => {
         autoCropImage(photo.url, (croppedImg) => {
@@ -158,12 +205,21 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         });
       });
 
-      // Nếu không có ảnh nào, thêm placeholder ngay lập tức
       if (photos.length === 0) {
         photoImages.current = Array(maxPhotos).fill(null);
         redrawCanvas();
       }
-    }, [photos, stickers, selectedSticker, backgroundImage, frameColor, foregroundImage, layout, maxPhotos, photoSize]);
+    }, [
+      photos,
+      stickers,
+      selectedSticker,
+      backgroundImage,
+      frameColor,
+      foregroundImage,
+      layout,
+      maxPhotos,
+      photoSize,
+    ]);
 
     const redrawCanvas = useCallback(() => {
       const canvas = canvasRef.current;
@@ -175,7 +231,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       canvas.height = stripHeight;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Vẽ Background
+      // 1. Draw Background
       if (backgroundImg.current) {
         ctx.drawImage(backgroundImg.current, 0, 0, canvas.width, canvas.height);
       } else {
@@ -183,7 +239,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // 2. Vẽ Photos hoặc Placeholder
+      // 2. Draw Photos or Placeholder
       if (isGrid) {
         for (let row = 0; row < gridRows; row++) {
           for (let col = 0; col < gridColumns; col++) {
@@ -195,54 +251,97 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             const photoImg = photoImages.current[index];
 
             if (photoImg) {
-              ctx.drawImage(photoImg, xPosition, yPosition, photoSize.width, photoSize.height);
+              ctx.drawImage(
+                photoImg,
+                xPosition,
+                yPosition,
+                photoSize.width,
+                photoSize.height
+              );
             } else {
               ctx.strokeStyle = "#999";
               ctx.lineWidth = 2;
               ctx.setLineDash([5, 5]);
-              ctx.strokeRect(xPosition, yPosition, photoSize.width, photoSize.height);
+              ctx.strokeRect(
+                xPosition,
+                yPosition,
+                photoSize.width,
+                photoSize.height
+              );
               ctx.setLineDash([]);
               ctx.fillStyle = "#999";
               ctx.font = "40px Arial";
               ctx.textAlign = "center";
               ctx.textBaseline = "middle";
-              ctx.fillText("+", xPosition + photoSize.width / 2, yPosition + photoSize.height / 2);
+              ctx.fillText(
+                "+",
+                xPosition + photoSize.width / 2,
+                yPosition + photoSize.height / 2
+              );
             }
           }
         }
       } else {
         for (let index = 0; index < maxPhotos; index++) {
-          const yPosition = PADDING_TOP + index * (photoSize.height + GAP);
+          const xPosition =
+            arrangement === "vertical"
+              ? PADDING_LEFT
+              : PADDING_LEFT + index * (photoSize.width + GAP);
+          const yPosition =
+            arrangement === "vertical"
+              ? PADDING_TOP + index * (photoSize.height + GAP)
+              : PADDING_TOP;
           const photoImg = photoImages.current[index];
 
           if (photoImg) {
-            ctx.drawImage(photoImg, PADDING_LEFT, yPosition, photoSize.width, photoSize.height);
+            ctx.drawImage(
+              photoImg,
+              xPosition,
+              yPosition,
+              photoSize.width,
+              photoSize.height
+            );
           } else {
             ctx.strokeStyle = "#999";
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
-            ctx.strokeRect(PADDING_LEFT, yPosition, photoSize.width, photoSize.height);
+            ctx.strokeRect(
+              xPosition,
+              yPosition,
+              photoSize.width,
+              photoSize.height
+            );
             ctx.setLineDash([]);
             ctx.fillStyle = "#999";
             ctx.font = "40px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("+", PADDING_LEFT + photoSize.width / 2, yPosition + photoSize.height / 2);
+            ctx.fillText(
+              "+",
+              xPosition + photoSize.width / 2,
+              yPosition + photoSize.height / 2
+            );
           }
         }
       }
 
-      // 3. Vẽ Foreground
+      // 3. Draw Foreground
       if (foregroundImg.current) {
         ctx.drawImage(foregroundImg.current, 0, 0, canvas.width, canvas.height);
       }
 
-      // 4. Vẽ Stickers (trên cùng)
+      // 4. Draw Stickers
       stickers.forEach((sticker) => {
         ctx.save();
         ctx.translate(sticker.x, sticker.y);
         ctx.rotate((sticker.rotation * Math.PI) / 180);
-        ctx.drawImage(sticker.image, -sticker.width / 2, -sticker.height / 2, sticker.width, sticker.height);
+        ctx.drawImage(
+          sticker.image,
+          -sticker.width / 2,
+          -sticker.height / 2,
+          sticker.width,
+          sticker.height
+        );
         ctx.restore();
 
         if (selectedSticker === sticker.id) {
@@ -252,7 +351,12 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
           ctx.strokeStyle = "blue";
           ctx.lineWidth = 2;
-          ctx.strokeRect(-sticker.width / 2, -sticker.height / 2, sticker.width, sticker.height);
+          ctx.strokeRect(
+            -sticker.width / 2,
+            -sticker.height / 2,
+            sticker.width,
+            sticker.height
+          );
 
           ctx.fillStyle = "white";
           ctx.strokeStyle = "blue";
@@ -263,16 +367,42 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             [-sticker.width / 2, sticker.height / 2],
           ];
           handles.forEach(([x, y]) => {
-            ctx.fillRect(x - HANDLE_SIZE / 2, y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
-            ctx.strokeRect(x - HANDLE_SIZE / 2, y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
+            ctx.fillRect(
+              x - HANDLE_SIZE / 2,
+              y - HANDLE_SIZE / 2,
+              HANDLE_SIZE,
+              HANDLE_SIZE
+            );
+            ctx.strokeRect(
+              x - HANDLE_SIZE / 2,
+              y - HANDLE_SIZE / 2,
+              HANDLE_SIZE,
+              HANDLE_SIZE
+            );
           });
 
-          ctx.fillRect(sticker.width / 2 - HANDLE_SIZE / 2, -sticker.height / 2 - 20, HANDLE_SIZE, HANDLE_SIZE);
-          ctx.strokeRect(sticker.width / 2 - HANDLE_SIZE / 2, -sticker.height / 2 - 20, HANDLE_SIZE, HANDLE_SIZE);
+          ctx.fillRect(
+            sticker.width / 2 - HANDLE_SIZE / 2,
+            -sticker.height / 2 - 20,
+            HANDLE_SIZE,
+            HANDLE_SIZE
+          );
+          ctx.strokeRect(
+            sticker.width / 2 - HANDLE_SIZE / 2,
+            -sticker.height / 2 - 20,
+            HANDLE_SIZE,
+            HANDLE_SIZE
+          );
 
           ctx.fillStyle = "red";
           ctx.beginPath();
-          ctx.arc(-sticker.width / 2 + 20, -sticker.height / 2 - 20, 10, 0, Math.PI * 2);
+          ctx.arc(
+            -sticker.width / 2 + 20,
+            -sticker.height / 2 - 20,
+            10,
+            0,
+            Math.PI * 2
+          );
           ctx.fill();
           ctx.fillStyle = "white";
           ctx.font = "12px Arial";
@@ -281,7 +411,21 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           ctx.restore();
         }
       });
-    }, [stripWidth, stripHeight, frameColor, isGrid, maxPhotos, gridColumns, gridRows, photoSize, PADDING_LEFT, PADDING_TOP, GAP, stickers, selectedSticker]);
+    }, [
+      stripWidth,
+      stripHeight,
+      frameColor,
+      isGrid,
+      maxPhotos,
+      gridColumns,
+      gridRows,
+      photoSize,
+      PADDING_LEFT,
+      PADDING_TOP,
+      GAP,
+      stickers,
+      selectedSticker,
+    ]);
 
     const getStickerAtPoint = (x: number, y: number, sticker: Sticker) => {
       const cos = Math.cos((-sticker.rotation * Math.PI) / 180);
@@ -296,21 +440,34 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       const top = -sticker.height / 2;
       const bottom = sticker.height / 2;
 
-      const inBounds = transformedX >= left && transformedX <= right && transformedY >= top && transformedY <= bottom;
+      const inBounds =
+        transformedX >= left &&
+        transformedX <= right &&
+        transformedY >= top &&
+        transformedY <= bottom;
 
       const atResizeHandle = [
         [left, top],
         [right, top],
         [right, bottom],
         [left, bottom],
-      ].map(([hx, hy], i) => ({
-        index: i,
-        hit: Math.abs(transformedX - hx) < HANDLE_SIZE && Math.abs(transformedY - hy) < HANDLE_SIZE,
-      })).find(h => h.hit);
+      ]
+        .map(([hx, hy], i) => ({
+          index: i,
+          hit:
+            Math.abs(transformedX - hx) < HANDLE_SIZE &&
+            Math.abs(transformedY - hy) < HANDLE_SIZE,
+        }))
+        .find((h) => h.hit);
 
-      const atRotateHandle = Math.abs(transformedX - right) < HANDLE_SIZE && Math.abs(transformedY - (top - 20)) < HANDLE_SIZE;
+      const atRotateHandle =
+        Math.abs(transformedX - right) < HANDLE_SIZE &&
+        Math.abs(transformedY - (top - 20)) < HANDLE_SIZE;
 
-      const atDeleteHandle = Math.sqrt((transformedX - (left + 20)) ** 2 + (transformedY - (top - 20)) ** 2) < 10;
+      const atDeleteHandle =
+        Math.sqrt(
+          (transformedX - (left + 20)) ** 2 + (transformedY - (top - 20)) ** 2
+        ) < 10;
 
       return { inBounds, atResizeHandle, atRotateHandle, atDeleteHandle };
     };
@@ -324,7 +481,12 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
       const clickedSticker = stickers.find((sticker) => {
         const hit = getStickerAtPoint(x, y, sticker);
-        return hit.inBounds || hit.atResizeHandle || hit.atRotateHandle || hit.atDeleteHandle;
+        return (
+          hit.inBounds ||
+          hit.atResizeHandle ||
+          hit.atRotateHandle ||
+          hit.atDeleteHandle
+        );
       });
 
       if (clickedSticker) {
@@ -372,7 +534,9 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           const moveY = -dx * sin + dy * cos;
           setStickers((prev) =>
             prev.map((s) =>
-              s.id === selectedSticker ? { ...s, x: s.x + moveX, y: s.y + moveY } : s
+              s.id === selectedSticker
+                ? { ...s, x: s.x + moveX, y: s.y + moveY }
+                : s
             )
           );
         } else if (dragging === "resize" && resizeHandle !== null) {
@@ -392,7 +556,9 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
           setStickers((prev) =>
             prev.map((s) =>
-              s.id === selectedSticker ? { ...s, width: newWidth, height: newHeight } : s
+              s.id === selectedSticker
+                ? { ...s, width: newWidth, height: newHeight }
+                : s
             )
           );
         } else if (dragging === "rotate") {
@@ -403,7 +569,9 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           const angleDiff = ((currentAngle - startAngle) * 180) / Math.PI;
           setStickers((prev) =>
             prev.map((s) =>
-              s.id === selectedSticker ? { ...s, rotation: (s.rotation + angleDiff) % 360 } : s
+              s.id === selectedSticker
+                ? { ...s, rotation: (s.rotation + angleDiff) % 360 }
+                : s
             )
           );
         }
@@ -427,7 +595,10 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          style={{ border: "1px solid black", cursor: dragging ? "grabbing" : "default" }}
+          style={{
+            border: "1px solid black",
+            cursor: dragging ? "grabbing" : "default",
+          }}
         />
       </div>
     );
