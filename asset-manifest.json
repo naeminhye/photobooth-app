@@ -1,12 +1,12 @@
 {
   "files": {
-    "main.css": "/photoboot-app/static/css/main.a00e6777.css",
-    "main.js": "/photoboot-app/static/js/main.0c8e6cf6.js",
-    "static/js/206.496a4b79.chunk.js": "/photoboot-app/static/js/206.496a4b79.chunk.js",
-    "index.html": "/photoboot-app/index.html"
+    "main.css": "/photobooth-app/static/css/main.c8a2dfe4.css",
+    "main.js": "/photobooth-app/static/js/main.e98d8d22.js",
+    "static/js/206.496a4b79.chunk.js": "/photobooth-app/static/js/206.496a4b79.chunk.js",
+    "index.html": "/photobooth-app/index.html"
   },
   "entrypoints": [
-    "static/css/main.a00e6777.css",
-    "static/js/main.0c8e6cf6.js"
+    "static/css/main.c8a2dfe4.css",
+    "static/js/main.e98d8d22.js"
   ]
 }
