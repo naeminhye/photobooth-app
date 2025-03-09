@@ -58,15 +58,15 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     const photoStrip = photoStripRef.current;
     if (photoStrip) {
       html2canvas(photoStrip, {
-        scale: 1,
+        scale: 2, // Tăng scale lên 2 (hoặc 3 nếu cần DPI cao hơn)
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
       })
         .then((canvas) => {
           const link = document.createElement("a");
-          link.download = `photobooth_${Date.now()}.png`;
-          link.href = canvas.toDataURL("image/png");
+          link.download = `photobooth_${Date.now()}.jpg`; // Đổi sang JPG
+          link.href = canvas.toDataURL("image/jpeg", 1.0); // Chất lượng tối đa
           link.click();
         })
         .catch((error) => {

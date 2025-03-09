@@ -1,3 +1,4 @@
+// components/CameraFeed/index.tsx
 import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
 import GIF from "gif.js";
@@ -49,7 +50,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
   const capturePhoto = () => {
     if (webcamRef.current && isVideoReady) {
-      const photo = webcamRef.current.getScreenshot();
+      const photo = webcamRef.current.getScreenshot({
+        width: 1920, // Tăng độ phân giải ảnh chụp
+        height: 1440,
+      });
       if (photo) {
         onCapture(photo);
         setPhotoCount((prev) => prev + 1);
@@ -192,13 +196,14 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         <Webcam
           audio={false}
           ref={webcamRef}
-          screenshotFormat="image/png"
+          screenshotFormat="image/jpeg" // Chuyển sang JPEG để tối ưu chất lượng
+          screenshotQuality={1} // Chất lượng tối đa (0-1)
           width={CAMERA_WIDTH}
           height={CAMERA_HEIGHT}
           mirrored={isMirrored}
           videoConstraints={{
-            width: CAMERA_WIDTH * 2,
-            height: CAMERA_HEIGHT * 2,
+            width: 1920, // Tăng độ phân giải webcam
+            height: 1440,
             facingMode: "user",
           }}
         />
