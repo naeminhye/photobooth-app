@@ -2,6 +2,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
 import GIF from "gif.js";
+import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
@@ -58,10 +59,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d");
       if (context) {
-        canvas.width = 600;
-        canvas.height = 450;
-        context.drawImage(webcamRef.current.video!, 0, 0, 600, 450);
-        return context.getImageData(0, 0, 600, 450);
+        canvas.width = CAMERA_WIDTH;
+        canvas.height = CAMERA_HEIGHT;
+        context.drawImage(webcamRef.current.video!, 0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+        return context.getImageData(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
       }
     }
     return null;
@@ -81,8 +82,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       workers: 2,
       quality: 1,
       workerScript: process.env.PUBLIC_URL + "/gif.worker.js",
-      width: 600,
-      height: 450,
+      width: CAMERA_WIDTH,
+      height: CAMERA_HEIGHT,
     });
 
     gifFrames.current.forEach((frame) => gif.addFrame(frame, { delay: 200 }));
@@ -175,8 +176,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     <div
       className="camera-feed"
       style={{
-        width: "600px",
-        height: "450px",
+        width: `${CAMERA_WIDTH}px`,
+        height: `${CAMERA_HEIGHT}px`,
         position: "relative",
         background: "#000",
         border: "2px solid #fff",
@@ -189,12 +190,12 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
           audio={false}
           ref={webcamRef}
           screenshotFormat="image/png"
-          width={600}
-          height={450}
+          width={CAMERA_WIDTH}
+          height={CAMERA_HEIGHT}
           mirrored={true}
           videoConstraints={{
-            width: 600,
-            height: 450,
+            width: CAMERA_WIDTH * 2,
+            height: CAMERA_HEIGHT * 2,
             facingMode: "user",
           }}
         />

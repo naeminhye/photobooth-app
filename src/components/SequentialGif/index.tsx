@@ -2,6 +2,7 @@
 import React, { forwardRef } from "react";
 
 import "./styles.css";
+import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 
 interface SequentialGifProps {
   gifUrl: string | null;
@@ -10,16 +11,14 @@ interface SequentialGifProps {
 
 const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
   ({ gifUrl, isCreatingGif }, ref) => {
-    const CAMERA_WIDTH = 600 / 2;
-    const CAMERA_HEIGHT = 450 / 2;
 
     return (
       <div ref={ref} className="sequential-gif">
         {isCreatingGif ? (
           <div
             style={{
-              width: CAMERA_WIDTH,
-              height: CAMERA_HEIGHT,
+              width: CAMERA_WIDTH / 2,
+              height: CAMERA_HEIGHT / 2,
               border: "1px solid black",
               display: "flex",
               justifyContent: "center",
