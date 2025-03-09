@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
 import html2canvas from "html2canvas";
-import { LAYOUTS } from "../../constants";
 import "./styles.css";
 
 interface Sticker {
@@ -41,8 +40,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   onColorChange,
   onBackgroundChange,
   onForegroundChange,
-  layout,
-  onLayoutChange,
   capturedPhotos,
   onReset,
   onPhotoUpload,
@@ -54,18 +51,8 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   setStickers,
   uploadedStickers,
   setUploadedStickers,
-  timerEnabled,
-  onTimerToggle,
 }) => {
-  const [activeTab, setActiveTab] = useState("Layout");
-
-  const layouts = Object.entries(LAYOUTS).map(([id, layout]) => ({
-    id: parseInt(id),
-    name: `${layout.maxPhotos} Photo${layout.maxPhotos > 1 ? "s" : ""} (${
-      layout.arrangement.charAt(0).toUpperCase() + layout.arrangement.slice(1)
-    })`,
-    maxPhotos: layout.maxPhotos,
-  }));
+  const [activeTab, setActiveTab] = useState("Background");
 
   const downloadImage = () => {
     const photoStrip = photoStripRef.current;
@@ -88,9 +75,7 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     }
   };
 
-  const handleForegroundUpload = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleForegroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -99,9 +84,7 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     }
   };
 
-  const handleBackgroundUpload = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -137,7 +120,7 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     <div className="frame-controls">
       <div className="tabs">
         <div className="tab-list">
-          {["Layout", "Background", "Foreground", "Stickers"].map((tab) => (
+          {["Background", "Foreground", "Stickers"].map((tab) => (
             <button
               key={tab}
               className={`tab-button ${activeTab === tab ? "active" : ""}`}
@@ -148,43 +131,9 @@ const FrameControls: React.FC<FrameControlsProps> = ({
           ))}
         </div>
         <div className="tab-content">
-          {activeTab === "Layout" && (
-            <div className="frame-controls-section">
-              <label className="frame-controls-label">Select Layout</label>
-              <select
-                value={layout}
-                onChange={(e) => {
-                  const newLayout = parseInt(e.target.value);
-                  if (capturedPhotos.length === 0) {
-                    onLayoutChange(newLayout);
-                  }
-                }}
-                disabled={capturedPhotos.length > 0}
-                className="frame-controls-select"
-              >
-                {layouts.map((layout) => (
-                  <option key={layout.id} value={layout.id}>
-                    {layout.name}
-                  </option>
-                ))}
-              </select>
-              <div className="timer-toggle">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={timerEnabled}
-                    onChange={(e) => onTimerToggle(e.target.checked)}
-                  />
-                  <span>Enable Timer Countdown</span>
-                </label>
-              </div>
-            </div>
-          )}
           {activeTab === "Background" && (
             <div className="frame-controls-section">
-              <label className="frame-controls-label">
-                Background Color or Image
-              </label>
+              <label className="frame-controls-label">Background Color or Image</label>
               {!backgroundImage && (
                 <input
                   type="color"
@@ -223,9 +172,7 @@ const FrameControls: React.FC<FrameControlsProps> = ({
           )}
           {activeTab === "Foreground" && (
             <div className="frame-controls-section">
-              <label className="frame-controls-label">
-                Foreground Image
-              </label>
+              <label className="frame-controls-label">Foreground Image</label>
               {foregroundImage ? (
                 <div className="image-preview-container">
                   <img
@@ -287,18 +234,14 @@ const FrameControls: React.FC<FrameControlsProps> = ({
         <button
           className="frame-controls-button frame-controls-button-danger"
           onClick={onReset}
-          style={{
-            display: capturedPhotos.length > 0 ? "inline-block" : "none",
-          }}
+          style={{ display: capturedPhotos.length > 0 ? "inline-block" : "none" }}
         >
           Reset All
         </button>
         <button
           className="frame-controls-button frame-controls-button-success"
           onClick={downloadImage}
-          style={{
-            display: capturedPhotos.length > 0 ? "inline-block" : "none",
-          }}
+          style={{ display: capturedPhotos.length > 0 ? "inline-block" : "none" }}
         >
           Download
         </button>

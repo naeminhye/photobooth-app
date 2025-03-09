@@ -1,24 +1,22 @@
-// components/SequentialGif/index.tsx
 import React, { forwardRef } from "react";
-
 import "./styles.css";
 import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 
 interface SequentialGifProps {
   gifUrl: string | null;
-  isCreatingGif: boolean; // Thêm prop để hiển thị loading
+  isCreatingGif: boolean;
+  isMirrored: boolean; // Thêm prop isMirrored
 }
 
 const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
-  ({ gifUrl, isCreatingGif }, ref) => {
-
+  ({ gifUrl, isCreatingGif, isMirrored }, ref) => {
     return (
       <div ref={ref} className="sequential-gif">
         {isCreatingGif ? (
           <div
             style={{
-              width: CAMERA_WIDTH / 2,
-              height: CAMERA_HEIGHT / 2,
+              width: CAMERA_WIDTH,
+              height: CAMERA_HEIGHT,
               border: "1px solid black",
               display: "flex",
               justifyContent: "center",
@@ -36,6 +34,7 @@ const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
               width: CAMERA_WIDTH,
               height: CAMERA_HEIGHT,
               border: "1px solid black",
+              transform: isMirrored ? "scaleX(-1)" : "scaleX(1)", // Áp dụng mirrored
             }}
           />
         ) : null}

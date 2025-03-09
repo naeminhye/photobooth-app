@@ -1,4 +1,3 @@
-// components/CameraFeed/index.tsx
 import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
 import GIF from "gif.js";
@@ -13,6 +12,8 @@ interface CameraFeedProps {
   showCamera: boolean;
   timerEnabled: boolean;
   setIsCreatingGif: (isCreating: boolean) => void;
+  countdownTime: number;
+  isMirrored: boolean;
 }
 
 const CameraFeed: React.FC<CameraFeedProps> = ({
@@ -24,6 +25,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   showCamera,
   timerEnabled,
   setIsCreatingGif,
+  countdownTime,
+  isMirrored,
 }) => {
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -86,7 +89,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       height: CAMERA_HEIGHT,
     });
 
-    gifFrames.current.forEach((frame) => gif.addFrame(frame, { delay: 200 }));
+    gifFrames.current.forEach((frame) => gif.addFrame(frame, { delay: 150 }));
 
     gif.on("finished", (blob) => {
       const gifUrl = URL.createObjectURL(blob);
@@ -103,7 +106,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     for (let i = 0; i < maxPhotos; i++) {
       if (!webcamRef.current) break;
 
-      for (let sec = 10; sec > 0; sec--) {
+      for (let sec = countdownTime; sec > 0; sec--) {
         setCountdown(sec);
         const frame = captureFrame();
         if (frame) {
@@ -192,7 +195,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
           screenshotFormat="image/png"
           width={CAMERA_WIDTH}
           height={CAMERA_HEIGHT}
-          mirrored={true}
+          mirrored={isMirrored}
           videoConstraints={{
             width: CAMERA_WIDTH * 2,
             height: CAMERA_HEIGHT * 2,
