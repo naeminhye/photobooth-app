@@ -131,3 +131,8 @@ export interface Sticker {
 
 export const CAMERA_WIDTH = 600;
 export const CAMERA_HEIGHT = 450;
+
+export interface Photo {
+  id: string;
+  url: string;
+}

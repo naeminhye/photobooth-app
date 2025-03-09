@@ -1,19 +1,8 @@
-// components/FrameControls/index.tsx
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
 import html2canvas from "html2canvas";
 import "./styles.css";
-
-interface Sticker {
-  id: number;
-  image: HTMLImageElement;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
-}
 
 interface FrameControlsProps {
   onColorChange: (color: string) => void;
@@ -28,10 +17,10 @@ interface FrameControlsProps {
   frameColor: string;
   backgroundImage: string | null;
   foregroundImage: string | null;
-  stickers: Sticker[];
-  setStickers: React.Dispatch<React.SetStateAction<Sticker[]>>;
-  uploadedStickers: HTMLImageElement[];
-  setUploadedStickers: React.Dispatch<React.SetStateAction<HTMLImageElement[]>>;
+  stickers: any[]; // Không dùng
+  setStickers: React.Dispatch<React.SetStateAction<any>>; // Không dùng
+  uploadedStickers: any[]; // Không dùng
+  setUploadedStickers: React.Dispatch<React.SetStateAction<any>>; // Không dùng
   timerEnabled: boolean;
   onTimerToggle: (enabled: boolean) => void;
 }
@@ -47,10 +36,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   frameColor,
   backgroundImage,
   foregroundImage,
-  stickers,
-  setStickers,
-  uploadedStickers,
-  setUploadedStickers,
 }) => {
   const [activeTab, setActiveTab] = useState("Background");
 
@@ -58,15 +43,15 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     const photoStrip = photoStripRef.current;
     if (photoStrip) {
       html2canvas(photoStrip, {
-        scale: 2, // Tăng scale lên 2 (hoặc 3 nếu cần DPI cao hơn)
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
       })
         .then((canvas) => {
           const link = document.createElement("a");
-          link.download = `photobooth_${Date.now()}.jpg`; // Đổi sang JPG
-          link.href = canvas.toDataURL("image/jpeg", 1.0); // Chất lượng tối đa
+          link.download = `photobooth_${Date.now()}.jpg`;
+          link.href = canvas.toDataURL("image/jpeg", 1.0);
           link.click();
         })
         .catch((error) => {
@@ -93,34 +78,11 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     }
   };
 
-  const handleStickerUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    const newStickers = files.map((file) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      return img;
-    });
-    setUploadedStickers((prev) => [...prev, ...newStickers]);
-  };
-
-  const addStickerToCanvas = (stickerImg: HTMLImageElement) => {
-    const newSticker: Sticker = {
-      id: Date.now(),
-      image: stickerImg,
-      x: (3 * 96) / 2,
-      y: (capturedPhotos.length * 2 * 96) / 2 || 96,
-      width: 100,
-      height: 100,
-      rotation: 0,
-    };
-    setStickers((prev) => [...prev, newSticker]);
-  };
-
   return (
     <div className="frame-controls">
       <div className="tabs">
         <div className="tab-list">
-          {["Background", "Foreground", "Stickers"].map((tab) => (
+          {["Background", "Foreground"].map((tab) => (
             <button
               key={tab}
               className={`tab-button ${activeTab === tab ? "active" : ""}`}
@@ -199,33 +161,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                   />
                 </label>
               )}
-            </div>
-          )}
-          {activeTab === "Stickers" && (
-            <div className="frame-controls-section">
-              <label className="frame-controls-label">Add Stickers</label>
-              <label className="upload-button">
-                <FontAwesomeIcon icon={faUpload} /> Upload Stickers
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleStickerUpload}
-                  className="frame-controls-file-input"
-                  hidden
-                />
-              </label>
-              <div className="sticker-preview">
-                {uploadedStickers.map((sticker, index) => (
-                  <img
-                    key={index}
-                    src={sticker.src}
-                    alt="Sticker"
-                    className="sticker-item"
-                    onClick={() => addStickerToCanvas(sticker)}
-                  />
-                ))}
-              </div>
             </div>
           )}
         </div>

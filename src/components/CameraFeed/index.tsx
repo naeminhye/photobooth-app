@@ -1,5 +1,5 @@
 // components/CameraFeed/index.tsx
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import GIF from "gif.js";
 import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
@@ -126,21 +126,28 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     createGif();
   };
 
-  const startCountdown = () => {
-    if (photoCount >= maxPhotos || isCapturing) return;
+  const startCountdown = useCallback(() => {
+    if (currentPhotos >= 10) {
+      alert("Maximum preview photo limit (10) reached.");
+      return;
+    }
+
+    if (currentPhotos >= (timerEnabled ? maxPhotos + 4 : 10) || isCapturing) return;
     setIsCapturing(true);
+
+
     gifFrames.current = [];
     runCountdown();
-  };
+  }, []);
 
   const handleMouseDown = () => {
-    if (showCamera && photoCount < maxPhotos && !isCapturing) {
+    if (showCamera && currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
       setIsHolding(true);
     }
   };
 
   const handleMouseUp = () => {
-    if (showCamera && isHolding && photoCount < maxPhotos && !isCapturing) {
+    if (showCamera && isHolding && currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
       setIsHolding(false);
       if (timerEnabled) {
         startCountdown();
@@ -157,13 +164,13 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const handleTouchStart = () => {
-    if (showCamera && photoCount < maxPhotos && !isCapturing) {
+    if (showCamera && currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
       setIsHolding(true);
     }
   };
 
   const handleTouchEnd = () => {
-    if (showCamera && isHolding && photoCount < maxPhotos && !isCapturing) {
+    if (showCamera && isHolding && currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
       setIsHolding(false);
       if (timerEnabled) {
         startCountdown();
@@ -235,16 +242,13 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         onTouchCancel={handleTouchCancel}
         className="shutter-button"
         style={{
-          transform: isHolding ? "scale(0.8)" : "scale(1)",
+          transform: isHolding ? "scale(0.9)" : "scale(1)",
         }}
-        disabled={photoCount >= maxPhotos || isCapturing}
+        disabled={currentPhotos >= 10 || isCapturing}
       >
         <div
           style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "50%",
-            background: isHolding ? "rgba(255, 255, 255, 0.7)" : "#fff",
+            background: isHolding ? "rgba(255, 255, 255, 0.8)" : "#fff",
             transition: "background 0.2s ease",
           }}
         />

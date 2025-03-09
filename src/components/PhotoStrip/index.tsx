@@ -54,7 +54,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     const [resizeHandle, setResizeHandle] = useState<number | null>(null);
 
     const HANDLE_SIZE = 10;
-    const SCALE_FACTOR = 2; // Tăng gấp đôi kích thước canvas để giữ độ nét
+    const SCALE_FACTOR = 2;
 
     const currentLayout = LAYOUTS[layout];
     const maxPhotos = currentLayout.maxPhotos;
@@ -154,7 +154,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
         const croppedImg = new Image();
         croppedImg.onload = () => callback(croppedImg);
-        croppedImg.src = canvas.toDataURL("image/jpeg", 1.0); // Chất lượng tối đa
+        croppedImg.src = canvas.toDataURL("image/jpeg", 1.0);
       };
       img.src = src;
     };
@@ -185,21 +185,31 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       }
 
       photoImages.current = [];
-      photos.forEach((photo, index) => {
-        autoCropImage(photo.url, (croppedImg) => {
-          photoImages.current[index] = croppedImg;
-          if (photoImages.current.length === photos.length) {
-            while (photoImages.current.length < maxPhotos) {
-              photoImages.current.push(null);
+      if (photos.length === 1 && photos[0].id === "combined") {
+        // Step 3: Chỉ có ảnh combine
+        const img = new Image();
+        img.src = photos[0].url;
+        img.onload = () => {
+          photoImages.current = [img];
+          redrawCanvas();
+        };
+      } else {
+        // Step 2: Nhiều ảnh riêng lẻ
+        photos.forEach((photo, index) => {
+          autoCropImage(photo.url, (croppedImg) => {
+            photoImages.current[index] = croppedImg;
+            if (photoImages.current.length === photos.length) {
+              while (photoImages.current.length < maxPhotos) {
+                photoImages.current.push(null);
+              }
+              redrawCanvas();
             }
-            redrawCanvas();
-          }
+          });
         });
-      });
-
-      if (photos.length === 0) {
-        photoImages.current = Array(maxPhotos).fill(null);
-        redrawCanvas();
+        if (photos.length === 0) {
+          photoImages.current = Array(maxPhotos).fill(null);
+          redrawCanvas();
+        }
       }
     }, [
       photos,
@@ -221,26 +231,85 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
       canvas.width = stripWidth;
       canvas.height = stripHeight;
-      ctx.imageSmoothingEnabled = true; // Giữ chất lượng khi vẽ
+      ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (backgroundImg.current) {
-        ctx.drawImage(backgroundImg.current, 0, 0, canvas.width, canvas.height);
+      // Step 3: Chỉ vẽ ảnh combine full kích thước
+      if (photos.length === 1 && photos[0].id === "combined") {
+        const combinedImg = photoImages.current[0];
+        if (combinedImg) {
+          ctx.drawImage(combinedImg, 0, 0, stripWidth, stripHeight);
+        }
       } else {
-        ctx.fillStyle = frameColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
+        // Step 2: Vẽ background, photos, foreground như cũ
+        if (backgroundImg.current) {
+          ctx.drawImage(backgroundImg.current, 0, 0, canvas.width, canvas.height);
+        } else {
+          ctx.fillStyle = frameColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
 
-      if (isGrid) {
-        for (let row = 0; row < gridRows; row++) {
-          for (let col = 0; col < gridColumns; col++) {
-            const index = row * gridColumns + col;
-            if (index >= maxPhotos) break;
+        if (isGrid) {
+          for (let row = 0; row < gridRows; row++) {
+            for (let col = 0; col < gridColumns; col++) {
+              const index = row * gridColumns + col;
+              if (index >= maxPhotos) break;
 
-            const xPosition = PADDING_LEFT + col * (photoSize.width + GAP);
-            const yPosition = PADDING_TOP + row * (photoSize.height + GAP);
+              const xPosition = PADDING_LEFT + col * (photoSize.width + GAP);
+              const yPosition = PADDING_TOP + row * (photoSize.height + GAP);
+              const photoImg = photoImages.current[index];
+
+              if (photoImg) {
+                ctx.drawImage(
+                  photoImg,
+                  xPosition,
+                  yPosition,
+                  photoSize.width,
+                  photoSize.height
+                );
+              } else {
+                // Place holder
+                ctx.fillStyle = "#C8C8C8";
+                ctx.fillRect(
+                  xPosition,
+                  yPosition,
+                  photoSize.width,
+                  photoSize.height
+                );
+                ctx.strokeStyle = "#999";
+                ctx.lineWidth = 2 * SCALE_FACTOR;
+                ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
+                ctx.strokeRect(
+                  xPosition,
+                  yPosition,
+                  photoSize.width,
+                  photoSize.height
+                );
+                ctx.setLineDash([]);
+                ctx.fillStyle = "#999";
+                ctx.font = `${40 * SCALE_FACTOR}px Arial`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(
+                  "+",
+                  xPosition + photoSize.width / 2,
+                  yPosition + photoSize.height / 2
+                );
+              }
+            }
+          }
+        } else {
+          for (let index = 0; index < maxPhotos; index++) {
+            const xPosition =
+              arrangement === "vertical"
+                ? PADDING_LEFT
+                : PADDING_LEFT + index * (photoSize.width + GAP);
+            const yPosition =
+              arrangement === "vertical"
+                ? PADDING_TOP + index * (photoSize.height + GAP)
+                : PADDING_TOP;
             const photoImg = photoImages.current[index];
 
             if (photoImg) {
@@ -252,6 +321,13 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 photoSize.height
               );
             } else {
+              ctx.fillStyle = "#C8C8C8";
+              ctx.fillRect(
+                xPosition,
+                yPosition,
+                photoSize.width,
+                photoSize.height
+              );
               ctx.strokeStyle = "#999";
               ctx.lineWidth = 2 * SCALE_FACTOR;
               ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
@@ -274,54 +350,13 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             }
           }
         }
-      } else {
-        for (let index = 0; index < maxPhotos; index++) {
-          const xPosition =
-            arrangement === "vertical"
-              ? PADDING_LEFT
-              : PADDING_LEFT + index * (photoSize.width + GAP);
-          const yPosition =
-            arrangement === "vertical"
-              ? PADDING_TOP + index * (photoSize.height + GAP)
-              : PADDING_TOP;
-          const photoImg = photoImages.current[index];
 
-          if (photoImg) {
-            ctx.drawImage(
-              photoImg,
-              xPosition,
-              yPosition,
-              photoSize.width,
-              photoSize.height
-            );
-          } else {
-            ctx.strokeStyle = "#999";
-            ctx.lineWidth = 2 * SCALE_FACTOR;
-            ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
-            ctx.strokeRect(
-              xPosition,
-              yPosition,
-              photoSize.width,
-              photoSize.height
-            );
-            ctx.setLineDash([]);
-            ctx.fillStyle = "#999";
-            ctx.font = `${40 * SCALE_FACTOR}px Arial`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(
-              "+",
-              xPosition + photoSize.width / 2,
-              yPosition + photoSize.height / 2
-            );
-          }
+        if (foregroundImg.current) {
+          ctx.drawImage(foregroundImg.current, 0, 0, canvas.width, canvas.height);
         }
       }
 
-      if (foregroundImg.current) {
-        ctx.drawImage(foregroundImg.current, 0, 0, canvas.width, canvas.height);
-      }
-
+      // Vẽ stickers
       stickers.forEach((sticker) => {
         ctx.save();
         ctx.translate(sticker.x * SCALE_FACTOR, sticker.y * SCALE_FACTOR);
@@ -357,7 +392,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             [sticker.width / 2, sticker.height / 2],
             [-sticker.width / 2, sticker.height / 2],
           ];
-          handles.forEach(([x, y]) => {
+          handles.forEach(([x, y], index) => {
             ctx.fillRect(
               x * SCALE_FACTOR - (HANDLE_SIZE * SCALE_FACTOR) / 2,
               y * SCALE_FACTOR - (HANDLE_SIZE * SCALE_FACTOR) / 2,
@@ -420,17 +455,223 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       GAP,
       stickers,
       selectedSticker,
+      photos,
     ]);
 
-    // ... (phần còn lại của logic sticker dragging không thay đổi)
+    const getStickerAtPoint = (x: number, y: number, sticker: Sticker) => {
+      const stickerX = sticker.x * SCALE_FACTOR;
+      const stickerY = sticker.y * SCALE_FACTOR;
+      const width = sticker.width * SCALE_FACTOR;
+      const height = sticker.height * SCALE_FACTOR;
+
+      const rad = (sticker.rotation * Math.PI) / 180;
+      const cos = Math.cos(-rad);
+      const sin = Math.sin(-rad);
+
+      const dx = x - stickerX;
+      const dy = y - stickerY;
+
+      const rotatedX = dx * cos - dy * sin;
+      const rotatedY = dx * sin + dy * cos;
+
+      return (
+        rotatedX >= -width / 2 &&
+        rotatedX <= width / 2 &&
+        rotatedY >= -height / 2 &&
+        rotatedY <= height / 2
+      );
+    };
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = (e.clientX - rect.left) * SCALE_FACTOR;
+      const y = (e.clientY - rect.top) * SCALE_FACTOR;
+
+      for (let i = stickers.length - 1; i >= 0; i--) {
+        const sticker = stickers[i];
+
+        if (selectedSticker === sticker.id) {
+          const stickerX = sticker.x * SCALE_FACTOR;
+          const stickerY = sticker.y * SCALE_FACTOR;
+          const width = sticker.width * SCALE_FACTOR;
+          const height = sticker.height * SCALE_FACTOR;
+          const rad = (sticker.rotation * Math.PI) / 180;
+          const cos = Math.cos(-rad);
+          const sin = Math.sin(-rad);
+
+          const dx = x - stickerX;
+          const dy = y - stickerY;
+          const rotatedX = dx * cos - dy * sin;
+          const rotatedY = dx * sin + dy * cos;
+
+          const handles = [
+            [-width / 2, -height / 2],
+            [width / 2, -height / 2],
+            [width / 2, height / 2],
+            [-width / 2, height / 2],
+          ];
+
+          for (let j = 0; j < handles.length; j++) {
+            const [hx, hy] = handles[j];
+            if (
+              rotatedX >= hx - HANDLE_SIZE * SCALE_FACTOR &&
+              rotatedX <= hx + HANDLE_SIZE * SCALE_FACTOR &&
+              rotatedY >= hy - HANDLE_SIZE * SCALE_FACTOR &&
+              rotatedY <= hy + HANDLE_SIZE * SCALE_FACTOR
+            ) {
+              setDragging("resize");
+              setResizeHandle(j);
+              setStartX(x);
+              setStartY(y);
+              return;
+            }
+          }
+
+          if (
+            rotatedX >= (width / 2) - HANDLE_SIZE * SCALE_FACTOR &&
+            rotatedX <= (width / 2) + HANDLE_SIZE * SCALE_FACTOR &&
+            rotatedY >= (-height / 2) - 20 * SCALE_FACTOR &&
+            rotatedY <= (-height / 2) - 10 * SCALE_FACTOR
+          ) {
+            setDragging("rotate");
+            setStartX(x);
+            setStartY(y);
+            return;
+          }
+
+          if (
+            rotatedX >= (-width / 2) + 10 * SCALE_FACTOR &&
+            rotatedX <= (-width / 2) + 30 * SCALE_FACTOR &&
+            rotatedY >= (-height / 2) - 30 * SCALE_FACTOR &&
+            rotatedY <= (-height / 2) - 10 * SCALE_FACTOR
+          ) {
+            setStickers((prev) => prev.filter((s) => s.id !== sticker.id));
+            setSelectedSticker(null);
+            return;
+          }
+        }
+
+        if (getStickerAtPoint(x, y, sticker)) {
+          setSelectedSticker(sticker.id);
+          setDragging("move");
+          setStartX(x);
+          setStartY(y);
+          return;
+        }
+      }
+
+      setSelectedSticker(null);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!dragging || selectedSticker === null) return;
+
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const x = (e.clientX - rect.left) * SCALE_FACTOR;
+      const y = (e.clientY - rect.top) * SCALE_FACTOR;
+
+      setStickers((prev) =>
+        prev.map((sticker) => {
+          if (sticker.id !== selectedSticker) return sticker;
+
+          if (dragging === "move") {
+            return {
+              ...sticker,
+              x: sticker.x + (x - startX) / SCALE_FACTOR,
+              y: sticker.y + (y - startY) / SCALE_FACTOR,
+            };
+          }
+
+          if (dragging === "resize" && resizeHandle !== null) {
+            const rad = (sticker.rotation * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+
+            const dx = (x - startX) / SCALE_FACTOR;
+            const dy = (y - startY) / SCALE_FACTOR;
+
+            const rotatedDx = dx * cos + dy * sin;
+            const aspectRatio = sticker.width / sticker.height;
+
+            let newWidth = sticker.width;
+            let newHeight = sticker.height;
+            let newX = sticker.x;
+            let newY = sticker.y;
+
+            if (resizeHandle === 0 || resizeHandle === 3) {
+              newWidth -= rotatedDx;
+            } else {
+              newWidth += rotatedDx;
+            }
+
+            newHeight = newWidth / aspectRatio;
+
+            if (newWidth < 20) {
+              newWidth = 20;
+              newHeight = newWidth / aspectRatio;
+            }
+
+            if (resizeHandle === 0 || resizeHandle === 1) {
+              newY += (sticker.height - newHeight) / 2;
+            } else {
+              newY -= (sticker.height - newHeight) / 2;
+            }
+            if (resizeHandle === 1 || resizeHandle === 2) {
+              newX += (sticker.width - newWidth) / 2;
+            } else {
+              newX -= (sticker.width - newWidth) / 2;
+            }
+
+            return {
+              ...sticker,
+              width: newWidth,
+              height: newHeight,
+              x: newX,
+              y: newY,
+            };
+          }
+
+          if (dragging === "rotate") {
+            const centerX = sticker.x * SCALE_FACTOR;
+            const centerY = sticker.y * SCALE_FACTOR;
+            const startAngle = Math.atan2(startY - centerY, startX - centerX);
+            const currentAngle = Math.atan2(y - centerY, x - centerX);
+            const newRotation = sticker.rotation + ((currentAngle - startAngle) * 180) / Math.PI;
+            return {
+              ...sticker,
+              rotation: newRotation,
+            };
+          }
+
+          return sticker;
+        })
+      );
+
+      setStartX(x);
+      setStartY(y);
+      redrawCanvas();
+    };
+
+    const handleMouseUp = () => {
+      setDragging(null);
+      setResizeHandle(null);
+    };
 
     return (
       <div ref={ref} className="photo-strip">
         <canvas
           ref={canvasRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
           style={{
-            width: `${stripWidth / SCALE_FACTOR}px`, // Hiển thị kích thước gốc
+            width: `${stripWidth / SCALE_FACTOR}px`,
             height: `${stripHeight / SCALE_FACTOR}px`,
+            cursor: dragging ? "grabbing" : "default",
           }}
         />
       </div>

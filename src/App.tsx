@@ -4,17 +4,15 @@ import PhotoStrip from "./components/PhotoStrip";
 import FrameControls from "./components/FrameControls";
 import CameraFeed from "./components/CameraFeed";
 import SequentialGif from "./components/SequentialGif";
-import { LAYOUTS } from "./constants";
+import PreviewPhotos from "./components/PreviewPhotos";
+import { LAYOUTS, Photo } from "./constants";
 import { v4 as uuidv4 } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useDropzone } from "react-dropzone";
 import GradientBackground from "./components/GradientBackground";
+import html2canvas from "html2canvas";
 
-interface Photo {
-  id: string;
-  url: string;
-}
 
 interface Sticker {
   id: number;
@@ -38,13 +36,14 @@ const App: React.FC = () => {
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>([]);
   const [timerEnabled, setTimerEnabled] = useState(false);
-  const [countdownTime, setCountdownTime] = useState<number>(10); // Default 10s
+  const [countdownTime, setCountdownTime] = useState<number>(10);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [isCreatingGif, setIsCreatingGif] = useState(false);
   const [step, setStep] = useState<number>(1);
   const [isMirrored, setIsMirrored] = useState<boolean>(true); // Default mirrored
   const photoStripRef: any = useRef<HTMLDivElement>(null);
   const sequentialGifRef = useRef<HTMLDivElement>(null);
+  const [combinedImage, setCombinedImage] = useState<string | null>(null);
 
   useEffect(() => {
     requestCameraPermission();
@@ -75,6 +74,7 @@ const App: React.FC = () => {
     setIsCreatingGif(false);
     setStep(1);
     setIsMirrored(true);
+    setCombinedImage(null);
   };
 
   const handlePhotoCapture = (photo: string) => {
@@ -106,30 +106,6 @@ const App: React.FC = () => {
     Promise.all(newPhotos).then((photos) => setPreviewPhotos((prev) => [...prev, ...photos]));
   };
 
-  const toggleFromStrip = (id: string) => {
-    const isSelected = selectedPreviewPhotos.includes(id);
-    if (isSelected) {
-      setCapturedPhotos((prev) => prev.filter((photo) => photo.id !== id));
-      setSelectedPreviewPhotos((prev) => prev.filter((photoId) => photoId !== id));
-    } else if (capturedPhotos.length < LAYOUTS[layout].maxPhotos) {
-      const photoToAdd = previewPhotos.find((photo) => photo.id === id);
-      if (photoToAdd) {
-        setCapturedPhotos((prev) => [...prev, photoToAdd]);
-        setSelectedPreviewPhotos((prev) => [...prev, id]);
-      }
-    } else {
-      alert("Maximum photo limit for the strip reached.");
-    }
-  };
-
-  const deletePreviewPhoto = (id: string) => {
-    setPreviewPhotos((prev) => prev.filter((photo) => photo.id !== id));
-    if (selectedPreviewPhotos.includes(id)) {
-      setCapturedPhotos((prev) => prev.filter((photo) => photo.id !== id));
-      setSelectedPreviewPhotos((prev) => prev.filter((photoId) => photoId !== id));
-    }
-  };
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handlePhotoUpload,
     accept: { "image/*": [".png", ".jpg", ".jpeg", ".svg", ".gif"] },
@@ -137,15 +113,145 @@ const App: React.FC = () => {
   });
 
   const goToNextStep = () => {
-    if (previewPhotos.length > 0) {
+    if (step === 1 && previewPhotos.length > 0) {
       setStep(2);
+    } else if (step === 2 && capturedPhotos.length > 0) {
+      combineImageForStep3();
+      setStep(3);
     } else {
-      alert("Please capture at least one photo before proceeding.");
+      alert("Please capture or select at least one photo before proceeding.");
     }
   };
 
-  const goToPreviousStep = () => {
-    setStep(1);
+  // const goToPreviousStep = () => {
+  //   if (step === 2) {
+  //     setStep(1);
+  //   } else if (step === 3) {
+  //     setStep(2);
+  //   }
+  // };
+
+  const combineImageForStep3 = () => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const currentLayout = LAYOUTS[layout];
+    const stripWidth = currentLayout.width * 2;
+    const stripHeight = currentLayout.height * 2;
+    canvas.width = stripWidth;
+    canvas.height = stripHeight;
+
+    const drawPhotosAndForeground = () => {
+      const PADDING_TOP = (currentLayout.paddings?.top || 0.15 * 96) * 2;
+      const PADDING_LEFT = (currentLayout.paddings?.left || 0.15 * 96) * 2;
+      const PADDING_BOTTOM = (currentLayout.paddings?.bottom || 0.15 * 96) * 2;
+      const PADDING_RIGHT = (currentLayout.paddings?.right || 0.15 * 96) * 2;
+      const GAP = (currentLayout.gap || 0.1 * 96) * 2;
+
+      const photoWidth =
+        currentLayout.arrangement === "vertical"
+          ? stripWidth - PADDING_LEFT - PADDING_RIGHT
+          : (stripWidth - PADDING_LEFT - PADDING_RIGHT - (currentLayout.maxPhotos - 1) * GAP) /
+          currentLayout.maxPhotos;
+      const photoHeight =
+        currentLayout.arrangement === "vertical"
+          ? (stripHeight - PADDING_TOP - PADDING_BOTTOM - (currentLayout.maxPhotos - 1) * GAP) /
+          currentLayout.maxPhotos
+          : stripHeight - PADDING_TOP - PADDING_BOTTOM;
+
+      capturedPhotos.forEach((photo, index) => {
+        const img = new Image();
+        img.src = photo.url;
+        img.onload = () => {
+          const x =
+            currentLayout.arrangement === "vertical"
+              ? PADDING_LEFT
+              : PADDING_LEFT + index * (photoWidth + GAP);
+          const y =
+            currentLayout.arrangement === "vertical"
+              ? PADDING_TOP + index * (photoHeight + GAP)
+              : PADDING_TOP;
+          ctx.drawImage(img, x, y, photoWidth, photoHeight);
+
+          if (index === capturedPhotos.length - 1 && foregroundImage) {
+            const fgImg = new Image();
+            fgImg.src = foregroundImage;
+            fgImg.onload = () => {
+              ctx.drawImage(fgImg, 0, 0, stripWidth, stripHeight);
+              setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
+            };
+          } else if (index === capturedPhotos.length - 1) {
+            setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
+          }
+        };
+      });
+    };
+
+    if (backgroundImage) {
+      const bgImg = new Image();
+      bgImg.src = backgroundImage;
+      bgImg.onload = () => {
+        ctx.drawImage(bgImg, 0, 0, stripWidth, stripHeight);
+        drawPhotosAndForeground();
+      };
+    } else {
+      ctx.fillStyle = frameColor;
+      ctx.fillRect(0, 0, stripWidth, stripHeight);
+      drawPhotosAndForeground();
+    }
+  };
+
+  const handleStickerUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const newStickers = files.map((file) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      return new Promise<HTMLImageElement>((resolve) => {
+        img.onload = () => resolve(img);
+      });
+    });
+    Promise.all(newStickers).then((images) =>
+      setUploadedStickers((prev) => [...prev, ...images])
+    );
+  };
+
+  const addStickerToCanvas = (stickerImg: HTMLImageElement) => {
+    const aspectRatio = stickerImg.width / stickerImg.height;
+    const defaultWidth = 100;
+    const defaultHeight = defaultWidth / aspectRatio;
+
+    const newSticker: Sticker = {
+      id: Date.now(),
+      image: stickerImg,
+      x: LAYOUTS[layout].width / 2,
+      y: LAYOUTS[layout].height / 2,
+      width: defaultWidth,
+      height: defaultHeight,
+      rotation: 0,
+    };
+    setStickers((prev) => [...prev, newSticker]);
+  };
+
+  const downloadImage = () => {
+    const photoStrip = photoStripRef.current;
+    if (photoStrip) {
+      html2canvas(photoStrip, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+      })
+        .then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `photobooth_${Date.now()}.jpg`;
+          link.href = canvas.toDataURL("image/jpeg", 1.0);
+          link.click();
+        })
+        .catch((error) => {
+          console.error("Error generating canvas:", error);
+        });
+    }
   };
 
   const layouts = Object.entries(LAYOUTS).map(([id, layout]) => ({
@@ -160,49 +266,6 @@ const App: React.FC = () => {
     { value: 5, label: "5s" },
     { value: 10, label: "10s" },
   ];
-
-  const renderPreviewPhotos = () => (
-    <div className="preview-photos">
-      <h3>Preview Photos</h3>
-      <div className="preview-photos-list">
-        {previewPhotos.map((photo) => (
-          <div
-            key={photo.id}
-            className={`preview-photo ${selectedPreviewPhotos.includes(photo.id) ? "selected" : ""
-              } ${capturedPhotos.length >= LAYOUTS[layout].maxPhotos ? "cannot-select" : ""
-              }`}
-            onClick={() => toggleFromStrip(photo.id)}
-          >
-            <img src={photo.url} alt="Preview" />
-            {selectedPreviewPhotos.includes(photo.id) && (
-              <div className="selected-count">
-                <FontAwesomeIcon icon={faCheck} className="check-icon" />
-              </div>
-            )}
-            <button
-              className="delete-icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                deletePreviewPhoto(photo.id);
-              }}
-            >
-              <FontAwesomeIcon icon={faTrash} />
-            </button>
-          </div>
-        ))}
-        {previewPhotos.length < 10 && (
-          <div
-            {...getRootProps()}
-            className="upload-placeholder"
-            style={{ background: isDragActive ? "#e1e1e1" : "transparent" }}
-          >
-            <input {...getInputProps()} />
-            <FontAwesomeIcon icon={faPlus} style={{ fontSize: "24px", color: "#999" }} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <div className="app">
@@ -219,7 +282,7 @@ const App: React.FC = () => {
                     onGifComplete={handleGifComplete}
                     layout={layout}
                     maxPhotos={LAYOUTS[layout].maxPhotos}
-                    currentPhotos={capturedPhotos.length}
+                    currentPhotos={previewPhotos.length}
                     showCamera={true}
                     timerEnabled={timerEnabled}
                     setIsCreatingGif={setIsCreatingGif}
@@ -279,18 +342,27 @@ const App: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <div className="gif-preview">
-                  <SequentialGif
-                    ref={sequentialGifRef}
-                    gifUrl={gifUrl}
-                    isCreatingGif={isCreatingGif}
-                    isMirrored={isMirrored}
-                  />
+                <PreviewPhotos
+                  previewPhotos={previewPhotos}
+                  selectedPreviewPhotos={selectedPreviewPhotos}
+                  capturedPhotos={capturedPhotos}
+                  getRootProps={getRootProps}
+                  getInputProps={getInputProps}
+                  isDragActive={isDragActive}
+                  layout={layout}
+                  setPreviewPhotos={setPreviewPhotos}
+                  setCapturedPhotos={setCapturedPhotos}
+                  setSelectedPreviewPhotos={setSelectedPreviewPhotos}
+                  isViewOnly
+                />
+                <div className="step-navigation">
+                  <button className="reset-button" onClick={resetAll}>
+                    Reset All
+                  </button>
+                  <button className="next-button" onClick={goToNextStep}>
+                    Next →
+                  </button>
                 </div>
-                {renderPreviewPhotos()}
-                <button className="next-button" onClick={goToNextStep}>
-                  Next →
-                </button>
               </div>
             )}
             {step === 2 && (
@@ -298,16 +370,18 @@ const App: React.FC = () => {
                 <h2 className="step-title">Edit Your Photo Strip</h2>
                 <div className="edit-container">
                   <div className="edit-sidebar-left">
-                    {renderPreviewPhotos()}
-                    <div className="gif-preview">
-                      <SequentialGif
-                        ref={sequentialGifRef}
-                        gifUrl={gifUrl}
-                        isCreatingGif={isCreatingGif}
-                        isMirrored={isMirrored}
-                      />
-                    </div>
-                  </div>
+                    <PreviewPhotos
+                      previewPhotos={previewPhotos}
+                      selectedPreviewPhotos={selectedPreviewPhotos}
+                      capturedPhotos={capturedPhotos}
+                      getRootProps={getRootProps}
+                      getInputProps={getInputProps}
+                      isDragActive={isDragActive}
+                      layout={layout}
+                      setPreviewPhotos={setPreviewPhotos}
+                      setCapturedPhotos={setCapturedPhotos}
+                      setSelectedPreviewPhotos={setSelectedPreviewPhotos}
+                    /></div>
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
@@ -334,18 +408,88 @@ const App: React.FC = () => {
                       onPhotoUpload={handlePhotoUpload}
                       photoStripRef={photoStripRef}
                       frameColor={frameColor}
-                      stickers={stickers}
+                      stickers={[]}
                       setStickers={setStickers}
-                      uploadedStickers={uploadedStickers}
-                      setUploadedStickers={setUploadedStickers}
+                      uploadedStickers={[]}
+                      setUploadedStickers={() => { }}
                       timerEnabled={timerEnabled}
                       onTimerToggle={setTimerEnabled}
                     />
                   </div>
                 </div>
-                <button className="back-button" onClick={goToPreviousStep}>
-                  ← Back
-                </button>
+                <div className="step-navigation">
+                  {/* <button className="back-button" onClick={goToPreviousStep}>
+                    ← Back
+                  </button> */}
+                  <button className="reset-button" onClick={resetAll}>
+                    Reset All
+                  </button>
+                  <button className="next-button" onClick={goToNextStep}>
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+            {step === 3 && (
+              <div className="step-3">
+                <h2 className="step-title">Add Stickers</h2>
+                <div className="edit-container">
+                  <div className="edit-main">
+                    <PhotoStrip
+                      ref={photoStripRef}
+                      photos={combinedImage ? [{ id: "combined", url: combinedImage }] : []}
+                      frameColor="#FFFFFF"
+                      backgroundImage={null}
+                      layout={layout}
+                      foregroundImage={null}
+                      stickers={stickers}
+                      setStickers={setStickers}
+                    />
+                  </div>
+                  <div className="edit-sidebar-right">
+                    <div className="sticker-controls">
+                      <label className="upload-button">
+                        <FontAwesomeIcon icon={faPlus} /> Upload Stickers
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleStickerUpload}
+                          className="sticker-upload-input"
+                          hidden
+                        />
+                      </label>
+                      <div className="sticker-preview">
+                        {uploadedStickers.map((sticker, index) => (
+                          <img
+                            key={index}
+                            src={sticker.src}
+                            alt="Sticker"
+                            className="sticker-item"
+                            onClick={() => addStickerToCanvas(sticker)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <SequentialGif
+                      ref={sequentialGifRef}
+                      gifUrl={gifUrl}
+                      isCreatingGif={isCreatingGif}
+                      isMirrored={isMirrored}
+                    />
+                  </div>
+                </div>
+                <div className="step-navigation">
+                  {/* <button className="back-button" onClick={goToPreviousStep}>
+                    ← Back
+                  </button> */}
+                  <button className="reset-button" onClick={resetAll}>
+                    Reset All
+                  </button>
+                  <button className="download-button" onClick={downloadImage}>
+                    Download
+                  </button>
+                </div>
               </div>
             )}
           </div>

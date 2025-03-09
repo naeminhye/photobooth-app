@@ -15,8 +15,8 @@ const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
         {isCreatingGif ? (
           <div
             style={{
-              width: CAMERA_WIDTH,
-              height: CAMERA_HEIGHT,
+              width: CAMERA_WIDTH / 2,
+              height: CAMERA_HEIGHT / 2,
               border: "1px solid black",
               display: "flex",
               justifyContent: "center",
