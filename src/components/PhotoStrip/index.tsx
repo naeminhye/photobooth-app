@@ -4,9 +4,16 @@ import React, {
   useState,
   forwardRef,
   useCallback,
-  useMemo,
 } from "react";
+import {
+  Stage,
+  Layer,
+  Image as KonvaImage,
+  Rect,
+  Transformer,
+} from "react-konva";
 import { LAYOUTS } from "../../constants";
+import "./styles.css";
 
 interface Photo {
   id: string;
@@ -31,6 +38,8 @@ interface PhotoStripProps {
   foregroundImage: string | null;
   stickers: Sticker[];
   setStickers: React.Dispatch<React.SetStateAction<Sticker[]>>;
+  selectedStickerId: number | null;
+  setSelectedStickerId: React.Dispatch<React.SetStateAction<number | null>>;
 }
 
 const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
@@ -43,24 +52,19 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       foregroundImage,
       stickers,
       setStickers,
+      selectedStickerId,
+      setSelectedStickerId,
     },
     ref
   ) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [selectedSticker, setSelectedSticker] = useState<number | null>(null);
-    const [dragging, setDragging] = useState<
-      "move" | "resize" | "rotate" | null
-    >(null);
-    const [startX, setStartX] = useState(0);
-    const [startY, setStartY] = useState(0);
-    const [resizeHandle, setResizeHandle] = useState<number | null>(null);
+    const transformerRef = useRef<any>(null);
+    const stageRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = useState(1); // Tỷ lệ co giãn hiển thị
 
-    const HANDLE_SIZE = 10;
-    const SCALE_FACTOR = 2;
-
+    const SCALE_FACTOR = 1;
     const currentLayout = LAYOUTS[layout];
     const maxPhotos = currentLayout.maxPhotos;
-    const sizeUnit = currentLayout.unit;
     const stripWidth = currentLayout.width * SCALE_FACTOR;
     const stripHeight = currentLayout.height * SCALE_FACTOR;
     const stripBorderRadius = currentLayout?.borderRadius || 0;
@@ -70,648 +74,302 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     const PADDING_RIGHT = (currentLayout.paddings?.right || 0) * SCALE_FACTOR;
     const GAP = (currentLayout.gap || 0) * SCALE_FACTOR;
 
-    const isGrid = currentLayout.arrangement === "grid";
     const arrangement = currentLayout.arrangement;
+    const isGrid = arrangement === "grid";
     const gridColumns = currentLayout.gridTemplate?.columns || 1;
     const gridRows = currentLayout.gridTemplate?.rows || 1;
 
-    const photoSize = useMemo<{ width: number; height: number }>(() => {
-      let width = 0,
-        height = 0;
-      if (arrangement === "grid") {
-        width =
-          (stripWidth -
-            PADDING_LEFT -
-            PADDING_RIGHT -
-            (gridColumns - 1) * GAP) /
-          gridColumns;
-        height =
-          (stripHeight - PADDING_TOP - PADDING_BOTTOM - (gridRows - 1) * GAP) /
-          gridRows;
-      } else if (arrangement === "vertical") {
-        width = stripWidth - PADDING_LEFT - PADDING_RIGHT;
-        height =
-          (stripHeight - PADDING_TOP - PADDING_BOTTOM - (maxPhotos - 1) * GAP) /
-          maxPhotos;
-      } else {
-        width =
-          (stripWidth - PADDING_LEFT - PADDING_RIGHT - (maxPhotos - 1) * GAP) /
-          maxPhotos;
-        height = stripHeight - PADDING_TOP - PADDING_BOTTOM;
-      }
-      return { width, height };
-    }, [
-      stripWidth,
-      stripHeight,
-      arrangement,
-      maxPhotos,
-      GAP,
-      PADDING_TOP,
-      PADDING_BOTTOM,
-      PADDING_LEFT,
-      PADDING_RIGHT,
-      gridColumns,
-      gridRows,
-    ]);
-
-    const backgroundImg = useRef<HTMLImageElement | null>(null);
-    const foregroundImg = useRef<HTMLImageElement | null>(null);
-    const photoImages = useRef<(HTMLImageElement | null)[]>([]);
-
-    const autoCropImage = (
-      src: string,
-      callback: (croppedImg: HTMLImageElement) => void
-    ) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        canvas.width = photoSize.width;
-        canvas.height = photoSize.height;
-
-        const aspectRatio = photoSize.width / photoSize.height;
-        const imgAspectRatio = img.width / img.height;
-
-        let sx, sy, sWidth, sHeight;
-        if (imgAspectRatio > aspectRatio) {
-          sHeight = img.height;
-          sWidth = sHeight * aspectRatio;
-          sx = (img.width - sWidth) / 2;
-          sy = 0;
-        } else {
-          sWidth = img.width;
-          sHeight = sWidth / aspectRatio;
-          sx = 0;
-          sy = (img.height - sHeight) / 2;
-        }
-
-        ctx.drawImage(
-          img,
-          sx,
-          sy,
-          sWidth,
-          sHeight,
-          0,
-          0,
-          photoSize.width,
-          photoSize.height
-        );
-
-        const croppedImg = new Image();
-        croppedImg.onload = () => callback(croppedImg);
-        croppedImg.src = canvas.toDataURL("image/jpeg", 1.0);
-      };
-      img.src = src;
+    const photoSize = {
+      width:
+        arrangement === "vertical" || isGrid
+          ? stripWidth - PADDING_LEFT - PADDING_RIGHT
+          : (stripWidth -
+              PADDING_LEFT -
+              PADDING_RIGHT -
+              (maxPhotos - 1) * GAP) /
+            maxPhotos,
+      height:
+        arrangement === "vertical"
+          ? (stripHeight -
+              PADDING_TOP -
+              PADDING_BOTTOM -
+              (maxPhotos - 1) * GAP) /
+            maxPhotos
+          : stripHeight - PADDING_TOP - PADDING_BOTTOM,
     };
+    if (isGrid) {
+      photoSize.width =
+        (stripWidth - PADDING_LEFT - PADDING_RIGHT - (gridColumns - 1) * GAP) /
+        gridColumns;
+      photoSize.height =
+        (stripHeight - PADDING_TOP - PADDING_BOTTOM - (gridRows - 1) * GAP) /
+        gridRows;
+    }
+
+    // Tính toán tỷ lệ scale để vừa màn hình
+    useEffect(() => {
+      const updateScale = () => {
+        if (!containerRef.current) return;
+        const viewportHeight = window.innerHeight;
+        const maxDisplayHeight = viewportHeight * 0.8; // 80% chiều cao màn hình
+        const scaleY = maxDisplayHeight / stripHeight;
+        const newScale = Math.min(Math.max(scaleY, 0.5), 1); // Giới hạn scale từ 0.5 đến 1
+        setScale(newScale);
+      };
+
+      updateScale();
+      window.addEventListener("resize", updateScale);
+      return () => window.removeEventListener("resize", updateScale);
+    }, [stripHeight]);
+
+    // Tải ảnh
+    const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
+    const [fgImage, setFgImage] = useState<HTMLImageElement | null>(null);
+    const [photoImages, setPhotoImages] = useState<(HTMLImageElement | null)[]>(
+      []
+    );
 
     useEffect(() => {
       if (backgroundImage) {
         const img = new Image();
+        img.crossOrigin = "Anonymous";
         img.src = backgroundImage;
-        img.onload = () => {
-          backgroundImg.current = img;
-          redrawCanvas();
-        };
+        img.onload = () => setBgImage(img);
       } else {
-        backgroundImg.current = null;
-        redrawCanvas();
+        setBgImage(null);
       }
+    }, [backgroundImage]);
 
+    useEffect(() => {
       if (foregroundImage) {
         const img = new Image();
+        img.crossOrigin = "Anonymous";
         img.src = foregroundImage;
-        img.onload = () => {
-          foregroundImg.current = img;
-          redrawCanvas();
-        };
+        img.onload = () => setFgImage(img);
       } else {
-        foregroundImg.current = null;
-        redrawCanvas();
+        setFgImage(null);
       }
+    }, [foregroundImage]);
 
-      photoImages.current = [];
+    useEffect(() => {
       if (photos.length === 1 && photos[0].id === "combined") {
-        // Step 3: Chỉ có ảnh combine
         const img = new Image();
+        img.crossOrigin = "Anonymous";
         img.src = photos[0].url;
-        img.onload = () => {
-          photoImages.current = [img];
-          redrawCanvas();
+        img.onload = () => setPhotoImages([img]);
+      } else {
+        const loadPhotos = async () => {
+          const loadedImages: any[] = await Promise.all(
+            photos.map(
+              (photo) =>
+                new Promise<HTMLImageElement>((resolve) => {
+                  const img = new Image();
+                  img.crossOrigin = "Anonymous";
+                  img.src = photo.url;
+                  img.onload = () => resolve(img);
+                })
+            )
+          );
+          while (loadedImages.length < maxPhotos) {
+            loadedImages.push(null);
+          }
+          setPhotoImages(loadedImages);
         };
-      } else {
-        // Step 2: Nhiều ảnh riêng lẻ
-        photos.forEach((photo, index) => {
-          autoCropImage(photo.url, (croppedImg) => {
-            photoImages.current[index] = croppedImg;
-            if (photoImages.current.length === photos.length) {
-              while (photoImages.current.length < maxPhotos) {
-                photoImages.current.push(null);
-              }
-              redrawCanvas();
-            }
-          });
-        });
-        if (photos.length === 0) {
-          photoImages.current = Array(maxPhotos).fill(null);
-          redrawCanvas();
-        }
+        loadPhotos();
       }
-    }, [
-      photos,
-      stickers,
-      selectedSticker,
-      backgroundImage,
-      frameColor,
-      foregroundImage,
-      layout,
-      maxPhotos,
-      photoSize,
-    ]);
+    }, [photos, maxPhotos]);
 
-    const redrawCanvas = useCallback(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      canvas.width = stripWidth;
-      canvas.height = stripHeight;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Step 3: Chỉ vẽ ảnh combine full kích thước
-      if (photos.length === 1 && photos[0].id === "combined") {
-        const combinedImg = photoImages.current[0];
-        if (combinedImg) {
-          ctx.drawImage(combinedImg, 0, 0, stripWidth, stripHeight);
-        }
-      } else {
-        // Step 2: Vẽ background, photos, foreground như cũ
-        if (backgroundImg.current) {
-          ctx.drawImage(
-            backgroundImg.current,
-            0,
-            0,
-            canvas.width,
-            canvas.height
-          );
-        } else {
-          ctx.fillStyle = frameColor;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        if (isGrid) {
-          for (let row = 0; row < gridRows; row++) {
-            for (let col = 0; col < gridColumns; col++) {
-              const index = row * gridColumns + col;
-              if (index >= maxPhotos) break;
-
-              const xPosition = PADDING_LEFT + col * (photoSize.width + GAP);
-              const yPosition = PADDING_TOP + row * (photoSize.height + GAP);
-              const photoImg = photoImages.current[index];
-
-              if (photoImg) {
-                ctx.drawImage(
-                  photoImg,
-                  xPosition,
-                  yPosition,
-                  photoSize.width,
-                  photoSize.height
-                );
-              } else {
-                // Place holder
-                ctx.fillStyle = "#C8C8C8";
-                ctx.fillRect(
-                  xPosition,
-                  yPosition,
-                  photoSize.width,
-                  photoSize.height
-                );
-                ctx.strokeStyle = "#999";
-                ctx.lineWidth = 2 * SCALE_FACTOR;
-                // if no padding, then do not show dash
-                if (
-                  PADDING_LEFT ||
-                  PADDING_RIGHT ||
-                  PADDING_BOTTOM ||
-                  PADDING_TOP
-                ) {
-                  ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
-                }
-                ctx.strokeRect(
-                  xPosition,
-                  yPosition,
-                  photoSize.width,
-                  photoSize.height
-                );
-                ctx.setLineDash([]);
-                ctx.fillStyle = "#999";
-                ctx.font = `${40 * SCALE_FACTOR}px Arial`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(
-                  "+",
-                  xPosition + photoSize.width / 2,
-                  yPosition + photoSize.height / 2
-                );
-              }
-            }
-          }
-        } else {
-          for (let index = 0; index < maxPhotos; index++) {
-            const xPosition =
-              arrangement === "vertical"
-                ? PADDING_LEFT
-                : PADDING_LEFT + index * (photoSize.width + GAP);
-            const yPosition =
-              arrangement === "vertical"
-                ? PADDING_TOP + index * (photoSize.height + GAP)
-                : PADDING_TOP;
-            const photoImg = photoImages.current[index];
-
-            if (photoImg) {
-              ctx.drawImage(
-                photoImg,
-                xPosition,
-                yPosition,
-                photoSize.width,
-                photoSize.height
-              );
-            } else {
-              ctx.fillStyle = "#C8C8C8";
-              ctx.fillRect(
-                xPosition,
-                yPosition,
-                photoSize.width,
-                photoSize.height
-              );
-              ctx.strokeStyle = "#999";
-              ctx.lineWidth = 2 * SCALE_FACTOR;
-              if (
-                PADDING_LEFT ||
-                PADDING_RIGHT ||
-                PADDING_BOTTOM ||
-                PADDING_TOP
-              ) {
-                ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
-              }
-              ctx.strokeRect(
-                xPosition,
-                yPosition,
-                photoSize.width,
-                photoSize.height
-              );
-              ctx.setLineDash([]);
-              ctx.fillStyle = "#999";
-              ctx.font = `${40 * SCALE_FACTOR}px Arial`;
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText(
-                "+",
-                xPosition + photoSize.width / 2,
-                yPosition + photoSize.height / 2
-              );
-            }
-          }
-        }
-
-        if (foregroundImg.current) {
-          ctx.drawImage(
-            foregroundImg.current,
-            0,
-            0,
-            canvas.width,
-            canvas.height
-          );
-        }
-      }
-
-      // Vẽ stickers
-      stickers.forEach((sticker) => {
-        ctx.save();
-        ctx.translate(sticker.x * SCALE_FACTOR, sticker.y * SCALE_FACTOR);
-        ctx.rotate((sticker.rotation * Math.PI) / 180);
-        ctx.drawImage(
-          sticker.image,
-          (-sticker.width * SCALE_FACTOR) / 2,
-          (-sticker.height * SCALE_FACTOR) / 2,
-          sticker.width * SCALE_FACTOR,
-          sticker.height * SCALE_FACTOR
+    // Cập nhật Transformer khi chọn sticker
+    useEffect(() => {
+      if (
+        selectedStickerId !== null &&
+        transformerRef.current &&
+        stageRef.current
+      ) {
+        const selectedNode = stageRef.current.findOne(
+          `#sticker-${selectedStickerId}`
         );
-        ctx.restore();
-
-        if (selectedSticker === sticker.id) {
-          ctx.save();
-          ctx.translate(sticker.x * SCALE_FACTOR, sticker.y * SCALE_FACTOR);
-          ctx.rotate((sticker.rotation * Math.PI) / 180);
-
-          ctx.strokeStyle = "blue";
-          ctx.lineWidth = 2 * SCALE_FACTOR;
-          ctx.strokeRect(
-            (-sticker.width * SCALE_FACTOR) / 2,
-            (-sticker.height * SCALE_FACTOR) / 2,
-            sticker.width * SCALE_FACTOR,
-            sticker.height * SCALE_FACTOR
-          );
-
-          ctx.fillStyle = "white";
-          ctx.strokeStyle = "blue";
-          const handles = [
-            [-sticker.width / 2, -sticker.height / 2],
-            [sticker.width / 2, -sticker.height / 2],
-            [sticker.width / 2, sticker.height / 2],
-            [-sticker.width / 2, sticker.height / 2],
-          ];
-          handles.forEach(([x, y], index) => {
-            ctx.fillRect(
-              x * SCALE_FACTOR - (HANDLE_SIZE * SCALE_FACTOR) / 2,
-              y * SCALE_FACTOR - (HANDLE_SIZE * SCALE_FACTOR) / 2,
-              HANDLE_SIZE * SCALE_FACTOR,
-              HANDLE_SIZE * SCALE_FACTOR
-            );
-            ctx.strokeRect(
-              x * SCALE_FACTOR - (HANDLE_SIZE * SCALE_FACTOR) / 2,
-              y * SCALE_FACTOR - (HANDLE_SIZE * SCALE_FACTOR) / 2,
-              HANDLE_SIZE * SCALE_FACTOR,
-              HANDLE_SIZE * SCALE_FACTOR
-            );
-          });
-
-          ctx.fillRect(
-            (sticker.width * SCALE_FACTOR) / 2 -
-              (HANDLE_SIZE * SCALE_FACTOR) / 2,
-            (-sticker.height * SCALE_FACTOR) / 2 - 20 * SCALE_FACTOR,
-            HANDLE_SIZE * SCALE_FACTOR,
-            HANDLE_SIZE * SCALE_FACTOR
-          );
-          ctx.strokeRect(
-            (sticker.width * SCALE_FACTOR) / 2 -
-              (HANDLE_SIZE * SCALE_FACTOR) / 2,
-            (-sticker.height * SCALE_FACTOR) / 2 - 20 * SCALE_FACTOR,
-            HANDLE_SIZE * SCALE_FACTOR,
-            HANDLE_SIZE * SCALE_FACTOR
-          );
-
-          ctx.fillStyle = "red";
-          ctx.beginPath();
-          ctx.arc(
-            (-sticker.width * SCALE_FACTOR) / 2 + 20 * SCALE_FACTOR,
-            (-sticker.height * SCALE_FACTOR) / 2 - 20 * SCALE_FACTOR,
-            10 * SCALE_FACTOR,
-            0,
-            Math.PI * 2
-          );
-          ctx.fill();
-          ctx.fillStyle = "white";
-          ctx.font = `${12 * SCALE_FACTOR}px Arial`;
-          ctx.fillText(
-            "X",
-            (-sticker.width * SCALE_FACTOR) / 2 + 15 * SCALE_FACTOR,
-            (-sticker.height * SCALE_FACTOR) / 2 - 15 * SCALE_FACTOR
-          );
-
-          ctx.restore();
+        if (selectedNode) {
+          transformerRef.current.nodes([selectedNode]);
+          transformerRef.current.getLayer().batchDraw();
         }
-      });
-    }, [
-      stripWidth,
-      stripHeight,
-      frameColor,
-      isGrid,
-      maxPhotos,
-      gridColumns,
-      gridRows,
-      photoSize,
-      PADDING_LEFT,
-      PADDING_TOP,
-      GAP,
-      stickers,
-      selectedSticker,
-      photos,
-    ]);
-
-    const getStickerAtPoint = (x: number, y: number, sticker: Sticker) => {
-      const stickerX = sticker.x * SCALE_FACTOR;
-      const stickerY = sticker.y * SCALE_FACTOR;
-      const width = sticker.width * SCALE_FACTOR;
-      const height = sticker.height * SCALE_FACTOR;
-
-      const rad = (sticker.rotation * Math.PI) / 180;
-      const cos = Math.cos(-rad);
-      const sin = Math.sin(-rad);
-
-      const dx = x - stickerX;
-      const dy = y - stickerY;
-
-      const rotatedX = dx * cos - dy * sin;
-      const rotatedY = dx * sin + dy * cos;
-
-      return (
-        rotatedX >= -width / 2 &&
-        rotatedX <= width / 2 &&
-        rotatedY >= -height / 2 &&
-        rotatedY <= height / 2
-      );
-    };
-
-    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const x = (e.clientX - rect.left) * SCALE_FACTOR;
-      const y = (e.clientY - rect.top) * SCALE_FACTOR;
-
-      for (let i = stickers.length - 1; i >= 0; i--) {
-        const sticker = stickers[i];
-
-        if (selectedSticker === sticker.id) {
-          const stickerX = sticker.x * SCALE_FACTOR;
-          const stickerY = sticker.y * SCALE_FACTOR;
-          const width = sticker.width * SCALE_FACTOR;
-          const height = sticker.height * SCALE_FACTOR;
-          const rad = (sticker.rotation * Math.PI) / 180;
-          const cos = Math.cos(-rad);
-          const sin = Math.sin(-rad);
-
-          const dx = x - stickerX;
-          const dy = y - stickerY;
-          const rotatedX = dx * cos - dy * sin;
-          const rotatedY = dx * sin + dy * cos;
-
-          const handles = [
-            [-width / 2, -height / 2],
-            [width / 2, -height / 2],
-            [width / 2, height / 2],
-            [-width / 2, height / 2],
-          ];
-
-          for (let j = 0; j < handles.length; j++) {
-            const [hx, hy] = handles[j];
-            if (
-              rotatedX >= hx - HANDLE_SIZE * SCALE_FACTOR &&
-              rotatedX <= hx + HANDLE_SIZE * SCALE_FACTOR &&
-              rotatedY >= hy - HANDLE_SIZE * SCALE_FACTOR &&
-              rotatedY <= hy + HANDLE_SIZE * SCALE_FACTOR
-            ) {
-              setDragging("resize");
-              setResizeHandle(j);
-              setStartX(x);
-              setStartY(y);
-              return;
-            }
-          }
-
-          if (
-            rotatedX >= width / 2 - HANDLE_SIZE * SCALE_FACTOR &&
-            rotatedX <= width / 2 + HANDLE_SIZE * SCALE_FACTOR &&
-            rotatedY >= -height / 2 - 20 * SCALE_FACTOR &&
-            rotatedY <= -height / 2 - 10 * SCALE_FACTOR
-          ) {
-            setDragging("rotate");
-            setStartX(x);
-            setStartY(y);
-            return;
-          }
-
-          if (
-            rotatedX >= -width / 2 + 10 * SCALE_FACTOR &&
-            rotatedX <= -width / 2 + 30 * SCALE_FACTOR &&
-            rotatedY >= -height / 2 - 30 * SCALE_FACTOR &&
-            rotatedY <= -height / 2 - 10 * SCALE_FACTOR
-          ) {
-            setStickers((prev) => prev.filter((s) => s.id !== sticker.id));
-            setSelectedSticker(null);
-            return;
-          }
-        }
-
-        if (getStickerAtPoint(x, y, sticker)) {
-          setSelectedSticker(sticker.id);
-          setDragging("move");
-          setStartX(x);
-          setStartY(y);
-          return;
-        }
+      } else if (transformerRef.current) {
+        transformerRef.current.nodes([]);
+        transformerRef.current.getLayer().batchDraw();
       }
+    }, [selectedStickerId]);
 
-      setSelectedSticker(null);
+    const handleSelectSticker = (e: any) => {
+      const id = e.target.id().replace("sticker-", "");
+      setSelectedStickerId(parseInt(id));
     };
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!dragging || selectedSticker === null) return;
-
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const x = (e.clientX - rect.left) * SCALE_FACTOR;
-      const y = (e.clientY - rect.top) * SCALE_FACTOR;
-
-      setStickers((prev) =>
-        prev.map((sticker) => {
-          if (sticker.id !== selectedSticker) return sticker;
-
-          if (dragging === "move") {
-            return {
-              ...sticker,
-              x: sticker.x + (x - startX) / SCALE_FACTOR,
-              y: sticker.y + (y - startY) / SCALE_FACTOR,
-            };
-          }
-
-          if (dragging === "resize" && resizeHandle !== null) {
-            const rad = (sticker.rotation * Math.PI) / 180;
-            const cos = Math.cos(rad);
-            const sin = Math.sin(rad);
-
-            const dx = (x - startX) / SCALE_FACTOR;
-            const dy = (y - startY) / SCALE_FACTOR;
-
-            const rotatedDx = dx * cos + dy * sin;
-            const aspectRatio = sticker.width / sticker.height;
-
-            let newWidth = sticker.width;
-            let newHeight = sticker.height;
-            let newX = sticker.x;
-            let newY = sticker.y;
-
-            if (resizeHandle === 0 || resizeHandle === 3) {
-              newWidth -= rotatedDx;
-            } else {
-              newWidth += rotatedDx;
-            }
-
-            newHeight = newWidth / aspectRatio;
-
-            if (newWidth < 20) {
-              newWidth = 20;
-              newHeight = newWidth / aspectRatio;
-            }
-
-            if (resizeHandle === 0 || resizeHandle === 1) {
-              newY += (sticker.height - newHeight) / 2;
-            } else {
-              newY -= (sticker.height - newHeight) / 2;
-            }
-            if (resizeHandle === 1 || resizeHandle === 2) {
-              newX += (sticker.width - newWidth) / 2;
-            } else {
-              newX -= (sticker.width - newWidth) / 2;
-            }
-
-            return {
-              ...sticker,
-              width: newWidth,
-              height: newHeight,
-              x: newX,
-              y: newY,
-            };
-          }
-
-          if (dragging === "rotate") {
-            const centerX = sticker.x * SCALE_FACTOR;
-            const centerY = sticker.y * SCALE_FACTOR;
-            const startAngle = Math.atan2(startY - centerY, startX - centerX);
-            const currentAngle = Math.atan2(y - centerY, x - centerX);
-            const newRotation =
-              sticker.rotation + ((currentAngle - startAngle) * 180) / Math.PI;
-            return {
-              ...sticker,
-              rotation: newRotation,
-            };
-          }
-
-          return sticker;
-        })
-      );
-
-      setStartX(x);
-      setStartY(y);
-      redrawCanvas();
+    const handleDeselect = (e: any) => {
+      if (
+        e.target?.id()?.indexOf("sticker") === -1 &&
+        e.target.className !== "Rect"
+      ) {
+        setSelectedStickerId(null);
+      }
     };
 
-    const handleMouseUp = () => {
-      setDragging(null);
-      setResizeHandle(null);
-    };
+    const handleTransform = useCallback(
+      (e: any) => {
+        const node = e.target;
+        const id = parseInt(node.id().replace("sticker-", ""));
+        setStickers((prev) =>
+          prev.map((sticker) =>
+            sticker.id === id
+              ? {
+                  ...sticker,
+                  x: node.x() / SCALE_FACTOR,
+                  y: node.y() / SCALE_FACTOR,
+                  width: (node.width() * node.scaleX()) / SCALE_FACTOR,
+                  height: (node.height() * node.scaleY()) / SCALE_FACTOR,
+                  rotation: node.rotation(),
+                }
+              : sticker
+          )
+        );
+        node.scaleX(1);
+        node.scaleY(1);
+      },
+      [setStickers, SCALE_FACTOR]
+    );
+
+    const handleDeleteSticker = useCallback(() => {
+      if (selectedStickerId !== null) {
+        setStickers((prev) =>
+          prev.filter((sticker) => sticker.id !== selectedStickerId)
+        );
+        setSelectedStickerId(null);
+      }
+    }, [selectedStickerId, setStickers]);
 
     return (
-      <div ref={ref} className="photo-strip">
-        <canvas
-          ref={canvasRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          style={{
-            width: `${stripWidth / SCALE_FACTOR}px`,
-            height: `${stripHeight / SCALE_FACTOR}px`,
-            borderRadius: `${stripBorderRadius / SCALE_FACTOR}px`,
-            cursor: dragging ? "grabbing" : "default",
-          }}
-        />
+      <div ref={ref} className="photo-strip" style={{ position: "relative" }}>
+        <div ref={containerRef}>
+          <Stage
+            width={stripWidth}
+            height={stripHeight}
+            ref={stageRef}
+            style={{
+              borderRadius: `${stripBorderRadius / SCALE_FACTOR}px`,
+              overflow: "hidden",
+            }}
+            onMouseDown={handleDeselect}
+            onTouchStart={handleDeselect}
+          >
+            <Layer>
+              {bgImage ? (
+                <KonvaImage
+                  image={bgImage}
+                  width={stripWidth}
+                  height={stripHeight}
+                />
+              ) : (
+                <Rect
+                  width={stripWidth}
+                  height={stripHeight}
+                  fill={frameColor}
+                />
+              )}
+
+              {photos.length === 1 && photos[0].id === "combined"
+                ? photoImages[0] && (
+                    <KonvaImage
+                      image={photoImages[0]}
+                      width={stripWidth}
+                      height={stripHeight}
+                    />
+                  )
+                : photoImages.map((photo, index) => {
+                    if (!photo) return null;
+                    const x =
+                      arrangement === "vertical"
+                        ? PADDING_LEFT
+                        : PADDING_LEFT + index * (photoSize.width + GAP);
+                    const y =
+                      arrangement === "vertical"
+                        ? PADDING_TOP + index * (photoSize.height + GAP)
+                        : PADDING_TOP;
+                    return (
+                      <KonvaImage
+                        key={index}
+                        image={photo}
+                        x={x}
+                        y={y}
+                        width={photoSize.width}
+                        height={photoSize.height}
+                      />
+                    );
+                  })}
+
+              {fgImage && (
+                <KonvaImage
+                  image={fgImage}
+                  width={stripWidth}
+                  height={stripHeight}
+                />
+              )}
+
+              {stickers.map((sticker) => (
+                <KonvaImage
+                  key={sticker.id}
+                  id={`sticker-${sticker.id}`}
+                  image={sticker.image}
+                  x={sticker.x * SCALE_FACTOR}
+                  y={sticker.y * SCALE_FACTOR}
+                  width={sticker.width * SCALE_FACTOR}
+                  height={sticker.height * SCALE_FACTOR}
+                  rotation={sticker.rotation}
+                  draggable
+                  onClick={handleSelectSticker}
+                  onTap={handleSelectSticker}
+                  onDragEnd={handleTransform}
+                  onTransformEnd={handleTransform}
+                />
+              ))}
+
+              {selectedStickerId !== null && (
+                <Transformer
+                  id="transformer"
+                  ref={transformerRef}
+                  anchorSize={8 * SCALE_FACTOR}
+                  borderStrokeWidth={1 * SCALE_FACTOR}
+                  rotateEnabled
+                  enabledAnchors={[
+                    "top-left",
+                    "top-right",
+                    "bottom-left",
+                    "bottom-right",
+                  ]}
+                />
+              )}
+            </Layer>
+          </Stage>
+        </div>
+
+        {selectedStickerId !== null && (
+          <button
+            onClick={handleDeleteSticker}
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              background: "red",
+              color: "white",
+              border: "none",
+              borderRadius: "50%",
+              width: "30px",
+              height: "30px",
+              cursor: "pointer",
+              zIndex: 10,
+            }}
+          >
+            X
+          </button>
+        )}
       </div>
     );
   }

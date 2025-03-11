@@ -21,8 +21,6 @@ interface FrameControlsProps {
   setStickers: React.Dispatch<React.SetStateAction<any>>; // Không dùng
   uploadedStickers: any[]; // Không dùng
   setUploadedStickers: React.Dispatch<React.SetStateAction<any>>; // Không dùng
-  timerEnabled: boolean;
-  onTimerToggle: (enabled: boolean) => void;
 }
 
 const FrameControls: React.FC<FrameControlsProps> = ({

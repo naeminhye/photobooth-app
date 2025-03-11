@@ -4,6 +4,18 @@ import Webcam from "react-webcam";
 import GIF from "gif.js";
 import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 
+import flipIcon from "../../assets/flip.png";
+import timerOffFill from "../../assets/timer_off_fill.png";
+import timerOffOutline from "../../assets/timer_off_outline.png";
+import timer2Fill from "../../assets/timer_2_fill.png";
+import timer2Outline from "../../assets/timer_2_outline.png";
+import timer5Fill from "../../assets/timer_5_fill.png";
+import timer5Outline from "../../assets/timer_5_outline.png";
+import timer10Fill from "../../assets/timer_10_fill.png";
+import timer10Outline from "../../assets/timer_10_outline.png";
+
+import "./styles.css";
+
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
   onGifComplete: (gifUrl: string) => void;
@@ -14,6 +26,8 @@ interface CameraFeedProps {
   setIsCreatingGif: (isCreating: boolean) => void;
   countdownTime: number;
   isMirrored: boolean;
+  onTimerChange: (time: number) => void; // Thêm prop để cập nhật timer
+  onMirrorToggle: (isMirrored: boolean) => void; // Thêm prop để toggle mirror
 }
 
 const CameraFeed: React.FC<CameraFeedProps> = ({
@@ -26,6 +40,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   setIsCreatingGif,
   countdownTime,
   isMirrored,
+  onTimerChange,
+  onMirrorToggle,
 }) => {
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,8 +51,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const gifFrames = useRef<ImageData[]>([]);
   const [photoCount, setPhotoCount] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
-  const countdownRef: any = useRef<number>(countdownTime);
-  const maxPhotosRef: any = useRef<number>(maxPhotos);
+  const countdownRef = useRef<number>(countdownTime);
+  const maxPhotosRef = useRef<number>(maxPhotos);
 
   useEffect(() => {
     countdownRef.current = countdownTime;
@@ -47,9 +63,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   }, [maxPhotos]);
 
   const capturePhoto = useCallback(() => {
-    console.log("capturePhoto called", {
-      hasWebcam: !!webcamRef.current,
-    });
     if (webcamRef.current) {
       const photo = webcamRef.current.getScreenshot({
         width: 1920,
@@ -145,7 +158,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
     gifFrames.current = [];
     runCountdown();
-  }, []);
+  }, [currentPhotos, timerEnabled, maxPhotos, isCapturing]);
 
   const handleMouseDown = () => {
     if (currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
@@ -201,6 +214,14 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     }
   };
 
+  const handleTimerChange = (time: number) => {
+    onTimerChange(time);
+  };
+
+  const handleMirrorToggle = () => {
+    onMirrorToggle(!isMirrored);
+  };
+
   return (
     <div
       className="camera-feed"
@@ -219,13 +240,13 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         ref={webcamRef}
         imageSmoothing
         disablePictureInPicture
-        screenshotFormat="image/jpeg" // Chuyển sang JPEG để tối ưu chất lượng
-        screenshotQuality={1} // Chất lượng tối đa (0-1)
+        screenshotFormat="image/jpeg"
+        screenshotQuality={1}
         width={CAMERA_WIDTH}
         height={CAMERA_HEIGHT}
         mirrored={isMirrored}
         videoConstraints={{
-          width: 1920, // Tăng độ phân giải webcam
+          width: 1920,
           height: 1440,
           facingMode: "user",
         }}
@@ -239,7 +260,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
             color: "white",
             fontSize: "40px",
             fontWeight: "bold",
-            background: "rgba(0, 0, 0, 0.5)",
             padding: "5px 10px",
             borderRadius: "5px",
           }}
@@ -247,6 +267,83 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
           {countdown}
         </div>
       )}
+
+      {/* Control Panel */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          display: "flex",
+          gap: "10px",
+          zIndex: 10,
+        }}
+      >
+        {/* Timer Controls */}
+        <div className="camera-control">
+          <button
+            onClick={() => handleTimerChange(0)}
+            className="camera-control-button"
+          >
+            <img
+              src={countdownTime === 0 ? timerOffFill : timerOffOutline}
+              alt="Off"
+            />
+          </button>
+          <button
+            onClick={() => handleTimerChange(2)}
+            className="camera-control-button"
+          >
+            <img
+              src={countdownTime === 2 ? timer2Fill : timer2Outline}
+              alt="2s"
+            />
+          </button>
+          <button
+            onClick={() => handleTimerChange(5)}
+            className="camera-control-button"
+          >
+            <img
+              src={countdownTime === 5 ? timer5Fill : timer5Outline}
+              alt="5s"
+            />
+          </button>
+          <button
+            onClick={() => handleTimerChange(10)}
+            className="camera-control-button"
+          >
+            <img
+              src={countdownTime === 10 ? timer10Fill : timer10Outline}
+              alt="10s"
+            />
+          </button>
+        </div>
+
+        {/* Mirror Toggle with Icon */}
+        <button
+          onClick={handleMirrorToggle}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <img
+            src={flipIcon}
+            alt="Flip Camera"
+            style={{
+              width: "32px",
+              height: "32px",
+              opacity: isMirrored ? 1 : 0.5, // Highlight bằng opacity
+              transition: "opacity 0.2s ease", // Hiệu ứng mượt mà
+            }}
+          />
+        </button>
+      </div>
+
       <button
         ref={captureButtonRef}
         onMouseDown={handleMouseDown}

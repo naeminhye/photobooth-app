@@ -39,7 +39,7 @@ const App: React.FC = () => {
     []
   );
   const [timerEnabled, setTimerEnabled] = useState(false);
-  const [countdownTime, setCountdownTime] = useState<number>(10);
+  const [countdownTime, setCountdownTime] = useState<number>(0);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [isCreatingGif, setIsCreatingGif] = useState(false);
   const [step, setStep] = useState<number>(1);
@@ -47,6 +47,9 @@ const App: React.FC = () => {
   const photoStripRef: any = useRef<HTMLDivElement>(null);
   const sequentialGifRef = useRef<HTMLDivElement>(null);
   const [combinedImage, setCombinedImage] = useState<string | null>(null);
+  const [selectedStickerId, setSelectedStickerId] = useState<number | null>(
+    null
+  );
 
   const currentLayout = useMemo(() => LAYOUTS[layout], [layout]);
 
@@ -283,8 +286,37 @@ const App: React.FC = () => {
     { value: 10, label: "10s" },
   ];
 
+  const handleOuterClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (
+      photoStripRef.current &&
+      !photoStripRef.current.contains(e.target as Node)
+    ) {
+      setSelectedStickerId(null);
+      console.log("Clicked outside PhotoStrip"); // Debug
+    }
+  };
+
+  const handleOuterTouch = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (
+      photoStripRef.current &&
+      !photoStripRef.current.contains(e.target as Node)
+    ) {
+      setSelectedStickerId(null);
+      console.log("Touched outside PhotoStrip"); // Debug
+    }
+  };
+
+  const handleTimeChange = (timer: number) => {
+    setTimerEnabled(timer > 0);
+    setCountdownTime(timer);
+  };
+
   return (
-    <div className="app">
+    <div
+      className="app"
+      onMouseDown={handleOuterClick}
+      onTouchStart={handleOuterTouch}
+    >
       <GradientBackground />
       <div className="main-container">
         {hasPermission ? (
@@ -293,6 +325,17 @@ const App: React.FC = () => {
               <div className="step-1">
                 <h2 className="step-title">Capture Your Moments</h2>
                 <div className="capture-container">
+                  {/* <CameraFeed
+                    onCapture={handlePhotoCapture}
+                    onGifComplete={handleGifComplete}
+                    layout={layout}
+                    maxPhotos={currentLayout.maxPhotos}
+                    currentPhotos={previewPhotos.length}
+                    timerEnabled={timerEnabled}
+                    setIsCreatingGif={setIsCreatingGif}
+                    countdownTime={countdownTime}
+                    isMirrored={isMirrored}
+                  /> */}
                   <CameraFeed
                     onCapture={handlePhotoCapture}
                     onGifComplete={handleGifComplete}
@@ -303,16 +346,10 @@ const App: React.FC = () => {
                     setIsCreatingGif={setIsCreatingGif}
                     countdownTime={countdownTime}
                     isMirrored={isMirrored}
+                    onTimerChange={handleTimeChange}
+                    onMirrorToggle={setIsMirrored}
                   />
                   <div className="capture-options">
-                    <label className="mirror-toggle">
-                      <input
-                        type="checkbox"
-                        checked={isMirrored}
-                        onChange={(e) => setIsMirrored(e.target.checked)}
-                      />
-                      <span>Mirror Camera</span>
-                    </label>
                     <label className="layout-label">Select Layout</label>
                     <select
                       value={layout}
@@ -331,32 +368,6 @@ const App: React.FC = () => {
                         </option>
                       ))}
                     </select>
-                    <label className="timer-toggle">
-                      <input
-                        type="checkbox"
-                        checked={timerEnabled}
-                        onChange={(e) => setTimerEnabled(e.target.checked)}
-                      />
-                      <span>Enable Timer Countdown</span>
-                    </label>
-                    {timerEnabled && (
-                      <div className="countdown-setting">
-                        <label className="layout-label">Countdown Time</label>
-                        <select
-                          value={countdownTime}
-                          onChange={(e) =>
-                            setCountdownTime(parseInt(e.target.value))
-                          }
-                          className="layout-select"
-                        >
-                          {countdownOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
                   </div>
                 </div>
                 <PreviewPhotos
@@ -410,6 +421,8 @@ const App: React.FC = () => {
                       foregroundImage={foregroundImage}
                       stickers={stickers}
                       setStickers={setStickers}
+                      selectedStickerId={selectedStickerId}
+                      setSelectedStickerId={setSelectedStickerId}
                     />
                   </div>
                   <div className="edit-sidebar-right">
@@ -430,8 +443,6 @@ const App: React.FC = () => {
                       setStickers={setStickers}
                       uploadedStickers={[]}
                       setUploadedStickers={() => {}}
-                      timerEnabled={timerEnabled}
-                      onTimerToggle={setTimerEnabled}
                     />
                   </div>
                 </div>
@@ -466,6 +477,8 @@ const App: React.FC = () => {
                       foregroundImage={null}
                       stickers={stickers}
                       setStickers={setStickers}
+                      selectedStickerId={selectedStickerId}
+                      setSelectedStickerId={setSelectedStickerId}
                     />
                   </div>
                   <div className="edit-sidebar-right">
