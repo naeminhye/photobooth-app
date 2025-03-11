@@ -10,7 +10,6 @@ interface CameraFeedProps {
   layout: number;
   maxPhotos: number;
   currentPhotos: number;
-  showCamera: boolean;
   timerEnabled: boolean;
   setIsCreatingGif: (isCreating: boolean) => void;
   countdownTime: number;
@@ -23,7 +22,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   layout,
   maxPhotos,
   currentPhotos,
-  showCamera,
   timerEnabled,
   setIsCreatingGif,
   countdownTime,
@@ -33,25 +31,28 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const captureButtonRef = useRef<HTMLButtonElement>(null);
   const [isHolding, setIsHolding] = useState(false);
-  const [isVideoReady, setIsVideoReady] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const gifFrames = useRef<ImageData[]>([]);
   const [photoCount, setPhotoCount] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
+  const countdownRef: any = useRef<number>(countdownTime);
+  const maxPhotosRef: any = useRef<number>(maxPhotos);
 
   useEffect(() => {
-    if (showCamera) {
-      setIsVideoReady(true);
-    }
-    return () => {
-      setIsVideoReady(false);
-    };
-  }, [showCamera, layout]);
+    countdownRef.current = countdownTime;
+  }, [countdownTime]);
 
-  const capturePhoto = () => {
-    if (webcamRef.current && isVideoReady) {
+  useEffect(() => {
+    maxPhotosRef.current = maxPhotos;
+  }, [maxPhotos]);
+
+  const capturePhoto = useCallback(() => {
+    console.log("capturePhoto called", {
+      hasWebcam: !!webcamRef.current,
+    });
+    if (webcamRef.current) {
       const photo = webcamRef.current.getScreenshot({
-        width: 1920, // Tăng độ phân giải ảnh chụp
+        width: 1920,
         height: 1440,
       });
       if (photo) {
@@ -59,7 +60,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         setPhotoCount((prev) => prev + 1);
       }
     }
-  };
+  }, [onCapture]);
 
   const captureFrame = () => {
     if (webcamRef.current && canvasRef.current) {
@@ -68,7 +69,13 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       if (context) {
         canvas.width = CAMERA_WIDTH;
         canvas.height = CAMERA_HEIGHT;
-        context.drawImage(webcamRef.current.video!, 0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+        context.drawImage(
+          webcamRef.current.video!,
+          0,
+          0,
+          CAMERA_WIDTH,
+          CAMERA_HEIGHT
+        );
         return context.getImageData(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
       }
     }
@@ -107,10 +114,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const runCountdown = async () => {
-    for (let i = 0; i < maxPhotos; i++) {
-      if (!webcamRef.current) break;
+    for (let i = 0; i < maxPhotosRef.current; i++) {
+      if (!webcamRef.current || !countdownRef.current) break;
 
-      for (let sec = countdownTime; sec > 0; sec--) {
+      for (let sec = countdownRef.current; sec > 0; sec--) {
         setCountdown(sec);
         const frame = captureFrame();
         if (frame) {
@@ -132,22 +139,26 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       return;
     }
 
-    if (currentPhotos >= (timerEnabled ? maxPhotos + 4 : 10) || isCapturing) return;
+    if (currentPhotos >= (timerEnabled ? maxPhotos + 4 : 10) || isCapturing)
+      return;
     setIsCapturing(true);
-
 
     gifFrames.current = [];
     runCountdown();
   }, []);
 
   const handleMouseDown = () => {
-    if (showCamera && currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
+    if (currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
       setIsHolding(true);
     }
   };
 
   const handleMouseUp = () => {
-    if (showCamera && isHolding && currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
+    if (
+      isHolding &&
+      currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) &&
+      !isCapturing
+    ) {
       setIsHolding(false);
       if (timerEnabled) {
         startCountdown();
@@ -164,13 +175,17 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const handleTouchStart = () => {
-    if (showCamera && currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
+    if (currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
       setIsHolding(true);
     }
   };
 
   const handleTouchEnd = () => {
-    if (showCamera && isHolding && currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
+    if (
+      isHolding &&
+      currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) &&
+      !isCapturing
+    ) {
       setIsHolding(false);
       if (timerEnabled) {
         startCountdown();
@@ -199,22 +214,22 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         overflow: "hidden",
       }}
     >
-      {showCamera && (
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg" // Chuyển sang JPEG để tối ưu chất lượng
-          screenshotQuality={1} // Chất lượng tối đa (0-1)
-          width={CAMERA_WIDTH}
-          height={CAMERA_HEIGHT}
-          mirrored={isMirrored}
-          videoConstraints={{
-            width: 1920, // Tăng độ phân giải webcam
-            height: 1440,
-            facingMode: "user",
-          }}
-        />
-      )}
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        imageSmoothing
+        disablePictureInPicture
+        screenshotFormat="image/jpeg" // Chuyển sang JPEG để tối ưu chất lượng
+        screenshotQuality={1} // Chất lượng tối đa (0-1)
+        width={CAMERA_WIDTH}
+        height={CAMERA_HEIGHT}
+        mirrored={isMirrored}
+        videoConstraints={{
+          width: 1920, // Tăng độ phân giải webcam
+          height: 1440,
+          facingMode: "user",
+        }}
+      />
       {countdown !== null && (
         <div
           style={{

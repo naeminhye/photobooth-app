@@ -48,7 +48,9 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
   ) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [selectedSticker, setSelectedSticker] = useState<number | null>(null);
-    const [dragging, setDragging] = useState<"move" | "resize" | "rotate" | null>(null);
+    const [dragging, setDragging] = useState<
+      "move" | "resize" | "rotate" | null
+    >(null);
     const [startX, setStartX] = useState(0);
     const [startY, setStartY] = useState(0);
     const [resizeHandle, setResizeHandle] = useState<number | null>(null);
@@ -58,13 +60,15 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
     const currentLayout = LAYOUTS[layout];
     const maxPhotos = currentLayout.maxPhotos;
+    const sizeUnit = currentLayout.unit;
     const stripWidth = currentLayout.width * SCALE_FACTOR;
     const stripHeight = currentLayout.height * SCALE_FACTOR;
-    const PADDING_TOP = (currentLayout.paddings?.top || 0.15 * 96) * SCALE_FACTOR;
-    const PADDING_LEFT = (currentLayout.paddings?.left || 0.15 * 96) * SCALE_FACTOR;
-    const PADDING_BOTTOM = (currentLayout.paddings?.bottom || 0.15 * 96) * SCALE_FACTOR;
-    const PADDING_RIGHT = (currentLayout.paddings?.right || 0.15 * 96) * SCALE_FACTOR;
-    const GAP = (currentLayout.gap || 0.1 * 96) * SCALE_FACTOR;
+    const stripBorderRadius = currentLayout?.borderRadius || 0;
+    const PADDING_TOP = (currentLayout.paddings?.top || 0) * SCALE_FACTOR;
+    const PADDING_LEFT = (currentLayout.paddings?.left || 0) * SCALE_FACTOR;
+    const PADDING_BOTTOM = (currentLayout.paddings?.bottom || 0) * SCALE_FACTOR;
+    const PADDING_RIGHT = (currentLayout.paddings?.right || 0) * SCALE_FACTOR;
+    const GAP = (currentLayout.gap || 0) * SCALE_FACTOR;
 
     const isGrid = currentLayout.arrangement === "grid";
     const arrangement = currentLayout.arrangement;
@@ -76,7 +80,10 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         height = 0;
       if (arrangement === "grid") {
         width =
-          (stripWidth - PADDING_LEFT - PADDING_RIGHT - (gridColumns - 1) * GAP) /
+          (stripWidth -
+            PADDING_LEFT -
+            PADDING_RIGHT -
+            (gridColumns - 1) * GAP) /
           gridColumns;
         height =
           (stripHeight - PADDING_TOP - PADDING_BOTTOM - (gridRows - 1) * GAP) /
@@ -245,7 +252,13 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       } else {
         // Step 2: Vẽ background, photos, foreground như cũ
         if (backgroundImg.current) {
-          ctx.drawImage(backgroundImg.current, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(
+            backgroundImg.current,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
         } else {
           ctx.fillStyle = frameColor;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -280,7 +293,15 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 );
                 ctx.strokeStyle = "#999";
                 ctx.lineWidth = 2 * SCALE_FACTOR;
-                ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
+                // if no padding, then do not show dash
+                if (
+                  PADDING_LEFT ||
+                  PADDING_RIGHT ||
+                  PADDING_BOTTOM ||
+                  PADDING_TOP
+                ) {
+                  ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
+                }
                 ctx.strokeRect(
                   xPosition,
                   yPosition,
@@ -330,7 +351,14 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
               );
               ctx.strokeStyle = "#999";
               ctx.lineWidth = 2 * SCALE_FACTOR;
-              ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
+              if (
+                PADDING_LEFT ||
+                PADDING_RIGHT ||
+                PADDING_BOTTOM ||
+                PADDING_TOP
+              ) {
+                ctx.setLineDash([5 * SCALE_FACTOR, 5 * SCALE_FACTOR]);
+              }
               ctx.strokeRect(
                 xPosition,
                 yPosition,
@@ -352,7 +380,13 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         }
 
         if (foregroundImg.current) {
-          ctx.drawImage(foregroundImg.current, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(
+            foregroundImg.current,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
         }
       }
 
@@ -408,13 +442,15 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           });
 
           ctx.fillRect(
-            (sticker.width * SCALE_FACTOR) / 2 - (HANDLE_SIZE * SCALE_FACTOR) / 2,
+            (sticker.width * SCALE_FACTOR) / 2 -
+              (HANDLE_SIZE * SCALE_FACTOR) / 2,
             (-sticker.height * SCALE_FACTOR) / 2 - 20 * SCALE_FACTOR,
             HANDLE_SIZE * SCALE_FACTOR,
             HANDLE_SIZE * SCALE_FACTOR
           );
           ctx.strokeRect(
-            (sticker.width * SCALE_FACTOR) / 2 - (HANDLE_SIZE * SCALE_FACTOR) / 2,
+            (sticker.width * SCALE_FACTOR) / 2 -
+              (HANDLE_SIZE * SCALE_FACTOR) / 2,
             (-sticker.height * SCALE_FACTOR) / 2 - 20 * SCALE_FACTOR,
             HANDLE_SIZE * SCALE_FACTOR,
             HANDLE_SIZE * SCALE_FACTOR
@@ -530,10 +566,10 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           }
 
           if (
-            rotatedX >= (width / 2) - HANDLE_SIZE * SCALE_FACTOR &&
-            rotatedX <= (width / 2) + HANDLE_SIZE * SCALE_FACTOR &&
-            rotatedY >= (-height / 2) - 20 * SCALE_FACTOR &&
-            rotatedY <= (-height / 2) - 10 * SCALE_FACTOR
+            rotatedX >= width / 2 - HANDLE_SIZE * SCALE_FACTOR &&
+            rotatedX <= width / 2 + HANDLE_SIZE * SCALE_FACTOR &&
+            rotatedY >= -height / 2 - 20 * SCALE_FACTOR &&
+            rotatedY <= -height / 2 - 10 * SCALE_FACTOR
           ) {
             setDragging("rotate");
             setStartX(x);
@@ -542,10 +578,10 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           }
 
           if (
-            rotatedX >= (-width / 2) + 10 * SCALE_FACTOR &&
-            rotatedX <= (-width / 2) + 30 * SCALE_FACTOR &&
-            rotatedY >= (-height / 2) - 30 * SCALE_FACTOR &&
-            rotatedY <= (-height / 2) - 10 * SCALE_FACTOR
+            rotatedX >= -width / 2 + 10 * SCALE_FACTOR &&
+            rotatedX <= -width / 2 + 30 * SCALE_FACTOR &&
+            rotatedY >= -height / 2 - 30 * SCALE_FACTOR &&
+            rotatedY <= -height / 2 - 10 * SCALE_FACTOR
           ) {
             setStickers((prev) => prev.filter((s) => s.id !== sticker.id));
             setSelectedSticker(null);
@@ -640,7 +676,8 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             const centerY = sticker.y * SCALE_FACTOR;
             const startAngle = Math.atan2(startY - centerY, startX - centerX);
             const currentAngle = Math.atan2(y - centerY, x - centerX);
-            const newRotation = sticker.rotation + ((currentAngle - startAngle) * 180) / Math.PI;
+            const newRotation =
+              sticker.rotation + ((currentAngle - startAngle) * 180) / Math.PI;
             return {
               ...sticker,
               rotation: newRotation,
@@ -671,6 +708,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           style={{
             width: `${stripWidth / SCALE_FACTOR}px`,
             height: `${stripHeight / SCALE_FACTOR}px`,
+            borderRadius: `${stripBorderRadius / SCALE_FACTOR}px`,
             cursor: dragging ? "grabbing" : "default",
           }}
         />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./App.css";
 import PhotoStrip from "./components/PhotoStrip";
 import FrameControls from "./components/FrameControls";
@@ -12,7 +12,6 @@ import { faCheck, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useDropzone } from "react-dropzone";
 import GradientBackground from "./components/GradientBackground";
 import html2canvas from "html2canvas";
-
 
 interface Sticker {
   id: number;
@@ -31,10 +30,14 @@ const App: React.FC = () => {
   const [frameColor, setFrameColor] = useState<string>("#FFFFFF");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [layout, setLayout] = useState<number>(1);
-  const [selectedPreviewPhotos, setSelectedPreviewPhotos] = useState<string[]>([]);
+  const [selectedPreviewPhotos, setSelectedPreviewPhotos] = useState<string[]>(
+    []
+  );
   const [foregroundImage, setForegroundImage] = useState<string | null>(null);
   const [stickers, setStickers] = useState<Sticker[]>([]);
-  const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>([]);
+  const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>(
+    []
+  );
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [countdownTime, setCountdownTime] = useState<number>(10);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
@@ -44,6 +47,8 @@ const App: React.FC = () => {
   const photoStripRef: any = useRef<HTMLDivElement>(null);
   const sequentialGifRef = useRef<HTMLDivElement>(null);
   const [combinedImage, setCombinedImage] = useState<string | null>(null);
+
+  const currentLayout = useMemo(() => LAYOUTS[layout], [layout]);
 
   useEffect(() => {
     requestCameraPermission();
@@ -92,18 +97,23 @@ const App: React.FC = () => {
 
   const handlePhotoUpload = (files: File[]) => {
     if (previewPhotos.length + files.length > 10) {
-      alert("Adding these photos would exceed the maximum preview photo limit (10).");
+      alert(
+        "Adding these photos would exceed the maximum preview photo limit (10)."
+      );
       return;
     }
     const validFiles = files.filter((file) => file.size <= 10 * 1024 * 1024);
     const newPhotos = validFiles.map((file) => {
       const reader = new FileReader();
       return new Promise<Photo>((resolve) => {
-        reader.onload = (e) => resolve({ id: uuidv4(), url: e.target?.result as string });
+        reader.onload = (e) =>
+          resolve({ id: uuidv4(), url: e.target?.result as string });
         reader.readAsDataURL(file);
       });
     });
-    Promise.all(newPhotos).then((photos) => setPreviewPhotos((prev) => [...prev, ...photos]));
+    Promise.all(newPhotos).then((photos) =>
+      setPreviewPhotos((prev) => [...prev, ...photos])
+    );
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -136,7 +146,6 @@ const App: React.FC = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const currentLayout = LAYOUTS[layout];
     const stripWidth = currentLayout.width * 2;
     const stripHeight = currentLayout.height * 2;
     canvas.width = stripWidth;
@@ -152,12 +161,18 @@ const App: React.FC = () => {
       const photoWidth =
         currentLayout.arrangement === "vertical"
           ? stripWidth - PADDING_LEFT - PADDING_RIGHT
-          : (stripWidth - PADDING_LEFT - PADDING_RIGHT - (currentLayout.maxPhotos - 1) * GAP) /
-          currentLayout.maxPhotos;
+          : (stripWidth -
+              PADDING_LEFT -
+              PADDING_RIGHT -
+              (currentLayout.maxPhotos - 1) * GAP) /
+            currentLayout.maxPhotos;
       const photoHeight =
         currentLayout.arrangement === "vertical"
-          ? (stripHeight - PADDING_TOP - PADDING_BOTTOM - (currentLayout.maxPhotos - 1) * GAP) /
-          currentLayout.maxPhotos
+          ? (stripHeight -
+              PADDING_TOP -
+              PADDING_BOTTOM -
+              (currentLayout.maxPhotos - 1) * GAP) /
+            currentLayout.maxPhotos
           : stripHeight - PADDING_TOP - PADDING_BOTTOM;
 
       capturedPhotos.forEach((photo, index) => {
@@ -224,8 +239,8 @@ const App: React.FC = () => {
     const newSticker: Sticker = {
       id: Date.now(),
       image: stickerImg,
-      x: LAYOUTS[layout].width / 2,
-      y: LAYOUTS[layout].height / 2,
+      x: currentLayout.width / 2,
+      y: currentLayout.height / 2,
       width: defaultWidth,
       height: defaultHeight,
       rotation: 0,
@@ -256,8 +271,9 @@ const App: React.FC = () => {
 
   const layouts = Object.entries(LAYOUTS).map(([id, layout]) => ({
     id: parseInt(id),
-    name: `${layout.maxPhotos} Photo${layout.maxPhotos > 1 ? "s" : ""} (${layout.arrangement.charAt(0).toUpperCase() + layout.arrangement.slice(1)
-      })`,
+    name: `${layout.maxPhotos} Photo${layout.maxPhotos > 1 ? "s" : ""} (${
+      layout.arrangement.charAt(0).toUpperCase() + layout.arrangement.slice(1)
+    })`,
     maxPhotos: layout.maxPhotos,
   }));
 
@@ -281,9 +297,8 @@ const App: React.FC = () => {
                     onCapture={handlePhotoCapture}
                     onGifComplete={handleGifComplete}
                     layout={layout}
-                    maxPhotos={LAYOUTS[layout].maxPhotos}
+                    maxPhotos={currentLayout.maxPhotos}
                     currentPhotos={previewPhotos.length}
-                    showCamera={true}
                     timerEnabled={timerEnabled}
                     setIsCreatingGif={setIsCreatingGif}
                     countdownTime={countdownTime}
@@ -329,7 +344,9 @@ const App: React.FC = () => {
                         <label className="layout-label">Countdown Time</label>
                         <select
                           value={countdownTime}
-                          onChange={(e) => setCountdownTime(parseInt(e.target.value))}
+                          onChange={(e) =>
+                            setCountdownTime(parseInt(e.target.value))
+                          }
                           className="layout-select"
                         >
                           {countdownOptions.map((option) => (
@@ -381,7 +398,8 @@ const App: React.FC = () => {
                       setPreviewPhotos={setPreviewPhotos}
                       setCapturedPhotos={setCapturedPhotos}
                       setSelectedPreviewPhotos={setSelectedPreviewPhotos}
-                    /></div>
+                    />
+                  </div>
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
@@ -411,7 +429,7 @@ const App: React.FC = () => {
                       stickers={[]}
                       setStickers={setStickers}
                       uploadedStickers={[]}
-                      setUploadedStickers={() => { }}
+                      setUploadedStickers={() => {}}
                       timerEnabled={timerEnabled}
                       onTimerToggle={setTimerEnabled}
                     />
@@ -437,7 +455,11 @@ const App: React.FC = () => {
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
-                      photos={combinedImage ? [{ id: "combined", url: combinedImage }] : []}
+                      photos={
+                        combinedImage
+                          ? [{ id: "combined", url: combinedImage }]
+                          : []
+                      }
                       frameColor="#FFFFFF"
                       backgroundImage={null}
                       layout={layout}
@@ -494,7 +516,9 @@ const App: React.FC = () => {
             )}
           </div>
         ) : (
-          <p className="no-permission">Please allow camera access to use the photobooth</p>
+          <p className="no-permission">
+            Please allow camera access to use the photobooth
+          </p>
         )}
       </div>
     </div>

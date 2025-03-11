@@ -20,6 +20,9 @@ export interface Layout {
   gap?: number;
   paddings?: Paddings;
   gridTemplate?: GridTemplate;
+  borderRadius?: number; // 4 corners as once
+
+  // name
 }
 
 export const LAYOUTS: Record<number, Layout> = {
@@ -96,6 +99,22 @@ export const LAYOUTS: Record<number, Layout> = {
       left: 15,
       bottom: 15,
     },
+  },
+  6: {
+    // name: '',
+    maxPhotos: 1,
+    width: 200,
+    height: 332,
+    arrangement: "vertical",
+    unit: "px",
+    gap: 0,
+    paddings: {
+      top: 0,
+      right: 0,
+      left: 0,
+      bottom: 0,
+    },
+    borderRadius: 16,
   },
 };
 
