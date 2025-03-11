@@ -1,13 +1,19 @@
-// components/PhotoStrip/index.tsx
 import React, {
   useRef,
   useEffect,
   useState,
   forwardRef,
   useCallback,
-  useMemo,
 } from "react";
+import {
+  Stage,
+  Layer,
+  Image as KonvaImage,
+  Rect,
+  Transformer,
+} from "react-konva";
 import { LAYOUTS } from "../../constants";
+import "./styles.css";
 
 interface Photo {
   id: string;
@@ -32,6 +38,8 @@ interface PhotoStripProps {
   foregroundImage: string | null;
   stickers: Sticker[];
   setStickers: React.Dispatch<React.SetStateAction<Sticker[]>>;
+  selectedStickerId: number | null;
+  setSelectedStickerId: React.Dispatch<React.SetStateAction<number | null>>;
 }
 
 const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
@@ -44,562 +52,324 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       foregroundImage,
       stickers,
       setStickers,
+      selectedStickerId,
+      setSelectedStickerId,
     },
     ref
   ) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [selectedSticker, setSelectedSticker] = useState<number | null>(null);
-    const [dragging, setDragging] = useState<
-      "move" | "resize" | "rotate" | null
-    >(null);
-    const [startX, setStartX] = useState(0);
-    const [startY, setStartY] = useState(0);
-    const [resizeHandle, setResizeHandle] = useState<number | null>(null);
+    const transformerRef = useRef<any>(null);
+    const stageRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = useState(1); // Tỷ lệ co giãn hiển thị
 
-    const HANDLE_SIZE = 10;
-
+    const SCALE_FACTOR = 1;
     const currentLayout = LAYOUTS[layout];
     const maxPhotos = currentLayout.maxPhotos;
-    const stripWidth = currentLayout.width;
-    const stripHeight = currentLayout.height;
-    const PADDING_TOP = currentLayout.paddings?.top || 0.15 * 96;
-    const PADDING_LEFT = currentLayout.paddings?.left || 0.15 * 96;
-    const PADDING_BOTTOM = currentLayout.paddings?.bottom || 0.15 * 96;
-    const PADDING_RIGHT = currentLayout.paddings?.right || 0.15 * 96;
-    const GAP = currentLayout.gap || 0.1 * 96;
+    const stripWidth = currentLayout.width * SCALE_FACTOR;
+    const stripHeight = currentLayout.height * SCALE_FACTOR;
+    const stripBorderRadius = currentLayout?.borderRadius || 0;
+    const PADDING_TOP = (currentLayout.paddings?.top || 0) * SCALE_FACTOR;
+    const PADDING_LEFT = (currentLayout.paddings?.left || 0) * SCALE_FACTOR;
+    const PADDING_BOTTOM = (currentLayout.paddings?.bottom || 0) * SCALE_FACTOR;
+    const PADDING_RIGHT = (currentLayout.paddings?.right || 0) * SCALE_FACTOR;
+    const GAP = (currentLayout.gap || 0) * SCALE_FACTOR;
 
-    const isGrid = currentLayout.arrangement === "grid";
     const arrangement = currentLayout.arrangement;
+    const isGrid = arrangement === "grid";
     const gridColumns = currentLayout.gridTemplate?.columns || 1;
     const gridRows = currentLayout.gridTemplate?.rows || 1;
 
-    const photoSize = useMemo<{ width: number; height: number }>(() => {
-      let width = 0,
-        height = 0;
-      if (arrangement === "grid") {
-        width =
-          (stripWidth -
-            PADDING_LEFT -
-            PADDING_RIGHT -
-            (gridColumns - 1) * GAP) /
-          gridColumns;
-        height =
-          (stripHeight - PADDING_TOP - PADDING_BOTTOM - (gridRows - 1) * GAP) /
-          gridRows;
-      } else if (arrangement === "vertical") {
-        width = stripWidth - PADDING_LEFT - PADDING_RIGHT;
-        height =
-          (stripHeight - PADDING_TOP - PADDING_BOTTOM - (maxPhotos - 1) * GAP) /
-          maxPhotos;
-      } else {
-        width =
-          (stripWidth - PADDING_LEFT - PADDING_RIGHT - (maxPhotos - 1) * GAP) /
-          maxPhotos;
-        height = stripHeight - PADDING_TOP - PADDING_BOTTOM;
-      }
-      return { width, height };
-    }, [
-      stripWidth,
-      stripHeight,
-      arrangement,
-      maxPhotos,
-      GAP,
-      PADDING_TOP,
-      PADDING_BOTTOM,
-      PADDING_LEFT,
-      PADDING_RIGHT,
-      gridColumns,
-      gridRows,
-    ]);
-
-    const backgroundImg = useRef<HTMLImageElement | null>(null);
-    const foregroundImg = useRef<HTMLImageElement | null>(null);
-    const photoImages = useRef<(HTMLImageElement | null)[]>([]);
-
-    const autoCropImage = (
-      src: string,
-      callback: (croppedImg: HTMLImageElement) => void
-    ) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        canvas.width = photoSize.width;
-        canvas.height = photoSize.height;
-
-        const aspectRatio = photoSize.width / photoSize.height;
-        const imgAspectRatio = img.width / img.height;
-
-        let sx, sy, sWidth, sHeight;
-        if (imgAspectRatio > aspectRatio) {
-          sHeight = img.height;
-          sWidth = sHeight * aspectRatio;
-          sx = (img.width - sWidth) / 2;
-          sy = 0;
-        } else {
-          sWidth = img.width;
-          sHeight = sWidth / aspectRatio;
-          sx = 0;
-          sy = (img.height - sHeight) / 2;
-        }
-
-        ctx.drawImage(
-          img,
-          sx,
-          sy,
-          sWidth,
-          sHeight,
-          0,
-          0,
-          photoSize.width,
-          photoSize.height
-        );
-
-        const croppedImg = new Image();
-        croppedImg.onload = () => callback(croppedImg);
-        croppedImg.src = canvas.toDataURL("image/jpeg");
-      };
-      img.src = src;
+    const photoSize = {
+      width:
+        arrangement === "vertical" || isGrid
+          ? stripWidth - PADDING_LEFT - PADDING_RIGHT
+          : (stripWidth -
+              PADDING_LEFT -
+              PADDING_RIGHT -
+              (maxPhotos - 1) * GAP) /
+            maxPhotos,
+      height:
+        arrangement === "vertical"
+          ? (stripHeight -
+              PADDING_TOP -
+              PADDING_BOTTOM -
+              (maxPhotos - 1) * GAP) /
+            maxPhotos
+          : stripHeight - PADDING_TOP - PADDING_BOTTOM,
     };
+    if (isGrid) {
+      photoSize.width =
+        (stripWidth - PADDING_LEFT - PADDING_RIGHT - (gridColumns - 1) * GAP) /
+        gridColumns;
+      photoSize.height =
+        (stripHeight - PADDING_TOP - PADDING_BOTTOM - (gridRows - 1) * GAP) /
+        gridRows;
+    }
+
+    // Tính toán tỷ lệ scale để vừa màn hình
+    useEffect(() => {
+      const updateScale = () => {
+        if (!containerRef.current) return;
+        const viewportHeight = window.innerHeight;
+        const maxDisplayHeight = viewportHeight * 0.8; // 80% chiều cao màn hình
+        const scaleY = maxDisplayHeight / stripHeight;
+        const newScale = Math.min(Math.max(scaleY, 0.5), 1); // Giới hạn scale từ 0.5 đến 1
+        setScale(newScale);
+      };
+
+      updateScale();
+      window.addEventListener("resize", updateScale);
+      return () => window.removeEventListener("resize", updateScale);
+    }, [stripHeight]);
+
+    // Tải ảnh
+    const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
+    const [fgImage, setFgImage] = useState<HTMLImageElement | null>(null);
+    const [photoImages, setPhotoImages] = useState<(HTMLImageElement | null)[]>(
+      []
+    );
 
     useEffect(() => {
-      // Preload background image
       if (backgroundImage) {
         const img = new Image();
+        img.crossOrigin = "Anonymous";
         img.src = backgroundImage;
-        img.onload = () => {
-          backgroundImg.current = img;
-          redrawCanvas();
-        };
+        img.onload = () => setBgImage(img);
       } else {
-        backgroundImg.current = null;
-        redrawCanvas();
+        setBgImage(null);
       }
+    }, [backgroundImage]);
 
-      // Preload foreground image
+    useEffect(() => {
       if (foregroundImage) {
         const img = new Image();
+        img.crossOrigin = "Anonymous";
         img.src = foregroundImage;
-        img.onload = () => {
-          foregroundImg.current = img;
-          redrawCanvas();
+        img.onload = () => setFgImage(img);
+      } else {
+        setFgImage(null);
+      }
+    }, [foregroundImage]);
+
+    useEffect(() => {
+      if (photos.length === 1 && photos[0].id === "combined") {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = photos[0].url;
+        img.onload = () => setPhotoImages([img]);
+      } else {
+        const loadPhotos = async () => {
+          const loadedImages: any[] = await Promise.all(
+            photos.map(
+              (photo) =>
+                new Promise<HTMLImageElement>((resolve) => {
+                  const img = new Image();
+                  img.crossOrigin = "Anonymous";
+                  img.src = photo.url;
+                  img.onload = () => resolve(img);
+                })
+            )
+          );
+          while (loadedImages.length < maxPhotos) {
+            loadedImages.push(null);
+          }
+          setPhotoImages(loadedImages);
         };
-      } else {
-        foregroundImg.current = null;
-        redrawCanvas();
+        loadPhotos();
       }
+    }, [photos, maxPhotos]);
 
-      // Crop & preload photos
-      photoImages.current = [];
-      photos.forEach((photo, index) => {
-        autoCropImage(photo.url, (croppedImg) => {
-          photoImages.current[index] = croppedImg;
-          if (photoImages.current.length === photos.length) {
-            while (photoImages.current.length < maxPhotos) {
-              photoImages.current.push(null);
-            }
-            redrawCanvas();
-          }
-        });
-      });
-
-      if (photos.length === 0) {
-        photoImages.current = Array(maxPhotos).fill(null);
-        redrawCanvas();
-      }
-    }, [
-      photos,
-      stickers,
-      selectedSticker,
-      backgroundImage,
-      frameColor,
-      foregroundImage,
-      layout,
-      maxPhotos,
-      photoSize,
-    ]);
-
-    const redrawCanvas = useCallback(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      canvas.width = stripWidth;
-      canvas.height = stripHeight;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // 1. Draw Background
-      if (backgroundImg.current) {
-        ctx.drawImage(backgroundImg.current, 0, 0, canvas.width, canvas.height);
-      } else {
-        ctx.fillStyle = frameColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      // 2. Draw Photos or Placeholder
-      if (isGrid) {
-        for (let row = 0; row < gridRows; row++) {
-          for (let col = 0; col < gridColumns; col++) {
-            const index = row * gridColumns + col;
-            if (index >= maxPhotos) break;
-
-            const xPosition = PADDING_LEFT + col * (photoSize.width + GAP);
-            const yPosition = PADDING_TOP + row * (photoSize.height + GAP);
-            const photoImg = photoImages.current[index];
-
-            if (photoImg) {
-              ctx.drawImage(
-                photoImg,
-                xPosition,
-                yPosition,
-                photoSize.width,
-                photoSize.height
-              );
-            } else {
-              ctx.strokeStyle = "#999";
-              ctx.lineWidth = 2;
-              ctx.setLineDash([5, 5]);
-              ctx.strokeRect(
-                xPosition,
-                yPosition,
-                photoSize.width,
-                photoSize.height
-              );
-              ctx.setLineDash([]);
-              ctx.fillStyle = "#999";
-              ctx.font = "40px Arial";
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText(
-                "+",
-                xPosition + photoSize.width / 2,
-                yPosition + photoSize.height / 2
-              );
-            }
-          }
-        }
-      } else {
-        for (let index = 0; index < maxPhotos; index++) {
-          const xPosition =
-            arrangement === "vertical"
-              ? PADDING_LEFT
-              : PADDING_LEFT + index * (photoSize.width + GAP);
-          const yPosition =
-            arrangement === "vertical"
-              ? PADDING_TOP + index * (photoSize.height + GAP)
-              : PADDING_TOP;
-          const photoImg = photoImages.current[index];
-
-          if (photoImg) {
-            ctx.drawImage(
-              photoImg,
-              xPosition,
-              yPosition,
-              photoSize.width,
-              photoSize.height
-            );
-          } else {
-            ctx.strokeStyle = "#999";
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ctx.strokeRect(
-              xPosition,
-              yPosition,
-              photoSize.width,
-              photoSize.height
-            );
-            ctx.setLineDash([]);
-            ctx.fillStyle = "#999";
-            ctx.font = "40px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(
-              "+",
-              xPosition + photoSize.width / 2,
-              yPosition + photoSize.height / 2
-            );
-          }
-        }
-      }
-
-      // 3. Draw Foreground
-      if (foregroundImg.current) {
-        ctx.drawImage(foregroundImg.current, 0, 0, canvas.width, canvas.height);
-      }
-
-      // 4. Draw Stickers
-      stickers.forEach((sticker) => {
-        ctx.save();
-        ctx.translate(sticker.x, sticker.y);
-        ctx.rotate((sticker.rotation * Math.PI) / 180);
-        ctx.drawImage(
-          sticker.image,
-          -sticker.width / 2,
-          -sticker.height / 2,
-          sticker.width,
-          sticker.height
+    // Cập nhật Transformer khi chọn sticker
+    useEffect(() => {
+      if (
+        selectedStickerId !== null &&
+        transformerRef.current &&
+        stageRef.current
+      ) {
+        const selectedNode = stageRef.current.findOne(
+          `#sticker-${selectedStickerId}`
         );
-        ctx.restore();
-
-        if (selectedSticker === sticker.id) {
-          ctx.save();
-          ctx.translate(sticker.x, sticker.y);
-          ctx.rotate((sticker.rotation * Math.PI) / 180);
-
-          ctx.strokeStyle = "blue";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(
-            -sticker.width / 2,
-            -sticker.height / 2,
-            sticker.width,
-            sticker.height
-          );
-
-          ctx.fillStyle = "white";
-          ctx.strokeStyle = "blue";
-          const handles = [
-            [-sticker.width / 2, -sticker.height / 2],
-            [sticker.width / 2, -sticker.height / 2],
-            [sticker.width / 2, sticker.height / 2],
-            [-sticker.width / 2, sticker.height / 2],
-          ];
-          handles.forEach(([x, y]) => {
-            ctx.fillRect(
-              x - HANDLE_SIZE / 2,
-              y - HANDLE_SIZE / 2,
-              HANDLE_SIZE,
-              HANDLE_SIZE
-            );
-            ctx.strokeRect(
-              x - HANDLE_SIZE / 2,
-              y - HANDLE_SIZE / 2,
-              HANDLE_SIZE,
-              HANDLE_SIZE
-            );
-          });
-
-          ctx.fillRect(
-            sticker.width / 2 - HANDLE_SIZE / 2,
-            -sticker.height / 2 - 20,
-            HANDLE_SIZE,
-            HANDLE_SIZE
-          );
-          ctx.strokeRect(
-            sticker.width / 2 - HANDLE_SIZE / 2,
-            -sticker.height / 2 - 20,
-            HANDLE_SIZE,
-            HANDLE_SIZE
-          );
-
-          ctx.fillStyle = "red";
-          ctx.beginPath();
-          ctx.arc(
-            -sticker.width / 2 + 20,
-            -sticker.height / 2 - 20,
-            10,
-            0,
-            Math.PI * 2
-          );
-          ctx.fill();
-          ctx.fillStyle = "white";
-          ctx.font = "12px Arial";
-          ctx.fillText("X", -sticker.width / 2 + 15, -sticker.height / 2 - 15);
-
-          ctx.restore();
+        if (selectedNode) {
+          transformerRef.current.nodes([selectedNode]);
+          transformerRef.current.getLayer().batchDraw();
         }
-      });
-    }, [
-      stripWidth,
-      stripHeight,
-      frameColor,
-      isGrid,
-      maxPhotos,
-      gridColumns,
-      gridRows,
-      photoSize,
-      PADDING_LEFT,
-      PADDING_TOP,
-      GAP,
-      stickers,
-      selectedSticker,
-    ]);
+      } else if (transformerRef.current) {
+        transformerRef.current.nodes([]);
+        transformerRef.current.getLayer().batchDraw();
+      }
+    }, [selectedStickerId]);
 
-    const getStickerAtPoint = (x: number, y: number, sticker: Sticker) => {
-      const cos = Math.cos((-sticker.rotation * Math.PI) / 180);
-      const sin = Math.sin((-sticker.rotation * Math.PI) / 180);
-      const dx = x - sticker.x;
-      const dy = y - sticker.y;
-      const transformedX = dx * cos - dy * sin;
-      const transformedY = dx * sin + dy * cos;
-
-      const left = -sticker.width / 2;
-      const right = sticker.width / 2;
-      const top = -sticker.height / 2;
-      const bottom = sticker.height / 2;
-
-      const inBounds =
-        transformedX >= left &&
-        transformedX <= right &&
-        transformedY >= top &&
-        transformedY <= bottom;
-
-      const atResizeHandle = [
-        [left, top],
-        [right, top],
-        [right, bottom],
-        [left, bottom],
-      ]
-        .map(([hx, hy], i) => ({
-          index: i,
-          hit:
-            Math.abs(transformedX - hx) < HANDLE_SIZE &&
-            Math.abs(transformedY - hy) < HANDLE_SIZE,
-        }))
-        .find((h) => h.hit);
-
-      const atRotateHandle =
-        Math.abs(transformedX - right) < HANDLE_SIZE &&
-        Math.abs(transformedY - (top - 20)) < HANDLE_SIZE;
-
-      const atDeleteHandle =
-        Math.sqrt(
-          (transformedX - (left + 20)) ** 2 + (transformedY - (top - 20)) ** 2
-        ) < 10;
-
-      return { inBounds, atResizeHandle, atRotateHandle, atDeleteHandle };
+    const handleSelectSticker = (e: any) => {
+      const id = e.target.id().replace("sticker-", "");
+      setSelectedStickerId(parseInt(id));
     };
 
-    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+    const handleDeselect = (e: any) => {
+      if (
+        e.target?.id()?.indexOf("sticker") === -1 &&
+        e.target.className !== "Rect"
+      ) {
+        setSelectedStickerId(null);
+      }
+    };
 
-      const clickedSticker = stickers.find((sticker) => {
-        const hit = getStickerAtPoint(x, y, sticker);
-        return (
-          hit.inBounds ||
-          hit.atResizeHandle ||
-          hit.atRotateHandle ||
-          hit.atDeleteHandle
+    const handleTransform = useCallback(
+      (e: any) => {
+        const node = e.target;
+        const id = parseInt(node.id().replace("sticker-", ""));
+        setStickers((prev) =>
+          prev.map((sticker) =>
+            sticker.id === id
+              ? {
+                  ...sticker,
+                  x: node.x() / SCALE_FACTOR,
+                  y: node.y() / SCALE_FACTOR,
+                  width: (node.width() * node.scaleX()) / SCALE_FACTOR,
+                  height: (node.height() * node.scaleY()) / SCALE_FACTOR,
+                  rotation: node.rotation(),
+                }
+              : sticker
+          )
         );
-      });
+        node.scaleX(1);
+        node.scaleY(1);
+      },
+      [setStickers, SCALE_FACTOR]
+    );
 
-      if (clickedSticker) {
-        setSelectedSticker(clickedSticker.id);
-        const hit = getStickerAtPoint(x, y, clickedSticker);
-
-        if (hit.atDeleteHandle) {
-          setStickers((prev) => prev.filter((s) => s.id !== clickedSticker.id));
-          setSelectedSticker(null);
-        } else if (hit.atResizeHandle) {
-          setDragging("resize");
-          setResizeHandle(hit.atResizeHandle.index);
-        } else if (hit.atRotateHandle) {
-          setDragging("rotate");
-        } else if (hit.inBounds) {
-          setDragging("move");
-        }
-
-        setStartX(x);
-        setStartY(y);
-      } else {
-        setSelectedSticker(null);
+    const handleDeleteSticker = useCallback(() => {
+      if (selectedStickerId !== null) {
+        setStickers((prev) =>
+          prev.filter((sticker) => sticker.id !== selectedStickerId)
+        );
+        setSelectedStickerId(null);
       }
-    };
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (dragging && selectedSticker !== null) {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const sticker = stickers.find((s) => s.id === selectedSticker);
-        if (!sticker) return;
-
-        const dx = x - startX;
-        const dy = y - startY;
-
-        const cos = Math.cos((sticker.rotation * Math.PI) / 180);
-        const sin = Math.sin((sticker.rotation * Math.PI) / 180);
-
-        if (dragging === "move") {
-          const moveX = dx * cos + dy * sin;
-          const moveY = -dx * sin + dy * cos;
-          setStickers((prev) =>
-            prev.map((s) =>
-              s.id === selectedSticker
-                ? { ...s, x: s.x + moveX, y: s.y + moveY }
-                : s
-            )
-          );
-        } else if (dragging === "resize" && resizeHandle !== null) {
-          const handlePoints = [
-            [-1, -1],
-            [1, -1],
-            [1, 1],
-            [-1, 1],
-          ];
-          const [hx] = handlePoints[resizeHandle];
-
-          const localDx = dx * cos + dy * sin;
-          const ratio = sticker.width / sticker.height;
-
-          const newWidth = Math.max(20, sticker.width + hx * localDx);
-          const newHeight = newWidth / ratio;
-
-          setStickers((prev) =>
-            prev.map((s) =>
-              s.id === selectedSticker
-                ? { ...s, width: newWidth, height: newHeight }
-                : s
-            )
-          );
-        } else if (dragging === "rotate") {
-          const centerX = sticker.x;
-          const centerY = sticker.y;
-          const startAngle = Math.atan2(startY - centerY, startX - centerX);
-          const currentAngle = Math.atan2(y - centerY, x - centerX);
-          const angleDiff = ((currentAngle - startAngle) * 180) / Math.PI;
-          setStickers((prev) =>
-            prev.map((s) =>
-              s.id === selectedSticker
-                ? { ...s, rotation: (s.rotation + angleDiff) % 360 }
-                : s
-            )
-          );
-        }
-
-        setStartX(x);
-        setStartY(y);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setDragging(null);
-      setResizeHandle(null);
-    };
+    }, [selectedStickerId, setStickers]);
 
     return (
-      <div ref={ref} className="photo-strip">
-        <canvas
-          ref={canvasRef}
-          width={stripWidth}
-          height={stripHeight}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          style={{
-            border: "1px solid black",
-            cursor: dragging ? "grabbing" : "default",
-          }}
-        />
+      <div ref={ref} className="photo-strip" style={{ position: "relative" }}>
+        <div ref={containerRef}>
+          <Stage
+            width={stripWidth}
+            height={stripHeight}
+            ref={stageRef}
+            style={{
+              borderRadius: `${stripBorderRadius / SCALE_FACTOR}px`,
+              overflow: "hidden",
+            }}
+            onMouseDown={handleDeselect}
+            onTouchStart={handleDeselect}
+          >
+            <Layer>
+              {bgImage ? (
+                <KonvaImage
+                  image={bgImage}
+                  width={stripWidth}
+                  height={stripHeight}
+                />
+              ) : (
+                <Rect
+                  width={stripWidth}
+                  height={stripHeight}
+                  fill={frameColor}
+                />
+              )}
+
+              {photos.length === 1 && photos[0].id === "combined"
+                ? photoImages[0] && (
+                    <KonvaImage
+                      image={photoImages[0]}
+                      width={stripWidth}
+                      height={stripHeight}
+                    />
+                  )
+                : photoImages.map((photo, index) => {
+                    if (!photo) return null;
+                    const x =
+                      arrangement === "vertical"
+                        ? PADDING_LEFT
+                        : PADDING_LEFT + index * (photoSize.width + GAP);
+                    const y =
+                      arrangement === "vertical"
+                        ? PADDING_TOP + index * (photoSize.height + GAP)
+                        : PADDING_TOP;
+                    return (
+                      <KonvaImage
+                        key={index}
+                        image={photo}
+                        x={x}
+                        y={y}
+                        width={photoSize.width}
+                        height={photoSize.height}
+                      />
+                    );
+                  })}
+
+              {fgImage && (
+                <KonvaImage
+                  image={fgImage}
+                  width={stripWidth}
+                  height={stripHeight}
+                />
+              )}
+
+              {stickers.map((sticker) => (
+                <KonvaImage
+                  key={sticker.id}
+                  id={`sticker-${sticker.id}`}
+                  image={sticker.image}
+                  x={sticker.x * SCALE_FACTOR}
+                  y={sticker.y * SCALE_FACTOR}
+                  width={sticker.width * SCALE_FACTOR}
+                  height={sticker.height * SCALE_FACTOR}
+                  rotation={sticker.rotation}
+                  draggable
+                  onClick={handleSelectSticker}
+                  onTap={handleSelectSticker}
+                  onDragEnd={handleTransform}
+                  onTransformEnd={handleTransform}
+                />
+              ))}
+
+              {selectedStickerId !== null && (
+                <Transformer
+                  id="transformer"
+                  ref={transformerRef}
+                  anchorSize={8 * SCALE_FACTOR}
+                  borderStrokeWidth={1 * SCALE_FACTOR}
+                  rotateEnabled
+                  enabledAnchors={[
+                    "top-left",
+                    "top-right",
+                    "bottom-left",
+                    "bottom-right",
+                  ]}
+                />
+              )}
+            </Layer>
+          </Stage>
+        </div>
+
+        {selectedStickerId !== null && (
+          <button
+            onClick={handleDeleteSticker}
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              background: "red",
+              color: "white",
+              border: "none",
+              borderRadius: "50%",
+              width: "30px",
+              height: "30px",
+              cursor: "pointer",
+              zIndex: 10,
+            }}
+          >
+            X
+          </button>
+        )}
       </div>
     );
   }
