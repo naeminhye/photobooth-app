@@ -4,15 +4,16 @@ import Webcam from "react-webcam";
 import GIF from "gif.js";
 import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 
-import flipIcon from "../../assets/flip.png";
-import timerOffFill from "../../assets/timer_off_fill.png";
-import timerOffOutline from "../../assets/timer_off_outline.png";
-import timer2Fill from "../../assets/timer_2_fill.png";
-import timer2Outline from "../../assets/timer_2_outline.png";
-import timer5Fill from "../../assets/timer_5_fill.png";
-import timer5Outline from "../../assets/timer_5_outline.png";
-import timer10Fill from "../../assets/timer_10_fill.png";
-import timer10Outline from "../../assets/timer_10_outline.png";
+// Icons
+import flipIcon from "../../assets/icons/flip.png";
+import timerOffFill from "../../assets/icons/timer_off_fill.png";
+import timerOffOutline from "../../assets/icons/timer_off_outline.png";
+import timer2Fill from "../../assets/icons/timer_2_fill.png";
+import timer2Outline from "../../assets/icons/timer_2_outline.png";
+import timer5Fill from "../../assets/icons/timer_5_fill.png";
+import timer5Outline from "../../assets/icons/timer_5_outline.png";
+import timer10Fill from "../../assets/icons/timer_10_fill.png";
+import timer10Outline from "../../assets/icons/timer_10_outline.png";
 
 import "./styles.css";
 
@@ -26,8 +27,8 @@ interface CameraFeedProps {
   setIsCreatingGif: (isCreating: boolean) => void;
   countdownTime: number;
   isMirrored: boolean;
-  onTimerChange: (time: number) => void; // Thêm prop để cập nhật timer
-  onMirrorToggle: (isMirrored: boolean) => void; // Thêm prop để toggle mirror
+  onTimerChange: (time: number) => void;
+  onMirrorToggle: (isMirrored: boolean) => void;
 }
 
 const CameraFeed: React.FC<CameraFeedProps> = ({
@@ -337,8 +338,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
             style={{
               width: "32px",
               height: "32px",
-              opacity: isMirrored ? 1 : 0.5, // Highlight bằng opacity
-              transition: "opacity 0.2s ease", // Hiệu ứng mượt mà
+              opacity: isMirrored ? 1 : 0.5,
+              transition: "opacity 0.2s ease",
             }}
           />
         </button>

@@ -5,7 +5,7 @@ import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 interface SequentialGifProps {
   gifUrl: string | null;
   isCreatingGif: boolean;
-  isMirrored: boolean; // Thêm prop isMirrored
+  isMirrored: boolean;
 }
 
 const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
@@ -34,7 +34,7 @@ const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
               width: CAMERA_WIDTH,
               height: CAMERA_HEIGHT,
               border: "1px solid black",
-              transform: isMirrored ? "scaleX(-1)" : "scaleX(1)", // Áp dụng mirrored
+              transform: isMirrored ? "scaleX(-1)" : "scaleX(1)", 
             }}
           />
         ) : null}

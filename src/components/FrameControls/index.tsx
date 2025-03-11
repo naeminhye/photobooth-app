@@ -17,10 +17,6 @@ interface FrameControlsProps {
   frameColor: string;
   backgroundImage: string | null;
   foregroundImage: string | null;
-  stickers: any[]; // Không dùng
-  setStickers: React.Dispatch<React.SetStateAction<any>>; // Không dùng
-  uploadedStickers: any[]; // Không dùng
-  setUploadedStickers: React.Dispatch<React.SetStateAction<any>>; // Không dùng
 }
 
 const FrameControls: React.FC<FrameControlsProps> = ({

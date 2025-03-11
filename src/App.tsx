@@ -5,13 +5,18 @@ import FrameControls from "./components/FrameControls";
 import CameraFeed from "./components/CameraFeed";
 import SequentialGif from "./components/SequentialGif";
 import PreviewPhotos from "./components/PreviewPhotos";
-import { LAYOUTS, Photo } from "./constants";
+import { NEW_LAYOUT, CanvasData } from "./constants";
 import { v4 as uuidv4 } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useDropzone } from "react-dropzone";
 import GradientBackground from "./components/GradientBackground";
 import html2canvas from "html2canvas";
+
+interface Photo {
+  id: string;
+  url: string;
+}
 
 interface Sticker {
   id: number;
@@ -29,7 +34,7 @@ const App: React.FC = () => {
   const [previewPhotos, setPreviewPhotos] = useState<Photo[]>([]);
   const [frameColor, setFrameColor] = useState<string>("#FFFFFF");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-  const [layout, setLayout] = useState<number>(1);
+  const [layout, setLayout] = useState<number>(0);
   const [selectedPreviewPhotos, setSelectedPreviewPhotos] = useState<string[]>(
     []
   );
@@ -43,15 +48,17 @@ const App: React.FC = () => {
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [isCreatingGif, setIsCreatingGif] = useState(false);
   const [step, setStep] = useState<number>(1);
-  const [isMirrored, setIsMirrored] = useState<boolean>(true); // Default mirrored
-  const photoStripRef: any = useRef<HTMLDivElement>(null);
+  const [isMirrored, setIsMirrored] = useState<boolean>(true);
+  const photoStripRef: any = useRef(null);
   const sequentialGifRef = useRef<HTMLDivElement>(null);
   const [combinedImage, setCombinedImage] = useState<string | null>(null);
   const [selectedStickerId, setSelectedStickerId] = useState<number | null>(
     null
   );
+  const stageRef = useRef<any>(null);
 
-  const currentLayout = useMemo(() => LAYOUTS[layout], [layout]);
+  const currentLayout = useMemo(() => NEW_LAYOUT[layout], [layout]);
+  const maxPhotos = currentLayout.rectangles.length;
 
   useEffect(() => {
     requestCameraPermission();
@@ -72,7 +79,7 @@ const App: React.FC = () => {
     setFrameColor("#FFF");
     setBackgroundImage(null);
     setForegroundImage(null);
-    setLayout(1);
+    setLayout(0);
     setSelectedPreviewPhotos([]);
     setStickers([]);
     setUploadedStickers([]);
@@ -86,8 +93,8 @@ const App: React.FC = () => {
   };
 
   const handlePhotoCapture = (photo: string) => {
-    if (previewPhotos.length >= 10) {
-      alert("Maximum preview photo limit (10) reached.");
+    if (previewPhotos.length >= maxPhotos) {
+      alert(`Maximum preview photo limit (${maxPhotos}) reached.`);
       return;
     }
     const newPhoto: Photo = { id: uuidv4(), url: photo };
@@ -99,9 +106,9 @@ const App: React.FC = () => {
   };
 
   const handlePhotoUpload = (files: File[]) => {
-    if (previewPhotos.length + files.length > 10) {
+    if (previewPhotos.length + files.length > maxPhotos) {
       alert(
-        "Adding these photos would exceed the maximum preview photo limit (10)."
+        `Adding these photos would exceed the maximum preview photo limit (${maxPhotos}).`
       );
       return;
     }
@@ -136,72 +143,95 @@ const App: React.FC = () => {
     }
   };
 
-  // const goToPreviousStep = () => {
-  //   if (step === 2) {
-  //     setStep(1);
-  //   } else if (step === 3) {
-  //     setStep(2);
-  //   }
-  // };
-
   const combineImageForStep3 = () => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const stripWidth = currentLayout.width * 2;
-    const stripHeight = currentLayout.height * 2;
+    const stripWidth = currentLayout.canvas.width * 2;
+    const stripHeight = currentLayout.canvas.height * 2;
     canvas.width = stripWidth;
     canvas.height = stripHeight;
 
     const drawPhotosAndForeground = () => {
-      const PADDING_TOP = (currentLayout.paddings?.top || 0.15 * 96) * 2;
-      const PADDING_LEFT = (currentLayout.paddings?.left || 0.15 * 96) * 2;
-      const PADDING_BOTTOM = (currentLayout.paddings?.bottom || 0.15 * 96) * 2;
-      const PADDING_RIGHT = (currentLayout.paddings?.right || 0.15 * 96) * 2;
-      const GAP = (currentLayout.gap || 0.1 * 96) * 2;
-
-      const photoWidth =
-        currentLayout.arrangement === "vertical"
-          ? stripWidth - PADDING_LEFT - PADDING_RIGHT
-          : (stripWidth -
-              PADDING_LEFT -
-              PADDING_RIGHT -
-              (currentLayout.maxPhotos - 1) * GAP) /
-            currentLayout.maxPhotos;
-      const photoHeight =
-        currentLayout.arrangement === "vertical"
-          ? (stripHeight -
-              PADDING_TOP -
-              PADDING_BOTTOM -
-              (currentLayout.maxPhotos - 1) * GAP) /
-            currentLayout.maxPhotos
-          : stripHeight - PADDING_TOP - PADDING_BOTTOM;
+      const rectangles = currentLayout.rectangles.map((rect) => ({
+        x: rect.x * 2,
+        y: rect.y * 2,
+        width: rect.width * 2,
+        height: rect.height * 2,
+      }));
 
       capturedPhotos.forEach((photo, index) => {
+        if (index >= rectangles.length) return;
+        const rect = rectangles[index];
         const img = new Image();
+        img.crossOrigin = "Anonymous";
         img.src = photo.url;
         img.onload = () => {
-          const x =
-            currentLayout.arrangement === "vertical"
-              ? PADDING_LEFT
-              : PADDING_LEFT + index * (photoWidth + GAP);
-          const y =
-            currentLayout.arrangement === "vertical"
-              ? PADDING_TOP + index * (photoHeight + GAP)
-              : PADDING_TOP;
-          ctx.drawImage(img, x, y, photoWidth, photoHeight);
+          const cropImageToRectangle = (
+            image: HTMLImageElement,
+            rect: { width: number; height: number }
+          ) => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return image;
 
-          if (index === capturedPhotos.length - 1 && foregroundImage) {
-            const fgImg = new Image();
-            fgImg.src = foregroundImage;
-            fgImg.onload = () => {
-              ctx.drawImage(fgImg, 0, 0, stripWidth, stripHeight);
+            const imgWidth = image.width;
+            const imgHeight = image.height;
+            const rectWidth = rect.width;
+            const rectHeight = rect.height;
+
+            const rectRatio = rectWidth / rectHeight;
+            const imgRatio = imgWidth / imgHeight;
+
+            let cropWidth, cropHeight, cropX, cropY;
+
+            if (imgRatio > rectRatio) {
+              cropWidth = imgHeight * rectRatio;
+              cropHeight = imgHeight;
+              cropX = (imgWidth - cropWidth) / 2;
+              cropY = 0;
+            } else {
+              cropHeight = imgWidth / rectRatio;
+              cropWidth = imgWidth;
+              cropX = 0;
+              cropY = (imgHeight - cropHeight) / 2;
+            }
+
+            canvas.width = rectWidth;
+            canvas.height = rectHeight;
+            ctx.drawImage(
+              image,
+              cropX,
+              cropY,
+              cropWidth,
+              cropHeight,
+              0,
+              0,
+              rectWidth,
+              rectHeight
+            );
+
+            const croppedImage = new Image();
+            croppedImage.src = canvas.toDataURL("image/png");
+            return croppedImage;
+          };
+
+          const croppedImg = cropImageToRectangle(img, rect);
+          croppedImg.onload = () => {
+            ctx.drawImage(croppedImg, rect.x, rect.y, rect.width, rect.height);
+
+            if (index === capturedPhotos.length - 1 && foregroundImage) {
+              const fgImg = new Image();
+              fgImg.src = foregroundImage;
+              fgImg.onload = () => {
+                ctx.drawImage(fgImg, 0, 0, stripWidth, stripHeight);
+                setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
+              };
+            } else if (index === capturedPhotos.length - 1) {
               setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
-            };
-          } else if (index === capturedPhotos.length - 1) {
-            setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
-          }
+            }
+          };
         };
       });
     };
@@ -242,8 +272,8 @@ const App: React.FC = () => {
     const newSticker: Sticker = {
       id: Date.now(),
       image: stickerImg,
-      x: currentLayout.width / 2,
-      y: currentLayout.height / 2,
+      x: currentLayout.canvas.width / 2,
+      y: currentLayout.canvas.height / 2,
       width: defaultWidth,
       height: defaultHeight,
       rotation: 0,
@@ -254,31 +284,41 @@ const App: React.FC = () => {
   const downloadImage = () => {
     const photoStrip = photoStripRef.current;
     if (photoStrip) {
-      html2canvas(photoStrip, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-      })
-        .then((canvas) => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      canvas.width = currentLayout.canvas.width;
+      canvas.height = currentLayout.canvas.height;
+
+      const stage = stageRef.current;
+      if (stage) {
+        const dataUrl = stage.toDataURL({
+          pixelRatio: 3.5,
+        });
+
+        const img = new Image();
+        img.src = dataUrl;
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
           const link = document.createElement("a");
           link.download = `photobooth_${Date.now()}.jpg`;
           link.href = canvas.toDataURL("image/jpeg", 1.0);
           link.click();
-        })
-        .catch((error) => {
-          console.error("Error generating canvas:", error);
-        });
+        };
+      }
     }
   };
 
-  const layouts = Object.entries(LAYOUTS).map(([id, layout]) => ({
-    id: parseInt(id),
-    name: `${layout.maxPhotos} Photo${layout.maxPhotos > 1 ? "s" : ""} (${
-      layout.arrangement.charAt(0).toUpperCase() + layout.arrangement.slice(1)
-    })`,
-    maxPhotos: layout.maxPhotos,
-  }));
+  const layouts = useMemo(() => {
+    return NEW_LAYOUT.map((layout, index) => ({
+      id: index,
+      name: layout.name,
+      maxPhotos: layout.rectangles.length,
+      templatePath: layout.templatePath,
+    }));
+  }, [NEW_LAYOUT]);
 
   const countdownOptions = [
     { value: 3, label: "3s" },
@@ -292,7 +332,7 @@ const App: React.FC = () => {
       !photoStripRef.current.contains(e.target as Node)
     ) {
       setSelectedStickerId(null);
-      console.log("Clicked outside PhotoStrip"); // Debug
+      console.log("Clicked outside PhotoStrip");
     }
   };
 
@@ -302,7 +342,7 @@ const App: React.FC = () => {
       !photoStripRef.current.contains(e.target as Node)
     ) {
       setSelectedStickerId(null);
-      console.log("Touched outside PhotoStrip"); // Debug
+      console.log("Touched outside PhotoStrip");
     }
   };
 
@@ -325,22 +365,11 @@ const App: React.FC = () => {
               <div className="step-1">
                 <h2 className="step-title">Capture Your Moments</h2>
                 <div className="capture-container">
-                  {/* <CameraFeed
-                    onCapture={handlePhotoCapture}
-                    onGifComplete={handleGifComplete}
-                    layout={layout}
-                    maxPhotos={currentLayout.maxPhotos}
-                    currentPhotos={previewPhotos.length}
-                    timerEnabled={timerEnabled}
-                    setIsCreatingGif={setIsCreatingGif}
-                    countdownTime={countdownTime}
-                    isMirrored={isMirrored}
-                  /> */}
                   <CameraFeed
                     onCapture={handlePhotoCapture}
                     onGifComplete={handleGifComplete}
                     layout={layout}
-                    maxPhotos={currentLayout.maxPhotos}
+                    maxPhotos={maxPhotos}
                     currentPhotos={previewPhotos.length}
                     timerEnabled={timerEnabled}
                     setIsCreatingGif={setIsCreatingGif}
@@ -351,23 +380,36 @@ const App: React.FC = () => {
                   />
                   <div className="capture-options">
                     <label className="layout-label">Select Layout</label>
-                    <select
-                      value={layout}
-                      onChange={(e) => {
-                        const newLayout = parseInt(e.target.value);
-                        if (capturedPhotos.length === 0) {
-                          setLayout(newLayout);
-                        }
-                      }}
-                      disabled={capturedPhotos.length > 0}
-                      className="layout-select"
-                    >
-                      {layouts.map((layout) => (
-                        <option key={layout.id} value={layout.id}>
-                          {layout.name}
-                        </option>
+                    <div className="layout-toggle">
+                      {layouts.map((layoutItem) => (
+                        <div
+                          key={layoutItem.id}
+                          className={`layout-option ${
+                            layoutItem.id === layout ? "active" : ""
+                          }`}
+                          onClick={() => {
+                            if (capturedPhotos.length === 0) {
+                              setLayout(layoutItem.id);
+                            }
+                          }}
+                        >
+                          <img
+                            src={layoutItem.templatePath}
+                            alt={layoutItem.name}
+                            style={{
+                              width: "100px",
+                              height: "auto",
+                              cursor:
+                                capturedPhotos.length > 0
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity: capturedPhotos.length > 0 ? 0.5 : 1,
+                            }}
+                          />
+                          <p>{layoutItem.name}</p>
+                        </div>
                       ))}
-                    </select>
+                    </div>
                   </div>
                 </div>
                 <PreviewPhotos
@@ -423,6 +465,7 @@ const App: React.FC = () => {
                       setStickers={setStickers}
                       selectedStickerId={selectedStickerId}
                       setSelectedStickerId={setSelectedStickerId}
+                      stageRef={stageRef}
                     />
                   </div>
                   <div className="edit-sidebar-right">
@@ -439,17 +482,10 @@ const App: React.FC = () => {
                       onPhotoUpload={handlePhotoUpload}
                       photoStripRef={photoStripRef}
                       frameColor={frameColor}
-                      stickers={[]}
-                      setStickers={setStickers}
-                      uploadedStickers={[]}
-                      setUploadedStickers={() => {}}
                     />
                   </div>
                 </div>
                 <div className="step-navigation">
-                  {/* <button className="back-button" onClick={goToPreviousStep}>
-                    ← Back
-                  </button> */}
                   <button className="reset-button" onClick={resetAll}>
                     Reset All
                   </button>
@@ -479,6 +515,7 @@ const App: React.FC = () => {
                       setStickers={setStickers}
                       selectedStickerId={selectedStickerId}
                       setSelectedStickerId={setSelectedStickerId}
+                      stageRef={stageRef}
                     />
                   </div>
                   <div className="edit-sidebar-right">
@@ -515,9 +552,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="step-navigation">
-                  {/* <button className="back-button" onClick={goToPreviousStep}>
-                    ← Back
-                  </button> */}
                   <button className="reset-button" onClick={resetAll}>
                     Reset All
                   </button>
