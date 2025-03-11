@@ -12,7 +12,7 @@ import {
   Rect,
   Transformer,
 } from "react-konva";
-import { LAYOUTS } from "../../constants";
+import { NEW_LAYOUT, CanvasData, Rectangle } from "../../constants";
 import "./styles.css";
 
 interface Photo {
@@ -40,6 +40,7 @@ interface PhotoStripProps {
   setStickers: React.Dispatch<React.SetStateAction<Sticker[]>>;
   selectedStickerId: number | null;
   setSelectedStickerId: React.Dispatch<React.SetStateAction<number | null>>;
+  stageRef: React.RefObject<any>;
 }
 
 const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
@@ -54,66 +55,27 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       setStickers,
       selectedStickerId,
       setSelectedStickerId,
+      stageRef,
     },
     ref
   ) => {
     const transformerRef = useRef<any>(null);
-    const stageRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [scale, setScale] = useState(1); // Tỷ lệ co giãn hiển thị
+    const [scale, setScale] = useState(1);
 
-    const SCALE_FACTOR = 1;
-    const currentLayout = LAYOUTS[layout];
-    const maxPhotos = currentLayout.maxPhotos;
-    const stripWidth = currentLayout.width * SCALE_FACTOR;
-    const stripHeight = currentLayout.height * SCALE_FACTOR;
-    const stripBorderRadius = currentLayout?.borderRadius || 0;
-    const PADDING_TOP = (currentLayout.paddings?.top || 0) * SCALE_FACTOR;
-    const PADDING_LEFT = (currentLayout.paddings?.left || 0) * SCALE_FACTOR;
-    const PADDING_BOTTOM = (currentLayout.paddings?.bottom || 0) * SCALE_FACTOR;
-    const PADDING_RIGHT = (currentLayout.paddings?.right || 0) * SCALE_FACTOR;
-    const GAP = (currentLayout.gap || 0) * SCALE_FACTOR;
+    const SCALE_FACTOR = 1 / 3.5;
+    const currentLayout: CanvasData = NEW_LAYOUT[layout];
+    const maxPhotos = currentLayout.rectangles.length;
+    const stripWidth = currentLayout.canvas.width * SCALE_FACTOR;
+    const stripHeight = currentLayout.canvas.height * SCALE_FACTOR;
 
-    const arrangement = currentLayout.arrangement;
-    const isGrid = arrangement === "grid";
-    const gridColumns = currentLayout.gridTemplate?.columns || 1;
-    const gridRows = currentLayout.gridTemplate?.rows || 1;
-
-    const photoSize = {
-      width:
-        arrangement === "vertical" || isGrid
-          ? stripWidth - PADDING_LEFT - PADDING_RIGHT
-          : (stripWidth -
-              PADDING_LEFT -
-              PADDING_RIGHT -
-              (maxPhotos - 1) * GAP) /
-            maxPhotos,
-      height:
-        arrangement === "vertical"
-          ? (stripHeight -
-              PADDING_TOP -
-              PADDING_BOTTOM -
-              (maxPhotos - 1) * GAP) /
-            maxPhotos
-          : stripHeight - PADDING_TOP - PADDING_BOTTOM,
-    };
-    if (isGrid) {
-      photoSize.width =
-        (stripWidth - PADDING_LEFT - PADDING_RIGHT - (gridColumns - 1) * GAP) /
-        gridColumns;
-      photoSize.height =
-        (stripHeight - PADDING_TOP - PADDING_BOTTOM - (gridRows - 1) * GAP) /
-        gridRows;
-    }
-
-    // Tính toán tỷ lệ scale để vừa màn hình
     useEffect(() => {
       const updateScale = () => {
         if (!containerRef.current) return;
         const viewportHeight = window.innerHeight;
-        const maxDisplayHeight = viewportHeight * 0.8; // 80% chiều cao màn hình
+        const maxDisplayHeight = viewportHeight * 0.8;
         const scaleY = maxDisplayHeight / stripHeight;
-        const newScale = Math.min(Math.max(scaleY, 0.5), 1); // Giới hạn scale từ 0.5 đến 1
+        const newScale = Math.min(Math.max(scaleY, 0.5), 1);
         setScale(newScale);
       };
 
@@ -122,7 +84,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       return () => window.removeEventListener("resize", updateScale);
     }, [stripHeight]);
 
-    // Tải ảnh
     const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
     const [fgImage, setFgImage] = useState<HTMLImageElement | null>(null);
     const [photoImages, setPhotoImages] = useState<(HTMLImageElement | null)[]>(
@@ -179,7 +140,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       }
     }, [photos, maxPhotos]);
 
-    // Cập nhật Transformer khi chọn sticker
     useEffect(() => {
       if (
         selectedStickerId !== null &&
@@ -246,6 +206,60 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       }
     }, [selectedStickerId, setStickers]);
 
+    const cropImageToRectangle = (
+      image: HTMLImageElement,
+      rect: Rectangle
+    ): HTMLImageElement => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return image;
+
+      const imgWidth = image.width;
+      const imgHeight = image.height;
+      const rectWidth = rect.width;
+      const rectHeight = rect.height;
+
+      const rectRatio = rectWidth / rectHeight;
+      const imgRatio = imgWidth / imgHeight;
+
+      let cropWidth, cropHeight, cropX, cropY;
+
+      if (imgRatio > rectRatio) {
+        cropWidth = imgHeight * rectRatio;
+        cropHeight = imgHeight;
+        cropX = (imgWidth - cropWidth) / 2;
+        cropY = 0;
+      } else {
+        cropHeight = imgWidth / rectRatio;
+        cropWidth = imgWidth;
+        cropX = 0;
+        cropY = (imgHeight - cropHeight) / 2;
+      }
+
+      canvas.width = rectWidth;
+      canvas.height = rectHeight;
+      ctx.drawImage(
+        image,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        rectWidth,
+        rectHeight
+      );
+
+      const croppedImage = new Image();
+      croppedImage.src = canvas.toDataURL("image/png");
+      return croppedImage;
+    };
+
+    const croppedImages = photoImages.map((photo, index) => {
+      if (!photo || index >= currentLayout.rectangles.length) return null;
+      return cropImageToRectangle(photo, currentLayout.rectangles[index]);
+    });
+
     return (
       <div ref={ref} className="photo-strip" style={{ position: "relative" }}>
         <div ref={containerRef}>
@@ -254,7 +268,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             height={stripHeight}
             ref={stageRef}
             style={{
-              borderRadius: `${stripBorderRadius / SCALE_FACTOR}px`,
               overflow: "hidden",
             }}
             onMouseDown={handleDeselect}
@@ -283,26 +296,33 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                       height={stripHeight}
                     />
                   )
-                : photoImages.map((photo, index) => {
-                    if (!photo) return null;
-                    const x =
-                      arrangement === "vertical"
-                        ? PADDING_LEFT
-                        : PADDING_LEFT + index * (photoSize.width + GAP);
-                    const y =
-                      arrangement === "vertical"
-                        ? PADDING_TOP + index * (photoSize.height + GAP)
-                        : PADDING_TOP;
-                    return (
-                      <KonvaImage
-                        key={index}
-                        image={photo}
-                        x={x}
-                        y={y}
-                        width={photoSize.width}
-                        height={photoSize.height}
-                      />
-                    );
+                : currentLayout.rectangles.map((rect, index) => {
+                    const croppedImage = croppedImages[index];
+                    if (croppedImage) {
+                      return (
+                        <KonvaImage
+                          key={index}
+                          image={croppedImage}
+                          x={rect.x * SCALE_FACTOR}
+                          y={rect.y * SCALE_FACTOR}
+                          width={rect.width * SCALE_FACTOR}
+                          height={rect.height * SCALE_FACTOR}
+                        />
+                      );
+                    } else {
+                      return (
+                        <Rect
+                          key={index}
+                          x={rect.x * SCALE_FACTOR}
+                          y={rect.y * SCALE_FACTOR}
+                          width={rect.width * SCALE_FACTOR}
+                          height={rect.height * SCALE_FACTOR}
+                          fill="rgba(200, 200, 200, 0.5)"
+                          stroke="gray"
+                          strokeWidth={1 * SCALE_FACTOR}
+                        />
+                      );
+                    }
                   })}
 
               {fgImage && (
