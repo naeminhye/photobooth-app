@@ -54,7 +54,9 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     }
   };
 
-  const handleForegroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleForegroundUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -63,7 +65,9 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     }
   };
 
-  const handleBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBackgroundUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -89,7 +93,9 @@ const FrameControls: React.FC<FrameControlsProps> = ({
         <div className="tab-content">
           {activeTab === "Background" && (
             <div className="frame-controls-section">
-              <label className="frame-controls-label">Background Color or Image</label>
+              <label className="frame-controls-label">
+                Background Color or Image
+              </label>
               {!backgroundImage && (
                 <input
                   type="color"
@@ -158,22 +164,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
             </div>
           )}
         </div>
-      </div>
-      <div className="frame-controls-actions">
-        <button
-          className="frame-controls-button frame-controls-button-danger"
-          onClick={onReset}
-          style={{ display: capturedPhotos.length > 0 ? "inline-block" : "none" }}
-        >
-          Reset All
-        </button>
-        <button
-          className="frame-controls-button frame-controls-button-success"
-          onClick={downloadImage}
-          style={{ display: capturedPhotos.length > 0 ? "inline-block" : "none" }}
-        >
-          Download
-        </button>
       </div>
     </div>
   );

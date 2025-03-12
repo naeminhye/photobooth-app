@@ -262,7 +262,6 @@
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-start;
-  max-height: 250px;
   overflow-y: auto;
 }
 

@@ -11,6 +11,7 @@ import {
   Image as KonvaImage,
   Rect,
   Transformer,
+  Text,
 } from "react-konva";
 import { NEW_LAYOUT, CanvasData, Rectangle } from "../../constants";
 import "./styles.css";
@@ -71,6 +72,28 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     const stripWidth = currentLayout.canvas.width * SCALE_FACTOR;
     const stripHeight = currentLayout.canvas.height * SCALE_FACTOR;
 
+    // Hàm định dạng ngày tháng
+    const getCurrentDate = () => {
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, "0");
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const year = String(today.getFullYear()).slice(2);
+      return `${day}.${month}.${year}`;
+    };
+
+    // Hàm tính màu tương phản
+    const getContrastColor = (hexColor: string) => {
+      // Chuyển hex sang RGB
+      const r = parseInt(hexColor.slice(1, 3), 16);
+      const g = parseInt(hexColor.slice(3, 5), 16);
+      const b = parseInt(hexColor.slice(5, 7), 16);
+      // Tính độ sáng (luminance)
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      // Trả về màu trắng nếu nền tối, màu đen nếu nền sáng
+      return luminance > 0.5 ? "#000000" : "#FFFFFF";
+    };
+
+    // Giữ nguyên các useEffect
     useEffect(() => {
       if (isViewOnly && selectedStickerId) {
         setSelectedStickerId(null);
@@ -361,6 +384,19 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                   onTransformEnd={handleTransform}
                 />
               ))}
+
+              {/* Hiển thị ngày tháng với màu tương phản và kích thước lớn hơn */}
+              <Text
+                text={getCurrentDate()}
+                x={stripWidth / 2 - 20}
+                y={12}
+                fontSize={36 * SCALE_FACTOR} // Tăng từ 20 lên 60 (gấp 3 lần)
+                fontFamily="Arial"
+                fill={bgImage ? "#FFFFFF" : getContrastColor(frameColor)}
+                align="right" // Căn phải để text không bị cắt
+                perfectDrawEnabled={true} // Tăng độ nét
+                listening={false} // Ngăn tương tác với text
+              />
 
               {selectedStickerId !== null && !isViewOnly && (
                 <Transformer

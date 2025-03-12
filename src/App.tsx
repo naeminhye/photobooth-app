@@ -107,9 +107,9 @@ const App: React.FC = () => {
   };
 
   const handlePhotoUpload = (files: File[]) => {
-    if (previewPhotos.length + files.length > maxPhotos) {
+    if (previewPhotos.length + files.length > MAX_PHOTOS) {
       alert(
-        `Adding these photos would exceed the maximum preview photo limit (${maxPhotos}).`
+        `Adding these photos would exceed the maximum preview photo limit (${MAX_PHOTOS}).`
       );
       return;
     }
