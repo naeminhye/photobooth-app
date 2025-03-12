@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import GIF from "gif.js";
-import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
+import { CAMERA_HEIGHT, CAMERA_WIDTH, MAX_PHOTOS } from "../../constants";
 
 // Icons
 import flipIcon from "../../assets/icons/flip.png";
@@ -148,8 +148,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const startCountdown = useCallback(() => {
-    if (currentPhotos >= 10) {
-      alert("Maximum preview photo limit (10) reached.");
+    if (currentPhotos >= MAX_PHOTOS) {
+      alert(`Maximum preview photo limit (${MAX_PHOTOS}) reached.`);
       return;
     }
 

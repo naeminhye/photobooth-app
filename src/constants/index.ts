@@ -7,7 +7,7 @@ import rizz4Cut from "../assets/illustrators/rizz-4-cut.png";
 
 export const SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".svg", ".gif"];
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
-export const MAX_UPLOAD_COUNT = 10;
+export const MAX_PHOTOS = 10;
 
 // Define element types
 export type ElementType = "image" | "text" | "shape" | "icon";
@@ -79,6 +79,21 @@ export const NEW_LAYOUT: CanvasData[] = [
     ],
     templatePath: basic4Cut,
   },
+  // Basic 4 cut: 1652 x 4920
+  // {
+  //   name: "basic 4-cut",
+  //   canvas: {
+  //     width: 1080,
+  //     height: 1612,
+  //   },
+  //   rectangles: [
+  //     { x: 44, y: 90, width: 452, height: 363 },
+  //     { x: 44, y: 461, width: 452, height: 363 },
+  //     { x: 44, y: 833, width: 452, height: 363 },
+  //     { x: 44, y: 1206, width: 452, height: 363 },
+  //   ],
+  //   templatePath: basic4Cut,
+  // },
   {
     name: "basic 6-cut",
     canvas: {

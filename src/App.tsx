@@ -1,3 +1,4 @@
+// src\App.tsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./App.css";
 import PhotoStrip from "./components/PhotoStrip";
@@ -5,7 +6,7 @@ import FrameControls from "./components/FrameControls";
 import CameraFeed from "./components/CameraFeed";
 import SequentialGif from "./components/SequentialGif";
 import PreviewPhotos from "./components/PreviewPhotos";
-import { NEW_LAYOUT, CanvasData } from "./constants";
+import { NEW_LAYOUT, CanvasData, MAX_PHOTOS } from "./constants";
 import { v4 as uuidv4 } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
@@ -93,8 +94,8 @@ const App: React.FC = () => {
   };
 
   const handlePhotoCapture = (photo: string) => {
-    if (previewPhotos.length >= maxPhotos) {
-      alert(`Maximum preview photo limit (${maxPhotos}) reached.`);
+    if (previewPhotos.length >= MAX_PHOTOS) {
+      alert(`Maximum preview photo limit (${MAX_PHOTOS}) reached.`);
       return;
     }
     const newPhoto: Photo = { id: uuidv4(), url: photo };
@@ -133,17 +134,21 @@ const App: React.FC = () => {
   });
 
   const goToNextStep = () => {
-    if (step === 1 && previewPhotos.length > 0) {
-      setStep(2);
-    } else if (step === 2 && capturedPhotos.length > 0) {
-      combineImageForStep3();
-      setStep(3);
+    if (step === 1) {
+      setStep(2); // Từ Select Layout sang Capture
+    } else if (step === 2 && previewPhotos.length > 0) {
+      setStep(3); // Từ Capture sang Edit
+    } else if (step === 3 && capturedPhotos.length > 0) {
+      handleMergeLayers();
+      setStep(4); // Từ Edit sang Add Stickers
+    } else if (step === 4) {
+      setStep(5); // Từ Add Stickers sang Review and Download
     } else {
       alert("Please capture or select at least one photo before proceeding.");
     }
   };
 
-  const combineImageForStep3 = () => {
+  const handleMergeLayers = () => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -266,7 +271,7 @@ const App: React.FC = () => {
 
   const addStickerToCanvas = (stickerImg: HTMLImageElement) => {
     const aspectRatio = stickerImg.width / stickerImg.height;
-    const defaultWidth = 100;
+    const defaultWidth = 300;
     const defaultHeight = defaultWidth / aspectRatio;
 
     const newSticker: Sticker = {
@@ -320,12 +325,6 @@ const App: React.FC = () => {
     }));
   }, [NEW_LAYOUT]);
 
-  const countdownOptions = [
-    { value: 3, label: "3s" },
-    { value: 5, label: "5s" },
-    { value: 10, label: "10s" },
-  ];
-
   const handleOuterClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (
       photoStripRef.current &&
@@ -363,6 +362,41 @@ const App: React.FC = () => {
           <div className="app-content">
             {step === 1 && (
               <div className="step-1">
+                <h2 className="step-title">Select Your Layout</h2>
+                <div className="layout-toggle">
+                  {layouts.map((layoutItem) => (
+                    <div
+                      key={layoutItem.id}
+                      className={`layout-option ${
+                        layoutItem.id === layout ? "active" : ""
+                      }`}
+                      onClick={() => setLayout(layoutItem.id)}
+                    >
+                      <img
+                        src={layoutItem.templatePath}
+                        alt={layoutItem.name}
+                        style={{
+                          width: "100px",
+                          height: "auto",
+                          cursor: "pointer",
+                        }}
+                      />
+                      <p>{layoutItem.name}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="step-navigation">
+                  <button className="reset-button" onClick={resetAll}>
+                    Reset All
+                  </button>
+                  <button className="next-button" onClick={goToNextStep}>
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+            {step === 2 && (
+              <div className="step-2">
                 <h2 className="step-title">Capture Your Moments</h2>
                 <div className="capture-container">
                   <CameraFeed
@@ -378,39 +412,6 @@ const App: React.FC = () => {
                     onTimerChange={handleTimeChange}
                     onMirrorToggle={setIsMirrored}
                   />
-                  <div className="capture-options">
-                    <label className="layout-label">Select Layout</label>
-                    <div className="layout-toggle">
-                      {layouts.map((layoutItem) => (
-                        <div
-                          key={layoutItem.id}
-                          className={`layout-option ${
-                            layoutItem.id === layout ? "active" : ""
-                          }`}
-                          onClick={() => {
-                            if (capturedPhotos.length === 0) {
-                              setLayout(layoutItem.id);
-                            }
-                          }}
-                        >
-                          <img
-                            src={layoutItem.templatePath}
-                            alt={layoutItem.name}
-                            style={{
-                              width: "100px",
-                              height: "auto",
-                              cursor:
-                                capturedPhotos.length > 0
-                                  ? "not-allowed"
-                                  : "pointer",
-                              opacity: capturedPhotos.length > 0 ? 0.5 : 1,
-                            }}
-                          />
-                          <p>{layoutItem.name}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
                 <PreviewPhotos
                   previewPhotos={previewPhotos}
@@ -435,8 +436,8 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {step === 2 && (
-              <div className="step-2">
+            {step === 3 && (
+              <div className="step-3">
                 <h2 className="step-title">Edit Your Photo Strip</h2>
                 <div className="edit-container">
                   <div className="edit-sidebar-left">
@@ -456,6 +457,7 @@ const App: React.FC = () => {
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
+                      isViewOnly={false}
                       photos={capturedPhotos}
                       frameColor={frameColor}
                       backgroundImage={backgroundImage}
@@ -495,13 +497,14 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {step === 3 && (
-              <div className="step-3">
+            {step === 4 && (
+              <div className="step-4">
                 <h2 className="step-title">Add Stickers</h2>
                 <div className="edit-container">
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
+                      isViewOnly={false}
                       photos={
                         combinedImage
                           ? [{ id: "combined", url: combinedImage }]
@@ -543,6 +546,43 @@ const App: React.FC = () => {
                         ))}
                       </div>
                     </div>
+                  </div>
+                </div>
+                <div className="step-navigation">
+                  <button className="reset-button" onClick={resetAll}>
+                    Reset All
+                  </button>
+                  <button className="next-button" onClick={goToNextStep}>
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+            {step === 5 && (
+              <div className="step-5">
+                <h2 className="step-title">Review and Download</h2>
+                <div className="edit-container">
+                  <div className="edit-main">
+                    <PhotoStrip
+                      ref={photoStripRef}
+                      isViewOnly={!!combinedImage}
+                      photos={
+                        combinedImage
+                          ? [{ id: "combined", url: combinedImage }]
+                          : []
+                      }
+                      frameColor="#FFFFFF"
+                      backgroundImage={null}
+                      layout={layout}
+                      foregroundImage={null}
+                      stickers={stickers}
+                      setStickers={setStickers}
+                      selectedStickerId={selectedStickerId}
+                      setSelectedStickerId={setSelectedStickerId}
+                      stageRef={stageRef}
+                    />
+                  </div>
+                  <div className="edit-sidebar-right">
                     <SequentialGif
                       ref={sequentialGifRef}
                       gifUrl={gifUrl}

@@ -41,6 +41,7 @@ interface PhotoStripProps {
   selectedStickerId: number | null;
   setSelectedStickerId: React.Dispatch<React.SetStateAction<number | null>>;
   stageRef: React.RefObject<any>;
+  isViewOnly: boolean;
 }
 
 const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
@@ -56,6 +57,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       selectedStickerId,
       setSelectedStickerId,
       stageRef,
+      isViewOnly,
     },
     ref
   ) => {
@@ -68,6 +70,12 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     const maxPhotos = currentLayout.rectangles.length;
     const stripWidth = currentLayout.canvas.width * SCALE_FACTOR;
     const stripHeight = currentLayout.canvas.height * SCALE_FACTOR;
+
+    useEffect(() => {
+      if (isViewOnly && selectedStickerId) {
+        setSelectedStickerId(null);
+      }
+    }, [selectedStickerId, isViewOnly]);
 
     useEffect(() => {
       const updateScale = () => {
@@ -160,6 +168,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     }, [selectedStickerId]);
 
     const handleSelectSticker = (e: any) => {
+      if (isViewOnly) return;
       const id = e.target.id().replace("sticker-", "");
       setSelectedStickerId(parseInt(id));
     };
@@ -175,6 +184,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
     const handleTransform = useCallback(
       (e: any) => {
+        if (isViewOnly) return;
         const node = e.target;
         const id = parseInt(node.id().replace("sticker-", ""));
         setStickers((prev) =>
@@ -198,6 +208,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     );
 
     const handleDeleteSticker = useCallback(() => {
+      if (isViewOnly) return;
       if (selectedStickerId !== null) {
         setStickers((prev) =>
           prev.filter((sticker) => sticker.id !== selectedStickerId)
@@ -351,12 +362,13 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 />
               ))}
 
-              {selectedStickerId !== null && (
+              {selectedStickerId !== null && !isViewOnly && (
                 <Transformer
                   id="transformer"
                   ref={transformerRef}
-                  anchorSize={8 * SCALE_FACTOR}
-                  borderStrokeWidth={1 * SCALE_FACTOR}
+                  anchorSize={8}
+                  anchorCornerRadius={4}
+                  borderStrokeWidth={1}
                   rotateEnabled
                   enabledAnchors={[
                     "top-left",

@@ -70,7 +70,7 @@ const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
     }
   };
 
-  return (
+  return previewPhotos?.length || !isViewOnly ? (
     <div className="preview-photos">
       <h3>Preview Photos</h3>
       <div className="preview-photos-list">
@@ -116,6 +116,8 @@ const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
         )}
       </div>
     </div>
+  ) : (
+    <></>
   );
 };
 
