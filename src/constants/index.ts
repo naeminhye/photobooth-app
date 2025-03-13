@@ -1,5 +1,6 @@
 // constants/index.ts
 import basic4Cut from "../assets/illustrators/basic-4-cut.png";
+import basic4Cut2 from "../assets/illustrators/basic-4-cut-2.png";
 import basic6Cut from "../assets/illustrators/basic-6-cut.png";
 import film3Cut from "../assets/illustrators/film-3-cut.png";
 import wide4Cut from "../assets/illustrators/wide-4-cut.png";
@@ -79,21 +80,20 @@ export const NEW_LAYOUT: CanvasData[] = [
     ],
     templatePath: basic4Cut,
   },
-  // Basic 4 cut: 1652 x 4920
-  // {
-  //   name: "basic 4-cut",
-  //   canvas: {
-  //     width: 1080,
-  //     height: 1612,
-  //   },
-  //   rectangles: [
-  //     { x: 44, y: 90, width: 452, height: 363 },
-  //     { x: 44, y: 461, width: 452, height: 363 },
-  //     { x: 44, y: 833, width: 452, height: 363 },
-  //     { x: 44, y: 1206, width: 452, height: 363 },
-  //   ],
-  //   templatePath: basic4Cut,
-  // },
+  {
+    name: "basic 4-cut 2",
+    canvas: {
+      width: 1080,
+      height: 1612,
+    },
+    rectangles: [
+      { x: 44, y: 90, width: 452, height: 363 },
+      { x: 44, y: 461, width: 452, height: 363 },
+      { x: 44, y: 833, width: 452, height: 363 },
+      { x: 44, y: 1206, width: 452, height: 363 },
+    ],
+    templatePath: basic4Cut2,
+  },
   {
     name: "basic 6-cut",
     canvas: {
@@ -150,3 +150,21 @@ export const NEW_LAYOUT: CanvasData[] = [
   },
 ];
 //   name: "layer 4-cut",
+// Basic 4 cut: 1652 x 4920
+
+// {
+//   name: "gallery",
+//   canvas: {
+//     width: 1200,
+//     height: 1800,
+//   },
+//   rectangles: [
+//     { x: 71, y: 365, width: 514, height: 514 },
+//     { x: 615, y: 365, width: 514, height: 514 },
+//     { x: 71, y: 1057, width: 255, height: 255 },
+//     { x: 330, y: 1057, width: 255, height: 255 },
+//     { x: 71, y: 1316, width: 255, height: 255 },
+//     { x: 330, y: 1316, width: 255, height: 255 },
+//     { x: 747, y: 1189, width: 251, height: 251 },
+//   ],
+// },
