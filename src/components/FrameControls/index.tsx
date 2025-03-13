@@ -1,3 +1,4 @@
+// src/components/FrameControls.tsx
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
@@ -17,6 +18,7 @@ interface FrameControlsProps {
   frameColor: string;
   backgroundImage: string | null;
   foregroundImage: string | null;
+  onFilterChange?: (filter: string) => void; // Thêm prop cho filter
 }
 
 const FrameControls: React.FC<FrameControlsProps> = ({
@@ -30,8 +32,10 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   frameColor,
   backgroundImage,
   foregroundImage,
+  onFilterChange,
 }) => {
   const [activeTab, setActiveTab] = useState("Background");
+  const [selectedFilter, setSelectedFilter] = useState("none"); // State cho filter
 
   const downloadImage = () => {
     const photoStrip = photoStripRef.current;
@@ -76,11 +80,17 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     }
   };
 
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const filterValue = e.target.value;
+    setSelectedFilter(filterValue);
+    onFilterChange?.(filterValue);
+  };
+
   return (
     <div className="frame-controls">
       <div className="tabs">
         <div className="tab-list">
-          {["Background", "Foreground"].map((tab) => (
+          {["Background", "Foreground", "Filter"].map((tab) => (
             <button
               key={tab}
               className={`tab-button ${activeTab === tab ? "active" : ""}`}
@@ -161,6 +171,21 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                   />
                 </label>
               )}
+            </div>
+          )}
+          {activeTab === "Filter" && (
+            <div className="frame-controls-section">
+              <label className="frame-controls-label">Select Filter</label>
+              <select
+                value={selectedFilter}
+                onChange={handleFilterChange}
+                className="frame-controls-select"
+              >
+                <option value="none">None</option>
+                <option value="bw">Black & White</option>
+                <option value="whitening">Whitening</option>
+                <option value="darker">Darker</option>
+              </select>
             </div>
           )}
         </div>

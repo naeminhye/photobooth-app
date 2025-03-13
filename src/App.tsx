@@ -56,6 +56,7 @@ const App: React.FC = () => {
   const [selectedStickerId, setSelectedStickerId] = useState<number | null>(
     null
   );
+  const [filter, setFilter] = useState<string>("none");
   const stageRef = useRef<any>(null);
 
   const currentLayout = useMemo(() => NEW_LAYOUT[layout], [layout]);
@@ -135,14 +136,14 @@ const App: React.FC = () => {
 
   const goToNextStep = () => {
     if (step === 1) {
-      setStep(2); // Từ Select Layout sang Capture
+      setStep(2);
     } else if (step === 2 && previewPhotos.length > 0) {
-      setStep(3); // Từ Capture sang Edit
+      setStep(3);
     } else if (step === 3 && capturedPhotos.length > 0) {
       handleMergeLayers();
-      setStep(4); // Từ Edit sang Add Stickers
+      setStep(4);
     } else if (step === 4) {
-      setStep(5); // Từ Add Stickers sang Review and Download
+      setStep(5);
     } else {
       alert("Please capture or select at least one photo before proceeding.");
     }
@@ -350,6 +351,10 @@ const App: React.FC = () => {
     setCountdownTime(timer);
   };
 
+  const handleFilterChange = (filterValue: string) => {
+    setFilter(filterValue);
+  };
+
   return (
     <div
       className="app"
@@ -468,6 +473,7 @@ const App: React.FC = () => {
                       selectedStickerId={selectedStickerId}
                       setSelectedStickerId={setSelectedStickerId}
                       stageRef={stageRef}
+                      filter={filter}
                     />
                   </div>
                   <div className="edit-sidebar-right">
@@ -484,6 +490,7 @@ const App: React.FC = () => {
                       onPhotoUpload={handlePhotoUpload}
                       photoStripRef={photoStripRef}
                       frameColor={frameColor}
+                      onFilterChange={handleFilterChange}
                     />
                   </div>
                 </div>

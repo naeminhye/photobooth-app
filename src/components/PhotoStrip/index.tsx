@@ -15,6 +15,7 @@ import {
 } from "react-konva";
 import { NEW_LAYOUT, CanvasData, Rectangle } from "../../constants";
 import "./styles.css";
+import Konva from "konva";
 
 interface Photo {
   id: string;
@@ -43,6 +44,7 @@ interface PhotoStripProps {
   setSelectedStickerId: React.Dispatch<React.SetStateAction<number | null>>;
   stageRef: React.RefObject<any>;
   isViewOnly: boolean;
+  filter?: string;
 }
 
 const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
@@ -59,6 +61,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       setSelectedStickerId,
       stageRef,
       isViewOnly,
+      filter,
     },
     ref
   ) => {
@@ -72,7 +75,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     const stripWidth = currentLayout.canvas.width * SCALE_FACTOR;
     const stripHeight = currentLayout.canvas.height * SCALE_FACTOR;
 
-    // Hàm định dạng ngày tháng
     const getCurrentDate = () => {
       const today = new Date();
       const day = String(today.getDate()).padStart(2, "0");
@@ -81,19 +83,18 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       return `${day}.${month}.${year}`;
     };
 
-    // Hàm tính màu tương phản
+    // contrasting color
     const getContrastColor = (hexColor: string) => {
-      // Chuyển hex sang RGB
+      // Convert hex to RGB
       const r = parseInt(hexColor.slice(1, 3), 16);
       const g = parseInt(hexColor.slice(3, 5), 16);
       const b = parseInt(hexColor.slice(5, 7), 16);
-      // Tính độ sáng (luminance)
+      // Calculate luminance
       const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      // Trả về màu trắng nếu nền tối, màu đen nếu nền sáng
+      // Returns white if background is dark, black if background is light
       return luminance > 0.5 ? "#000000" : "#FFFFFF";
     };
 
-    // Giữ nguyên các useEffect
     useEffect(() => {
       if (isViewOnly && selectedStickerId) {
         setSelectedStickerId(null);
@@ -294,6 +295,46 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       return cropImageToRectangle(photo, currentLayout.rectangles[index]);
     });
 
+    const applyFilters = (image: any) => {
+      if (!image) return;
+      image.cache();
+
+      switch (filter) {
+        case "bw": {
+          image.filters([Konva.Filters.Grayscale]);
+          break;
+        }
+        case "whitening": {
+          image.filters([
+            Konva.Filters.Brighten,
+            // Konva.Filters.HSL,
+            // Konva.Filters.RGBA,
+            // Konva.Filters.Blur,
+          ]);
+          image.brightness(0.05);
+
+          // image.hue(0);
+          // image.saturation(-0.1);
+          // image.luminance(0.05);
+          // image.red(5);
+          // image.blue(40);
+          // image.green(10);
+          // image.alpha(0.3);
+          break;
+        }
+        case "darker": {
+          image.filters([Konva.Filters.Brighten]);
+          image.brightness(-0.05);
+          break;
+        }
+        default:
+          image.filters([]);
+          break;
+      }
+
+      image.getLayer()?.batchDraw(); // Update layer
+    };
+
     return (
       <div ref={ref} className="photo-strip" style={{ position: "relative" }}>
         <div ref={containerRef}>
@@ -301,9 +342,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             width={stripWidth}
             height={stripHeight}
             ref={stageRef}
-            style={{
-              overflow: "hidden",
-            }}
+            style={{ overflow: "hidden" }}
             onMouseDown={handleDeselect}
             onTouchStart={handleDeselect}
           >
@@ -328,6 +367,10 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                       image={photoImages[0]}
                       width={stripWidth}
                       height={stripHeight}
+                      listening={false}
+                      ref={(node) => {
+                        if (node) applyFilters(node);
+                      }}
                     />
                   )
                 : currentLayout.rectangles.map((rect, index) => {
@@ -341,6 +384,10 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                           y={rect.y * SCALE_FACTOR}
                           width={rect.width * SCALE_FACTOR}
                           height={rect.height * SCALE_FACTOR}
+                          listening={false}
+                          ref={(node) => {
+                            if (node) applyFilters(node);
+                          }}
                         />
                       );
                     } else {
@@ -385,17 +432,16 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 />
               ))}
 
-              {/* Hiển thị ngày tháng với màu tương phản và kích thước lớn hơn */}
               <Text
                 text={getCurrentDate()}
                 x={stripWidth / 2 - 20}
                 y={12}
-                fontSize={36 * SCALE_FACTOR} // Tăng từ 20 lên 60 (gấp 3 lần)
+                fontSize={36 * SCALE_FACTOR}
                 fontFamily="Arial"
                 fill={bgImage ? "#FFFFFF" : getContrastColor(frameColor)}
-                align="right" // Căn phải để text không bị cắt
-                perfectDrawEnabled={true} // Tăng độ nét
-                listening={false} // Ngăn tương tác với text
+                align="right"
+                perfectDrawEnabled={true}
+                listening={false}
               />
 
               {selectedStickerId !== null && !isViewOnly && (
