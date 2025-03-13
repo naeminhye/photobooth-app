@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
-import html2canvas from "html2canvas";
 import "./styles.css";
+import GradientPicker, { Gradient } from "../GradientPicker";
 
 interface FrameControlsProps {
   onColorChange: (color: string) => void;
@@ -11,7 +11,7 @@ interface FrameControlsProps {
   onForegroundChange: (image: string | null) => void;
   layout: number;
   onLayoutChange: (layout: number) => void;
-  capturedPhotos: string[];
+  selectedPhotos: string[];
   onReset: () => void;
   onPhotoUpload: (files: File[]) => void;
   photoStripRef: React.RefObject<HTMLDivElement>;
@@ -19,13 +19,15 @@ interface FrameControlsProps {
   backgroundImage: string | null;
   foregroundImage: string | null;
   onFilterChange?: (filter: string) => void; // Thêm prop cho filter
+  frameGradient?: Gradient;
+  onSelectFrameGradient: (gradient?: Gradient) => void;
 }
 
 const FrameControls: React.FC<FrameControlsProps> = ({
   onColorChange,
   onBackgroundChange,
   onForegroundChange,
-  capturedPhotos,
+  selectedPhotos,
   onReset,
   onPhotoUpload,
   photoStripRef,
@@ -33,30 +35,11 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   backgroundImage,
   foregroundImage,
   onFilterChange,
+  frameGradient,
+  onSelectFrameGradient,
 }) => {
   const [activeTab, setActiveTab] = useState("Background");
   const [selectedFilter, setSelectedFilter] = useState("none"); // State cho filter
-
-  const downloadImage = () => {
-    const photoStrip = photoStripRef.current;
-    if (photoStrip) {
-      html2canvas(photoStrip, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-      })
-        .then((canvas) => {
-          const link = document.createElement("a");
-          link.download = `photobooth_${Date.now()}.jpg`;
-          link.href = canvas.toDataURL("image/jpeg", 1.0);
-          link.click();
-        })
-        .catch((error) => {
-          console.error("Error generating canvas:", error);
-        });
-    }
-  };
 
   const handleForegroundUpload = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -114,6 +97,11 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                   className="frame-controls-color-input"
                 />
               )}
+
+              <GradientPicker
+                gradient={frameGradient}
+                onSelect={onSelectFrameGradient}
+              />
               {backgroundImage ? (
                 <div className="image-preview-container">
                   <img

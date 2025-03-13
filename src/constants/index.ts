@@ -46,6 +46,7 @@ export interface Photo {
 
 //////////////////////////////////////////////////////////////////////////////
 
+export const SCALE_FACTOR = 1 / 3.5;
 export interface Canvas {
   width: number;
   height: number;
@@ -65,7 +66,7 @@ export interface CanvasData {
   templatePath: string;
 }
 
-export const NEW_LAYOUT: CanvasData[] = [
+export const LAYOUTS: CanvasData[] = [
   {
     name: "basic 4-cut",
     canvas: {
@@ -168,3 +169,4 @@ export const NEW_LAYOUT: CanvasData[] = [
 //     { x: 747, y: 1189, width: 251, height: 251 },
 //   ],
 // },
+

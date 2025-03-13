@@ -6,13 +6,14 @@ import FrameControls from "./components/FrameControls";
 import CameraFeed from "./components/CameraFeed";
 import SequentialGif from "./components/SequentialGif";
 import PreviewPhotos from "./components/PreviewPhotos";
-import { NEW_LAYOUT, CanvasData, MAX_PHOTOS } from "./constants";
+import { LAYOUTS, MAX_PHOTOS } from "./constants";
 import { v4 as uuidv4 } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useDropzone } from "react-dropzone";
 import GradientBackground from "./components/GradientBackground";
-import html2canvas from "html2canvas";
+import { getContrastColor } from "./utils";
+import { Gradient } from "./components/GradientPicker";
 
 interface Photo {
   id: string;
@@ -31,14 +32,14 @@ interface Sticker {
 
 const App: React.FC = () => {
   const [hasPermission, setHasPermission] = useState(false);
-  const [capturedPhotos, setCapturedPhotos] = useState<Photo[]>([]);
+  const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [previewPhotos, setPreviewPhotos] = useState<Photo[]>([]);
   const [frameColor, setFrameColor] = useState<string>("#FFFFFF");
+  const [gradient, setGradientColor] = useState<Gradient | undefined>(
+    undefined
+  );
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [layout, setLayout] = useState<number>(0);
-  const [selectedPreviewPhotos, setSelectedPreviewPhotos] = useState<string[]>(
-    []
-  );
   const [foregroundImage, setForegroundImage] = useState<string | null>(null);
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>(
@@ -59,8 +60,17 @@ const App: React.FC = () => {
   const [filter, setFilter] = useState<string>("none");
   const stageRef = useRef<any>(null);
 
-  const currentLayout = useMemo(() => NEW_LAYOUT[layout], [layout]);
-  const maxPhotos = currentLayout.rectangles.length;
+  const currentLayout = useMemo(() => LAYOUTS[layout], [layout]);
+  const maxPhotos = useMemo(
+    () => currentLayout.rectangles.length,
+    [currentLayout]
+  );
+
+  const textColor = useMemo(
+    () =>
+      backgroundImage || gradient ? "#FFFFFF" : getContrastColor(frameColor),
+    [backgroundImage, frameColor]
+  );
 
   useEffect(() => {
     requestCameraPermission();
@@ -76,13 +86,12 @@ const App: React.FC = () => {
   };
 
   const resetAll = () => {
-    setCapturedPhotos([]);
+    setSelectedPhotos([]);
     setPreviewPhotos([]);
     setFrameColor("#FFF");
     setBackgroundImage(null);
     setForegroundImage(null);
     setLayout(0);
-    setSelectedPreviewPhotos([]);
     setStickers([]);
     setUploadedStickers([]);
     setTimerEnabled(false);
@@ -139,7 +148,7 @@ const App: React.FC = () => {
       setStep(2);
     } else if (step === 2 && previewPhotos.length > 0) {
       setStep(3);
-    } else if (step === 3 && capturedPhotos.length > 0) {
+    } else if (step === 3 && selectedPhotos.length > 0) {
       handleMergeLayers();
       setStep(4);
     } else if (step === 4) {
@@ -167,7 +176,7 @@ const App: React.FC = () => {
         height: rect.height * 2,
       }));
 
-      capturedPhotos.forEach((photo, index) => {
+      selectedPhotos.forEach((photo, index) => {
         if (index >= rectangles.length) return;
         const rect = rectangles[index];
         const img = new Image();
@@ -227,14 +236,14 @@ const App: React.FC = () => {
           croppedImg.onload = () => {
             ctx.drawImage(croppedImg, rect.x, rect.y, rect.width, rect.height);
 
-            if (index === capturedPhotos.length - 1 && foregroundImage) {
+            if (index === selectedPhotos.length - 1 && foregroundImage) {
               const fgImg = new Image();
               fgImg.src = foregroundImage;
               fgImg.onload = () => {
                 ctx.drawImage(fgImg, 0, 0, stripWidth, stripHeight);
                 setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
               };
-            } else if (index === capturedPhotos.length - 1) {
+            } else if (index === selectedPhotos.length - 1) {
               setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
             }
           };
@@ -300,12 +309,14 @@ const App: React.FC = () => {
       const stage = stageRef.current;
       if (stage) {
         const dataUrl = stage.toDataURL({
-          pixelRatio: 3.5,
+          pixelRatio: 3, // Tăng từ 3.5 xuống 3 hoặc thử 2 tùy màn hình
         });
 
         const img = new Image();
         img.src = dataUrl;
         img.onload = () => {
+          ctx.imageSmoothingEnabled = true; // Bật làm mịn
+          ctx.imageSmoothingQuality = "high";
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
           const link = document.createElement("a");
@@ -317,14 +328,12 @@ const App: React.FC = () => {
     }
   };
 
-  const layouts = useMemo(() => {
-    return NEW_LAYOUT.map((layout, index) => ({
-      id: index,
-      name: layout.name,
-      maxPhotos: layout.rectangles.length,
-      templatePath: layout.templatePath,
-    }));
-  }, [NEW_LAYOUT]);
+  const layouts = LAYOUTS.map((layout, index) => ({
+    id: index,
+    name: layout.name,
+    maxPhotos: layout.rectangles.length,
+    templatePath: layout.templatePath,
+  }));
 
   const handleOuterClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (
@@ -420,15 +429,13 @@ const App: React.FC = () => {
                 </div>
                 <PreviewPhotos
                   previewPhotos={previewPhotos}
-                  selectedPreviewPhotos={selectedPreviewPhotos}
-                  capturedPhotos={capturedPhotos}
+                  selectedPhotos={selectedPhotos}
                   getRootProps={getRootProps}
                   getInputProps={getInputProps}
                   isDragActive={isDragActive}
                   layout={layout}
                   setPreviewPhotos={setPreviewPhotos}
-                  setCapturedPhotos={setCapturedPhotos}
-                  setSelectedPreviewPhotos={setSelectedPreviewPhotos}
+                  setSelectedPhotos={setSelectedPhotos}
                   isViewOnly
                 />
                 <div className="step-navigation">
@@ -448,23 +455,23 @@ const App: React.FC = () => {
                   <div className="edit-sidebar-left">
                     <PreviewPhotos
                       previewPhotos={previewPhotos}
-                      selectedPreviewPhotos={selectedPreviewPhotos}
-                      capturedPhotos={capturedPhotos}
+                      selectedPhotos={selectedPhotos}
                       getRootProps={getRootProps}
                       getInputProps={getInputProps}
                       isDragActive={isDragActive}
                       layout={layout}
                       setPreviewPhotos={setPreviewPhotos}
-                      setCapturedPhotos={setCapturedPhotos}
-                      setSelectedPreviewPhotos={setSelectedPreviewPhotos}
+                      setSelectedPhotos={setSelectedPhotos}
                     />
                   </div>
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
                       isViewOnly={false}
-                      photos={capturedPhotos}
+                      photos={selectedPhotos}
                       frameColor={frameColor}
+                      gradient={gradient}
+                      textColor={textColor}
                       backgroundImage={backgroundImage}
                       layout={layout}
                       foregroundImage={foregroundImage}
@@ -485,12 +492,14 @@ const App: React.FC = () => {
                       foregroundImage={foregroundImage}
                       layout={layout}
                       onLayoutChange={setLayout}
-                      capturedPhotos={capturedPhotos.map((photo) => photo.url)}
+                      selectedPhotos={selectedPhotos.map((photo) => photo.url)}
                       onReset={resetAll}
                       onPhotoUpload={handlePhotoUpload}
                       photoStripRef={photoStripRef}
                       frameColor={frameColor}
                       onFilterChange={handleFilterChange}
+                      frameGradient={gradient}
+                      onSelectFrameGradient={setGradientColor}
                     />
                   </div>
                 </div>
@@ -517,7 +526,9 @@ const App: React.FC = () => {
                           ? [{ id: "combined", url: combinedImage }]
                           : []
                       }
-                      frameColor="#FFFFFF"
+                      frameColor={frameColor}
+                      gradient={gradient}
+                      textColor={textColor}
                       backgroundImage={null}
                       layout={layout}
                       foregroundImage={null}
@@ -578,7 +589,9 @@ const App: React.FC = () => {
                           ? [{ id: "combined", url: combinedImage }]
                           : []
                       }
-                      frameColor="#FFFFFF"
+                      frameColor={frameColor}
+                      gradient={gradient}
+                      textColor={textColor}
                       backgroundImage={null}
                       layout={layout}
                       foregroundImage={null}

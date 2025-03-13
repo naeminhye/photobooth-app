@@ -5,7 +5,8 @@ import {
   faTrash,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { NEW_LAYOUT } from "../../constants";
+import { LAYOUTS } from "../../constants";
+import { useMemo } from "react";
 
 interface Photo {
   id: string;
@@ -14,46 +15,43 @@ interface Photo {
 
 interface PreviewPhotosProps {
   isViewOnly?: boolean;
-  selectedPreviewPhotos: string[];
-  capturedPhotos: Photo[];
+  selectedPhotos: Photo[];
   getRootProps: <T extends DropzoneRootProps>(props?: T) => T;
   getInputProps: <T extends DropzoneInputProps>(props?: T) => T;
   isDragActive: boolean;
   previewPhotos: Photo[];
   layout: number;
   setPreviewPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
-  setCapturedPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
-  setSelectedPreviewPhotos: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
 }
 
 const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
   isViewOnly = false,
-  selectedPreviewPhotos,
-  capturedPhotos,
+  selectedPhotos,
   getRootProps,
   getInputProps,
   isDragActive,
   previewPhotos,
   layout,
-  setCapturedPhotos,
-  setSelectedPreviewPhotos,
+  setSelectedPhotos,
   setPreviewPhotos,
 }) => {
-  const maxPhotos = NEW_LAYOUT[layout].rectangles.length;
+  const maxPhotos = LAYOUTS[layout].rectangles.length;
+
+  const selectedPreviewPhotos = useMemo(
+    () => selectedPhotos.map((photo) => photo.id),
+    [selectedPhotos]
+  );
 
   const toggleFromStrip = (id: string) => {
     if (isViewOnly) return;
     const isSelected = selectedPreviewPhotos.includes(id);
     if (isSelected) {
-      setCapturedPhotos((prev) => prev.filter((photo) => photo.id !== id));
-      setSelectedPreviewPhotos((prev) =>
-        prev.filter((photoId) => photoId !== id)
-      );
-    } else if (capturedPhotos.length < maxPhotos) {
+      setSelectedPhotos((prev) => prev.filter((photo) => photo.id !== id));
+    } else if (selectedPhotos.length < maxPhotos) {
       const photoToAdd = previewPhotos.find((photo) => photo.id === id);
       if (photoToAdd) {
-        setCapturedPhotos((prev) => [...prev, photoToAdd]);
-        setSelectedPreviewPhotos((prev) => [...prev, id]);
+        setSelectedPhotos((prev) => [...prev, photoToAdd]);
       }
     } else {
       alert("Maximum photo limit for the strip reached.");
@@ -63,10 +61,7 @@ const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
   const deletePreviewPhoto = (id: string) => {
     setPreviewPhotos((prev) => prev.filter((photo) => photo.id !== id));
     if (selectedPreviewPhotos.includes(id)) {
-      setCapturedPhotos((prev) => prev.filter((photo) => photo.id !== id));
-      setSelectedPreviewPhotos((prev) =>
-        prev.filter((photoId) => photoId !== id)
-      );
+      setSelectedPhotos((prev) => prev.filter((photo) => photo.id !== id));
     }
   };
 
@@ -79,7 +74,7 @@ const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
             key={photo.id}
             className={`preview-photo ${
               selectedPreviewPhotos.includes(photo.id) ? "selected" : ""
-            } ${capturedPhotos.length >= maxPhotos ? "cannot-select" : ""}`}
+            } ${selectedPhotos.length >= maxPhotos ? "cannot-select" : ""}`}
             onClick={() => toggleFromStrip(photo.id)}
           >
             <img src={photo.url} alt="Preview" />
