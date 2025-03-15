@@ -316,13 +316,13 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           prev.map((sticker) =>
             sticker.id === id
               ? {
-                  ...sticker,
-                  x: node.x() / SCALE_FACTOR,
-                  y: node.y() / SCALE_FACTOR,
-                  width: (node.width() * node.scaleX()) / SCALE_FACTOR,
-                  height: (node.height() * node.scaleY()) / SCALE_FACTOR,
-                  rotation: node.rotation(),
-                }
+                ...sticker,
+                x: node.x() / SCALE_FACTOR,
+                y: node.y() / SCALE_FACTOR,
+                width: (node.width() * node.scaleX()) / SCALE_FACTOR,
+                height: (node.height() * node.scaleY()) / SCALE_FACTOR,
+                rotation: node.rotation(),
+              }
               : sticker
           )
         );
@@ -346,6 +346,25 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       [selectedStickerId, setStickers, isViewOnly]
     );
 
+    // Inside PhotoStrip, before rendering the Rect
+    const adjustedGradient = gradient
+      ? {
+        ...gradient,
+        fillLinearGradientEndPoint: { x: stripWidth, y: stripHeight },
+        fillRadialGradientStartPoint: gradient.fillRadialGradientStartPoint || {
+          x: stripWidth / 2,
+          y: stripHeight / 2,
+        }, // Center of the canvas
+        fillRadialGradientEndPoint: gradient.fillRadialGradientEndPoint || {
+          x: stripWidth / 2,
+          y: stripHeight / 2,
+        }, // Same as start point
+        fillRadialGradientEndRadius:
+          gradient.fillRadialGradientEndRadius ||
+          Math.max(stripWidth, stripHeight) / 2, // Ensure the gradient covers the entire canvas
+      }
+      : null;
+
     return (
       <div ref={ref} className="photo-strip" style={{ position: "relative" }}>
         <div ref={containerRef}>
@@ -368,59 +387,49 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 <Rect
                   width={stripWidth}
                   height={stripHeight}
-                  fill={gradient ? undefined : frameColor}
-                  {...gradient}
-                  // fillLinearGradientStartPoint={{ x: 0, y: 0 }} // Điểm bắt đầu gradient
-                  // fillLinearGradientEndPoint={{ x: 200, y: 100 }} // Điểm kết thúc gradient
-                  // fillLinearGradientColorStops={[
-                  //   0,
-                  //   "red",
-                  //   0.5,
-                  //   "yellow",
-                  //   1,
-                  //   "blue",
-                  // ]} // Các điểm màu
+                  fill={gradient ? undefined : frameColor} // Use gradient if provided, else frameColor
+                  {...(adjustedGradient || {})}
                 />
               )}
 
               {photos.length === 1 && photos[0].id === "combined"
                 ? photoImages[0] && (
-                    <KonvaImage
-                      image={photoImages[0]}
-                      width={stripWidth}
-                      height={stripHeight}
-                      listening={false}
-                    />
-                  )
+                  <KonvaImage
+                    image={photoImages[0]}
+                    width={stripWidth}
+                    height={stripHeight}
+                    listening={false}
+                  />
+                )
                 : currentLayout.rectangles.map((rect, index) => {
-                    const croppedImage = photoImages[index];
-                    if (croppedImage) {
-                      return (
-                        <KonvaImage
-                          key={index}
-                          image={croppedImage}
-                          x={rect.x * SCALE_FACTOR}
-                          y={rect.y * SCALE_FACTOR}
-                          width={rect.width * SCALE_FACTOR}
-                          height={rect.height * SCALE_FACTOR}
-                          listening={false}
-                        />
-                      );
-                    } else {
-                      return (
-                        <Rect
-                          key={index}
-                          x={rect.x * SCALE_FACTOR}
-                          y={rect.y * SCALE_FACTOR}
-                          width={rect.width * SCALE_FACTOR}
-                          height={rect.height * SCALE_FACTOR}
-                          fill="rgba(200, 200, 200, 0.5)"
-                          stroke="gray"
-                          strokeWidth={1 * SCALE_FACTOR}
-                        />
-                      );
-                    }
-                  })}
+                  const croppedImage = photoImages[index];
+                  if (croppedImage) {
+                    return (
+                      <KonvaImage
+                        key={index}
+                        image={croppedImage}
+                        x={rect.x * SCALE_FACTOR}
+                        y={rect.y * SCALE_FACTOR}
+                        width={rect.width * SCALE_FACTOR}
+                        height={rect.height * SCALE_FACTOR}
+                        listening={false}
+                      />
+                    );
+                  } else {
+                    return (
+                      <Rect
+                        key={index}
+                        x={rect.x * SCALE_FACTOR}
+                        y={rect.y * SCALE_FACTOR}
+                        width={rect.width * SCALE_FACTOR}
+                        height={rect.height * SCALE_FACTOR}
+                        fill="rgba(200, 200, 200, 0.5)"
+                        stroke="gray"
+                        strokeWidth={1 * SCALE_FACTOR}
+                      />
+                    );
+                  }
+                })}
 
               {fgImage && (
                 <KonvaImage

@@ -69,7 +69,7 @@ const App: React.FC = () => {
   const textColor = useMemo(
     () =>
       backgroundImage || gradient ? "#FFFFFF" : getContrastColor(frameColor),
-    [backgroundImage, frameColor]
+    [backgroundImage, frameColor, gradient]
   );
 
   useEffect(() => {
@@ -381,9 +381,8 @@ const App: React.FC = () => {
                   {layouts.map((layoutItem) => (
                     <div
                       key={layoutItem.id}
-                      className={`layout-option ${
-                        layoutItem.id === layout ? "active" : ""
-                      }`}
+                      className={`layout-option ${layoutItem.id === layout ? "active" : ""
+                        }`}
                       onClick={() => setLayout(layoutItem.id)}
                     >
                       <img

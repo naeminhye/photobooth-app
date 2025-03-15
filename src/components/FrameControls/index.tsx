@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
 import "./styles.css";
 import GradientPicker, { Gradient } from "../GradientPicker";
+import ColorPicker from "../ColorPicker";
 
 interface FrameControlsProps {
   onColorChange: (color: string) => void;
@@ -39,7 +40,17 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   onSelectFrameGradient,
 }) => {
   const [activeTab, setActiveTab] = useState("Background");
-  const [selectedFilter, setSelectedFilter] = useState("none"); // State cho filter
+  const [selectedFilter, setSelectedFilter] = useState("none");
+
+  const handleBackgroundColorChange = (color: string) => {
+    onColorChange(color);
+    onSelectFrameGradient(undefined);
+  }
+
+  const handleGradientChange = (gradient?: Gradient) => {
+    onColorChange('');
+    onSelectFrameGradient(gradient);
+  }
 
   const handleForegroundUpload = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -89,18 +100,12 @@ const FrameControls: React.FC<FrameControlsProps> = ({
               <label className="frame-controls-label">
                 Background Color or Image
               </label>
-              {!backgroundImage && (
-                <input
-                  type="color"
-                  value={frameColor}
-                  onChange={(e) => onColorChange(e.target.value)}
-                  className="frame-controls-color-input"
-                />
-              )}
-
+              <ColorPicker
+                value={frameColor}
+                onColorChange={handleBackgroundColorChange} />
               <GradientPicker
                 gradient={frameGradient}
-                onSelect={onSelectFrameGradient}
+                onSelect={handleGradientChange}
               />
               {backgroundImage ? (
                 <div className="image-preview-container">

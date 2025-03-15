@@ -50,7 +50,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const [isHolding, setIsHolding] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const gifFrames = useRef<ImageData[]>([]);
-  const [photoCount, setPhotoCount] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
   const countdownRef = useRef<number>(countdownTime);
   const maxPhotosRef = useRef<number>(maxPhotos);
@@ -71,7 +70,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       });
       if (photo) {
         onCapture(photo);
-        setPhotoCount((prev) => prev + 1);
       }
     }
   }, [onCapture]);
@@ -159,7 +157,9 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
     gifFrames.current = [];
     runCountdown();
-  }, [currentPhotos, timerEnabled, maxPhotos, isCapturing]);
+  },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentPhotos, timerEnabled, maxPhotos, isCapturing]);
 
   const handleMouseDown = () => {
     if (currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
