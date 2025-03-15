@@ -1,4 +1,4 @@
-// src\App.tsx
+// src/App.tsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./App.css";
 import PhotoStrip from "./components/PhotoStrip";
@@ -12,8 +12,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useDropzone } from "react-dropzone";
 import GradientBackground from "./components/GradientBackground";
-import { getContrastColor } from "./utils";
+import { getContrastColor } from "./utils/colors";
 import { Gradient } from "./components/GradientPicker";
+import { getDeviceType } from "./utils";
 
 interface Photo {
   id: string;
@@ -35,16 +36,12 @@ const App: React.FC = () => {
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [previewPhotos, setPreviewPhotos] = useState<Photo[]>([]);
   const [frameColor, setFrameColor] = useState<string>("#FFFFFF");
-  const [gradient, setGradientColor] = useState<Gradient | undefined>(
-    undefined
-  );
+  const [gradient, setGradientColor] = useState<Gradient | undefined>(undefined);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [layout, setLayout] = useState<number>(0);
   const [foregroundImage, setForegroundImage] = useState<string | null>(null);
   const [stickers, setStickers] = useState<Sticker[]>([]);
-  const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>(
-    []
-  );
+  const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>([]);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [countdownTime, setCountdownTime] = useState<number>(0);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
@@ -54,23 +51,19 @@ const App: React.FC = () => {
   const photoStripRef: any = useRef(null);
   const sequentialGifRef = useRef<HTMLDivElement>(null);
   const [combinedImage, setCombinedImage] = useState<string | null>(null);
-  const [selectedStickerId, setSelectedStickerId] = useState<number | null>(
-    null
-  );
+  const [selectedStickerId, setSelectedStickerId] = useState<number | null>(null);
   const [filter, setFilter] = useState<string>("none");
   const stageRef = useRef<any>(null);
 
   const currentLayout = useMemo(() => LAYOUTS[layout], [layout]);
-  const maxPhotos = useMemo(
-    () => currentLayout.rectangles.length,
-    [currentLayout]
-  );
+  const maxPhotos = useMemo(() => currentLayout.rectangles.length, [currentLayout]);
 
   const textColor = useMemo(
-    () =>
-      backgroundImage || gradient ? "#FFFFFF" : getContrastColor(frameColor),
+    () => (backgroundImage || gradient ? "#FFFFFF" : getContrastColor(frameColor)),
     [backgroundImage, frameColor, gradient]
   );
+
+  const deviceType = getDeviceType();
 
   useEffect(() => {
     requestCameraPermission();
@@ -82,6 +75,7 @@ const App: React.FC = () => {
       setHasPermission(true);
     } catch (error) {
       console.error("Camera error:", error);
+      setHasPermission(false); // Ensure hasPermission is false on error
     }
   };
 
@@ -309,13 +303,13 @@ const App: React.FC = () => {
       const stage = stageRef.current;
       if (stage) {
         const dataUrl = stage.toDataURL({
-          pixelRatio: 3, // Tăng từ 3.5 xuống 3 hoặc thử 2 tùy màn hình
+          pixelRatio: 3, // Adjusted for better quality
         });
 
         const img = new Image();
         img.src = dataUrl;
         img.onload = () => {
-          ctx.imageSmoothingEnabled = true; // Bật làm mịn
+          ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = "high";
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
@@ -336,20 +330,14 @@ const App: React.FC = () => {
   }));
 
   const handleOuterClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (
-      photoStripRef.current &&
-      !photoStripRef.current.contains(e.target as Node)
-    ) {
+    if (photoStripRef.current && !photoStripRef.current.contains(e.target as Node)) {
       setSelectedStickerId(null);
       console.log("Clicked outside PhotoStrip");
     }
   };
 
   const handleOuterTouch = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (
-      photoStripRef.current &&
-      !photoStripRef.current.contains(e.target as Node)
-    ) {
+    if (photoStripRef.current && !photoStripRef.current.contains(e.target as Node)) {
       setSelectedStickerId(null);
       console.log("Touched outside PhotoStrip");
     }
@@ -365,11 +353,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div
-      className="app"
-      onMouseDown={handleOuterClick}
-      onTouchStart={handleOuterTouch}
-    >
+    <div className="app" onMouseDown={handleOuterClick} onTouchStart={handleOuterTouch}>
       <GradientBackground />
       <div className="main-container">
         {hasPermission ? (
@@ -381,18 +365,13 @@ const App: React.FC = () => {
                   {layouts.map((layoutItem) => (
                     <div
                       key={layoutItem.id}
-                      className={`layout-option ${layoutItem.id === layout ? "active" : ""
-                        }`}
+                      className={`layout-option ${layoutItem.id === layout ? "active" : ""}`}
                       onClick={() => setLayout(layoutItem.id)}
                     >
                       <img
                         src={layoutItem.templatePath}
                         alt={layoutItem.name}
-                        style={{
-                          width: "100px",
-                          height: "auto",
-                          cursor: "pointer",
-                        }}
+                        style={{ width: "100px", height: "auto", cursor: "pointer" }}
                       />
                       <p>{layoutItem.name}</p>
                     </div>
@@ -623,10 +602,10 @@ const App: React.FC = () => {
           </div>
         ) : (
           <p className="no-permission">
-            Please allow camera access to use the photobooth
-          </p>
+            Please allow camera access to use the photobooth. Ensure you’re accessing this site over HTTPS and have granted camera permissions in your browser settings.          </p>
         )}
       </div>
+      <div className="device-info-text">{deviceType}</div>
     </div>
   );
 };

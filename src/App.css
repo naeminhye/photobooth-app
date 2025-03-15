@@ -1,12 +1,16 @@
 /* App.css */
+body {
+  margin: 0;
+}
+
 .app {
   min-height: 100vh;
   margin: 0;
-  padding: 20px;
   font-family: "Poppins", sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
 
 .main-container {
@@ -458,4 +462,12 @@
     width: 100%;
     height: auto;
   }
+}
+
+.device-info-text {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 12px;
+  color: #a3a3a3;
 }

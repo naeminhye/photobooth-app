@@ -34,6 +34,7 @@
     "react-scripts": "5.0.1",
     "react-webcam": "^7.2.0",
     "typescript": "^4.9.5",
+    "ua-parser-js": "^2.0.3",
     "uuid": "^11.1.0",
     "web-vitals": "^2.1.4"
   },
@@ -66,6 +67,7 @@
   "devDependencies": {
     "@types/gif.js": "^0.2.5",
     "@types/react-dropzone": "^5.1.0",
+    "@types/ua-parser-js": "^0.7.39",
     "@types/uuid": "^10.0.0",
     "gh-pages": "^6.3.0"
   }

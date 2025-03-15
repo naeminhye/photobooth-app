@@ -1,4 +1,3 @@
-// components/CameraFeed/index.tsx
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import GIF from "gif.js";
@@ -51,6 +50,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const [countdown, setCountdown] = useState<number | null>(null);
   const gifFrames = useRef<ImageData[]>([]);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const countdownRef = useRef<number>(countdownTime);
   const maxPhotosRef = useRef<number>(maxPhotos);
 
@@ -62,35 +62,53 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     maxPhotosRef.current = maxPhotos;
   }, [maxPhotos]);
 
+  const handleCameraError = (error: string | Error) => {
+    console.error("Camera error:", error);
+    setCameraError(
+      "Unable to access the camera. Please ensure your device has a camera, grant permission, and access this site over HTTPS."
+    );
+  };
+
   const capturePhoto = useCallback(() => {
-    if (webcamRef.current) {
+    if (webcamRef.current && webcamRef.current.video && webcamRef.current.video.readyState === 4) {
+      console.log("Attempting to capture screenshot...");
       const photo = webcamRef.current.getScreenshot({
-        width: 1920,
-        height: 1440,
+        width: webcamRef.current.video.videoWidth || 640,
+        height: webcamRef.current.video.videoHeight || 480,
       });
       if (photo) {
+        console.log("Screenshot captured successfully:", photo);
         onCapture(photo);
+      } else {
+        console.error("Failed to capture screenshot. Video stream or resolution issue?");
+        setCameraError("Failed to capture photo. The video stream may not be ready or the resolution is unsupported. Try adjusting the resolution or restarting the camera.");
       }
+    } else {
+      console.error("Video stream not ready. Ready state:", webcamRef.current?.video?.readyState);
+      setCameraError("Failed to capture photo. The video stream is not ready. Please wait a moment and try again.");
     }
   }, [onCapture]);
 
   const captureFrame = () => {
-    if (webcamRef.current && canvasRef.current) {
+    if (webcamRef.current && canvasRef.current && webcamRef.current.video) {
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d");
       if (context) {
         canvas.width = CAMERA_WIDTH;
         canvas.height = CAMERA_HEIGHT;
         context.drawImage(
-          webcamRef.current.video!,
+          webcamRef.current.video,
           0,
           0,
           CAMERA_WIDTH,
           CAMERA_HEIGHT
         );
-        return context.getImageData(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+        const frame = context.getImageData(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+        console.log("Captured frame:", frame);
+        return frame;
       }
     }
+    console.error("Failed to capture frame. Canvas or video context unavailable.");
     return null;
   };
 
@@ -104,25 +122,39 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
     setIsCreatingGif(true);
 
-    const gif = new GIF({
-      workers: 2,
-      quality: 1,
-      workerScript: process.env.PUBLIC_URL + "/gif.worker.js",
-      width: CAMERA_WIDTH,
-      height: CAMERA_HEIGHT,
-    });
+    try {
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        workerScript: "/gif.worker.js",
+        width: CAMERA_WIDTH,
+        height: CAMERA_HEIGHT,
+      });
 
-    gifFrames.current.forEach((frame) => gif.addFrame(frame, { delay: 150 }));
+      gifFrames.current.forEach((frame) => gif.addFrame(frame, { delay: 150 }));
 
-    gif.on("finished", (blob) => {
-      const gifUrl = URL.createObjectURL(blob);
-      onGifComplete(gifUrl);
-      gifFrames.current = [];
+      gif.on("finished", (blob) => {
+        const gifUrl = URL.createObjectURL(blob);
+        onGifComplete(gifUrl);
+        gifFrames.current = [];
+        setIsCapturing(false);
+        setIsCreatingGif(false);
+      });
+
+      // gif.on("error", (error) => {
+      //   console.error("GIF creation error:", error);
+      //   setCameraError("Failed to create GIF. Please try again.");
+      //   setIsCapturing(false);
+      //   setIsCreatingGif(false);
+      // });
+
+      gif.render();
+    } catch (error) {
+      console.error("GIF initialization error:", error);
+      setCameraError("Failed to initialize GIF creation. Please try again.");
       setIsCapturing(false);
       setIsCreatingGif(false);
-    });
-
-    gif.render();
+    }
   };
 
   const runCountdown = async () => {
@@ -147,19 +179,16 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
   const startCountdown = useCallback(() => {
     if (currentPhotos >= MAX_PHOTOS) {
-      alert(`Maximum preview photo limit (${MAX_PHOTOS}) reached.`);
+      setCameraError(`Maximum preview photo limit (${MAX_PHOTOS}) reached.`);
       return;
     }
 
-    if (currentPhotos >= (timerEnabled ? maxPhotos + 4 : 10) || isCapturing)
-      return;
+    if (currentPhotos >= (timerEnabled ? maxPhotos + 4 : 10) || isCapturing) return;
     setIsCapturing(true);
 
     gifFrames.current = [];
     runCountdown();
-  },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentPhotos, timerEnabled, maxPhotos, isCapturing]);
+  }, [currentPhotos, timerEnabled, maxPhotos, isCapturing]);
 
   const handleMouseDown = () => {
     if (currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
@@ -223,6 +252,19 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     onMirrorToggle(!isMirrored);
   };
 
+  useEffect(() => {
+    const checkVideoDimensions = () => {
+      if (webcamRef.current && webcamRef.current.video) {
+        console.log("Video dimensions:", {
+          width: webcamRef.current.video.videoWidth,
+          height: webcamRef.current.video.videoHeight,
+        });
+      }
+    };
+    const interval = setInterval(checkVideoDimensions, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div
       className="camera-feed"
@@ -236,137 +278,155 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         overflow: "hidden",
       }}
     >
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        imageSmoothing
-        disablePictureInPicture
-        screenshotFormat="image/jpeg"
-        screenshotQuality={1}
-        width={CAMERA_WIDTH}
-        height={CAMERA_HEIGHT}
-        mirrored={isMirrored}
-        videoConstraints={{
-          width: 1920,
-          height: 1440,
-          facingMode: "user",
-        }}
-      />
-      {countdown !== null && (
+      {cameraError ? (
         <div
           style={{
-            position: "absolute",
-            top: "10px",
-            left: "10px",
-            color: "white",
-            fontSize: "40px",
-            fontWeight: "bold",
-            padding: "5px 10px",
-            borderRadius: "5px",
+            color: "red",
+            padding: "20px",
+            textAlign: "center",
+            fontSize: "16px",
           }}
         >
-          {countdown}
+          {cameraError}
         </div>
-      )}
-
-      {/* Control Panel */}
-      <div
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          display: "flex",
-          gap: "10px",
-          zIndex: 10,
-        }}
-      >
-        {/* Timer Controls */}
-        <div className="camera-control">
-          <button
-            onClick={() => handleTimerChange(0)}
-            className="camera-control-button"
-          >
-            <img
-              src={countdownTime === 0 ? timerOffFill : timerOffOutline}
-              alt="Off"
-            />
-          </button>
-          <button
-            onClick={() => handleTimerChange(2)}
-            className="camera-control-button"
-          >
-            <img
-              src={countdownTime === 2 ? timer2Fill : timer2Outline}
-              alt="2s"
-            />
-          </button>
-          <button
-            onClick={() => handleTimerChange(5)}
-            className="camera-control-button"
-          >
-            <img
-              src={countdownTime === 5 ? timer5Fill : timer5Outline}
-              alt="5s"
-            />
-          </button>
-          <button
-            onClick={() => handleTimerChange(10)}
-            className="camera-control-button"
-          >
-            <img
-              src={countdownTime === 10 ? timer10Fill : timer10Outline}
-              alt="10s"
-            />
-          </button>
-        </div>
-
-        {/* Mirror Toggle with Icon */}
-        <button
-          onClick={handleMirrorToggle}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <img
-            src={flipIcon}
-            alt="Flip Camera"
-            style={{
-              width: "32px",
-              height: "32px",
-              opacity: isMirrored ? 1 : 0.5,
-              transition: "opacity 0.2s ease",
+      ) : (
+        <>
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            imageSmoothing
+            disablePictureInPicture
+            screenshotFormat="image/jpeg"
+            screenshotQuality={1}
+            width={CAMERA_WIDTH}
+            height={CAMERA_HEIGHT}
+            mirrored={isMirrored}
+            videoConstraints={{
+              width: { ideal: 1280, max: 1920, min: 640 },
+              height: { ideal: 720, max: 1440, min: 480 },
+              facingMode: isMirrored ? "user" : "environment",
+              frameRate: { ideal: 30, max: 60 },
             }}
+            onUserMediaError={handleCameraError}
+            playsInline
           />
-        </button>
-      </div>
+          {countdown !== null && (
+            <div
+              style={{
+                position: "absolute",
+                top: "10px",
+                left: "10px",
+                color: "white",
+                fontSize: "40px",
+                fontWeight: "bold",
+                padding: "5px 10px",
+                borderRadius: "5px",
+              }}
+            >
+              {countdown}
+            </div>
+          )}
 
-      <button
-        ref={captureButtonRef}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchCancel}
-        className="shutter-button"
-        style={{
-          transform: isHolding ? "scale(0.9)" : "scale(1)",
-        }}
-        disabled={currentPhotos >= 10 || isCapturing}
-      >
-        <div
-          style={{
-            background: isHolding ? "rgba(255, 255, 255, 0.8)" : "#fff",
-            transition: "background 0.2s ease",
-          }}
-        />
-      </button>
-      <canvas ref={canvasRef} style={{ display: "none" }} />
+          {/* Control Panel */}
+          <div
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              display: "flex",
+              gap: "10px",
+              zIndex: 10,
+            }}
+          >
+            {/* Timer Controls */}
+            <div className="camera-control">
+              <button
+                onClick={() => handleTimerChange(0)}
+                className="camera-control-button"
+              >
+                <img
+                  src={countdownTime === 0 ? timerOffFill : timerOffOutline}
+                  alt="Off"
+                />
+              </button>
+              <button
+                onClick={() => handleTimerChange(2)}
+                className="camera-control-button"
+              >
+                <img
+                  src={countdownTime === 2 ? timer2Fill : timer2Outline}
+                  alt="2s"
+                />
+              </button>
+              <button
+                onClick={() => handleTimerChange(5)}
+                className="camera-control-button"
+              >
+                <img
+                  src={countdownTime === 5 ? timer5Fill : timer5Outline}
+                  alt="5s"
+                />
+              </button>
+              <button
+                onClick={() => handleTimerChange(10)}
+                className="camera-control-button"
+              >
+                <img
+                  src={countdownTime === 10 ? timer10Fill : timer10Outline}
+                  alt="10s"
+                />
+              </button>
+            </div>
+
+            {/* Mirror Toggle with Icon */}
+            <button
+              onClick={handleMirrorToggle}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <img
+                src={flipIcon}
+                alt="Flip Camera"
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  opacity: isMirrored ? 1 : 0.5,
+                  transition: "opacity 0.2s ease",
+                }}
+              />
+            </button>
+          </div>
+
+          <button
+            ref={captureButtonRef}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
+            className="shutter-button"
+            style={{
+              transform: isHolding ? "scale(0.9)" : "scale(1)",
+            }}
+            disabled={currentPhotos >= 10 || isCapturing}
+          >
+            <div
+              style={{
+                background: isHolding ? "rgba(255, 255, 255, 0.8)" : "#fff",
+                transition: "background 0.2s ease",
+              }}
+            />
+          </button>
+          <canvas ref={canvasRef} style={{ display: "none" }} />
+        </>
+      )}
     </div>
   );
 };
