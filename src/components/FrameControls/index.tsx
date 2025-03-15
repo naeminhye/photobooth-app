@@ -1,8 +1,10 @@
+// src/components/FrameControls.tsx
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
-import html2canvas from "html2canvas";
 import "./styles.css";
+import GradientPicker, { Gradient } from "../GradientPicker";
+import ColorPicker from "../ColorPicker";
 
 interface FrameControlsProps {
   onColorChange: (color: string) => void;
@@ -10,51 +12,49 @@ interface FrameControlsProps {
   onForegroundChange: (image: string | null) => void;
   layout: number;
   onLayoutChange: (layout: number) => void;
-  capturedPhotos: string[];
+  selectedPhotos: string[];
   onReset: () => void;
   onPhotoUpload: (files: File[]) => void;
   photoStripRef: React.RefObject<HTMLDivElement>;
   frameColor: string;
   backgroundImage: string | null;
   foregroundImage: string | null;
+  onFilterChange?: (filter: string) => void; // Thêm prop cho filter
+  frameGradient?: Gradient;
+  onSelectFrameGradient: (gradient?: Gradient) => void;
 }
 
 const FrameControls: React.FC<FrameControlsProps> = ({
   onColorChange,
   onBackgroundChange,
   onForegroundChange,
-  capturedPhotos,
+  selectedPhotos,
   onReset,
   onPhotoUpload,
   photoStripRef,
   frameColor,
   backgroundImage,
   foregroundImage,
+  onFilterChange,
+  frameGradient,
+  onSelectFrameGradient,
 }) => {
   const [activeTab, setActiveTab] = useState("Background");
+  const [selectedFilter, setSelectedFilter] = useState("none");
 
-  const downloadImage = () => {
-    const photoStrip = photoStripRef.current;
-    if (photoStrip) {
-      html2canvas(photoStrip, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-      })
-        .then((canvas) => {
-          const link = document.createElement("a");
-          link.download = `photobooth_${Date.now()}.jpg`;
-          link.href = canvas.toDataURL("image/jpeg", 1.0);
-          link.click();
-        })
-        .catch((error) => {
-          console.error("Error generating canvas:", error);
-        });
-    }
-  };
+  const handleBackgroundColorChange = (color: string) => {
+    onColorChange(color);
+    onSelectFrameGradient(undefined);
+  }
 
-  const handleForegroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGradientChange = (gradient?: Gradient) => {
+    onColorChange('');
+    onSelectFrameGradient(gradient);
+  }
+
+  const handleForegroundUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -63,7 +63,9 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     }
   };
 
-  const handleBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBackgroundUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -72,11 +74,17 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     }
   };
 
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const filterValue = e.target.value;
+    setSelectedFilter(filterValue);
+    onFilterChange?.(filterValue);
+  };
+
   return (
     <div className="frame-controls">
       <div className="tabs">
         <div className="tab-list">
-          {["Background", "Foreground"].map((tab) => (
+          {["Background", "Foreground", "Filter"].map((tab) => (
             <button
               key={tab}
               className={`tab-button ${activeTab === tab ? "active" : ""}`}
@@ -89,15 +97,16 @@ const FrameControls: React.FC<FrameControlsProps> = ({
         <div className="tab-content">
           {activeTab === "Background" && (
             <div className="frame-controls-section">
-              <label className="frame-controls-label">Background Color or Image</label>
-              {!backgroundImage && (
-                <input
-                  type="color"
-                  value={frameColor}
-                  onChange={(e) => onColorChange(e.target.value)}
-                  className="frame-controls-color-input"
-                />
-              )}
+              <label className="frame-controls-label">
+                Background Color or Image
+              </label>
+              <ColorPicker
+                value={frameColor}
+                onColorChange={handleBackgroundColorChange} />
+              <GradientPicker
+                gradient={frameGradient}
+                onSelect={handleGradientChange}
+              />
               {backgroundImage ? (
                 <div className="image-preview-container">
                   <img
@@ -157,23 +166,22 @@ const FrameControls: React.FC<FrameControlsProps> = ({
               )}
             </div>
           )}
+          {activeTab === "Filter" && (
+            <div className="frame-controls-section">
+              <label className="frame-controls-label">Select Filter</label>
+              <select
+                value={selectedFilter}
+                onChange={handleFilterChange}
+                className="frame-controls-select"
+              >
+                <option value="none">None</option>
+                <option value="bw">Black & White</option>
+                <option value="whitening">Whitening</option>
+                <option value="darker">Darker</option>
+              </select>
+            </div>
+          )}
         </div>
-      </div>
-      <div className="frame-controls-actions">
-        <button
-          className="frame-controls-button frame-controls-button-danger"
-          onClick={onReset}
-          style={{ display: capturedPhotos.length > 0 ? "inline-block" : "none" }}
-        >
-          Reset All
-        </button>
-        <button
-          className="frame-controls-button frame-controls-button-success"
-          onClick={downloadImage}
-          style={{ display: capturedPhotos.length > 0 ? "inline-block" : "none" }}
-        >
-          Download
-        </button>
       </div>
     </div>
   );

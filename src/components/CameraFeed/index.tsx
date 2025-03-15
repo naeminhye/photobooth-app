@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import GIF from "gif.js";
-import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
+import { CAMERA_HEIGHT, CAMERA_WIDTH, MAX_PHOTOS } from "../../constants";
 
 // Icons
 import flipIcon from "../../assets/icons/flip.png";
@@ -50,7 +50,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const [isHolding, setIsHolding] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const gifFrames = useRef<ImageData[]>([]);
-  const [photoCount, setPhotoCount] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
   const countdownRef = useRef<number>(countdownTime);
   const maxPhotosRef = useRef<number>(maxPhotos);
@@ -71,7 +70,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       });
       if (photo) {
         onCapture(photo);
-        setPhotoCount((prev) => prev + 1);
       }
     }
   }, [onCapture]);
@@ -148,8 +146,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const startCountdown = useCallback(() => {
-    if (currentPhotos >= 10) {
-      alert("Maximum preview photo limit (10) reached.");
+    if (currentPhotos >= MAX_PHOTOS) {
+      alert(`Maximum preview photo limit (${MAX_PHOTOS}) reached.`);
       return;
     }
 
@@ -159,7 +157,9 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
     gifFrames.current = [];
     runCountdown();
-  }, [currentPhotos, timerEnabled, maxPhotos, isCapturing]);
+  },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentPhotos, timerEnabled, maxPhotos, isCapturing]);
 
   const handleMouseDown = () => {
     if (currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {

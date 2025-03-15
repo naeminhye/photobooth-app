@@ -14,7 +14,7 @@ const GradientBackground: React.FC = ({
   // Generate a random number of stars between 3 and 8
   const starCount = useMemo(
     () => Math.floor(Math.random() * (maxStar - minStar + 1)) + minStar,
-    []
+    [maxStar, minStar]
   );
 
   // Generate star elements with random positions and sizes

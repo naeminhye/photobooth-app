@@ -1,5 +1,6 @@
 // constants/index.ts
 import basic4Cut from "../assets/illustrators/basic-4-cut.png";
+import basic4Cut2 from "../assets/illustrators/basic-4-cut-2.png";
 import basic6Cut from "../assets/illustrators/basic-6-cut.png";
 import film3Cut from "../assets/illustrators/film-3-cut.png";
 import wide4Cut from "../assets/illustrators/wide-4-cut.png";
@@ -7,7 +8,7 @@ import rizz4Cut from "../assets/illustrators/rizz-4-cut.png";
 
 export const SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".svg", ".gif"];
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
-export const MAX_UPLOAD_COUNT = 10;
+export const MAX_PHOTOS = 10;
 
 // Define element types
 export type ElementType = "image" | "text" | "shape" | "icon";
@@ -45,6 +46,7 @@ export interface Photo {
 
 //////////////////////////////////////////////////////////////////////////////
 
+export const SCALE_FACTOR = 1 / 3.5;
 export interface Canvas {
   width: number;
   height: number;
@@ -64,7 +66,7 @@ export interface CanvasData {
   templatePath: string;
 }
 
-export const NEW_LAYOUT: CanvasData[] = [
+export const LAYOUTS: CanvasData[] = [
   {
     name: "basic 4-cut",
     canvas: {
@@ -78,6 +80,20 @@ export const NEW_LAYOUT: CanvasData[] = [
       { x: 68, y: 1896, width: 712, height: 572 },
     ],
     templatePath: basic4Cut,
+  },
+  {
+    name: "basic 4-cut 2",
+    canvas: {
+      width: 1080,
+      height: 1612,
+    },
+    rectangles: [
+      { x: 44, y: 90, width: 452, height: 363 },
+      { x: 44, y: 461, width: 452, height: 363 },
+      { x: 44, y: 833, width: 452, height: 363 },
+      { x: 44, y: 1206, width: 452, height: 363 },
+    ],
+    templatePath: basic4Cut2,
   },
   {
     name: "basic 6-cut",
@@ -135,3 +151,22 @@ export const NEW_LAYOUT: CanvasData[] = [
   },
 ];
 //   name: "layer 4-cut",
+// Basic 4 cut: 1652 x 4920
+
+// {
+//   name: "gallery",
+//   canvas: {
+//     width: 1200,
+//     height: 1800,
+//   },
+//   rectangles: [
+//     { x: 71, y: 365, width: 514, height: 514 },
+//     { x: 615, y: 365, width: 514, height: 514 },
+//     { x: 71, y: 1057, width: 255, height: 255 },
+//     { x: 330, y: 1057, width: 255, height: 255 },
+//     { x: 71, y: 1316, width: 255, height: 255 },
+//     { x: 330, y: 1316, width: 255, height: 255 },
+//     { x: 747, y: 1189, width: 251, height: 251 },
+//   ],
+// },
+

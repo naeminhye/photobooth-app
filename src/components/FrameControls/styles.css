@@ -208,35 +208,3 @@
   transform: scale(1.1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-
-.frame-controls-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.frame-controls-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.frame-controls-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.frame-controls-button-success {
-  background: #00c4b4;
-  color: white;
-}
-
-.frame-controls-button-danger {
-  background: #ff4d4f;
-  color: white;
-}

@@ -43,10 +43,6 @@
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .capture-options {
@@ -113,10 +109,6 @@
   width: 100%;
   flex-wrap: wrap;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .edit-sidebar-left,
@@ -147,7 +139,6 @@
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 100%;
   max-width: 350px;
 }
 
@@ -181,8 +172,8 @@
 }
 
 .sticker-item {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   object-fit: contain;
   border-radius: 8px;
   cursor: pointer;
@@ -271,7 +262,6 @@
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-start;
-  max-height: 250px;
   overflow-y: auto;
 }
 
