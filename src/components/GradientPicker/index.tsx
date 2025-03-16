@@ -181,7 +181,7 @@ const GradientPicker = ({ gradient, onSelect }: GradientPickerProps) => {
           display: "grid",
           gridTemplateColumns: "repeat(4, 40px)",
           gap: "10px",
-          marginTop: "20px",
+          marginTop: "16px",
         }}
       >
         {gradients.map((gradient, index) => (

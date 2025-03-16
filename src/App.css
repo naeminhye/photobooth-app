@@ -266,7 +266,7 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-start;
-  overflow-y: auto;
+  height: fit-content;
 }
 
 .preview-photo {
@@ -277,10 +277,6 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease;
   cursor: pointer;
-}
-
-.preview-photo:hover {
-  transform: scale(1.05);
 }
 
 .preview-photo img {

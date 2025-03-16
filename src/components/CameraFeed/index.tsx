@@ -126,7 +126,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       const gif = new GIF({
         workers: 2,
         quality: 10,
-        workerScript: "/gif.worker.js",
+        workerScript: process.env.PUBLIC_URL + "/gif.worker.js",
         width: CAMERA_WIDTH,
         height: CAMERA_HEIGHT,
       });

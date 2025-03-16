@@ -1,6 +1,6 @@
 // components/ColorPicker/index.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { hexToRgb, hslToRgb, rgbToHex, rgbToHsl } from '../../utils/colors';
+import { getContrastColor, hexToRgb, hslToRgb, rgbToHex, rgbToHsl } from '../../utils/colors';
 import './styles.css';
 
 interface ColorPickerProps {
@@ -9,7 +9,6 @@ interface ColorPickerProps {
 }
 
 const ColorPicker: React.FC<ColorPickerProps> = ({ value, onColorChange }) => {
-    const defaultColors = ['#FFFFFF', '#000000', '#FF69B4'];
     const [showPicker, setShowPicker] = useState<boolean>(false);
 
     // Initialize RGB and HSL values based on the current value
@@ -133,20 +132,16 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onColorChange }) => {
 
     return (
         <div className="color-picker-container">
-            <div className="color-swatches">
-                {defaultColors.map((color, index) => (
-                    <div
-                        key={index}
-                        className={`color-swatch ${value === color ? 'selected' : ''}`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => handleColorSelect(color)}
-                    />
-                ))}
+            <div className="color-swatch-container">
                 <div
                     className="color-swatch picker-button"
                     onClick={() => setShowPicker(!showPicker)}
+                    style={{
+                        backgroundColor: value,
+                        borderColor: getContrastColor(value)
+                    }}
                 >
-                    🎨
+                    <span style={{ color: getContrastColor(value) || '#000' }}>Click to pick a color</span>
                 </div>
             </div>
 
@@ -209,10 +204,6 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onColorChange }) => {
                                 onChange={(e) => handleRgbChange('b', e.target.value)}
                             />
                         </div>
-                    </div>
-
-                    <div className="color-picker-preview-container">
-                        <div className="color-picker-preview" style={{ backgroundColor: value }}></div>
                     </div>
                 </div>
             )}

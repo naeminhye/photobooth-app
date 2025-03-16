@@ -146,6 +146,7 @@ const App: React.FC = () => {
       handleMergeLayers();
       setStep(4);
     } else if (step === 4) {
+      handleMergeLayers();
       setStep(5);
     } else {
       alert("Please capture or select at least one photo before proceeding.");
