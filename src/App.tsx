@@ -246,6 +246,57 @@ const App: React.FC = () => {
       });
     };
 
+    // Hàm áp dụng gradient
+    const applyGradient = () => {
+      if (!gradient) {
+        ctx.fillStyle = frameColor;
+        ctx.fillRect(0, 0, stripWidth, stripHeight);
+        drawPhotosAndForeground();
+        return;
+      }
+
+      if (gradient.fillLinearGradientColorStops) {
+        // Linear Gradient
+        const linearGradient = ctx.createLinearGradient(
+          gradient.fillLinearGradientStartPoint?.x || 0,
+          gradient.fillLinearGradientStartPoint?.y || 0,
+          gradient.fillLinearGradientEndPoint?.x || stripWidth,
+          gradient.fillLinearGradientEndPoint?.y || stripHeight
+        );
+
+        for (let i = 0; i < gradient.fillLinearGradientColorStops.length; i += 2) {
+          const position = gradient.fillLinearGradientColorStops[i] as number;
+          const color = gradient.fillLinearGradientColorStops[i + 1] as string;
+          linearGradient.addColorStop(position, color);
+        }
+
+        ctx.fillStyle = linearGradient;
+        ctx.fillRect(0, 0, stripWidth, stripHeight);
+      } else if (gradient.fillRadialGradientColorStops) {
+        debugger
+        // Radial Gradient
+        const radialGradient = ctx.createRadialGradient(
+          gradient.fillRadialGradientStartPoint?.x || stripWidth / 2,
+          gradient.fillRadialGradientStartPoint?.y || stripHeight / 2,
+          gradient.fillRadialGradientStartRadius || 0,
+          gradient.fillRadialGradientEndPoint?.x || stripWidth / 2,
+          gradient.fillRadialGradientEndPoint?.y || stripHeight / 2,
+          gradient.fillRadialGradientEndRadius || Math.max(stripWidth, stripHeight) / 2
+        );
+
+        for (let i = 0; i < gradient.fillRadialGradientColorStops.length; i += 2) {
+          const position = gradient.fillRadialGradientColorStops[i] as number;
+          const color = gradient.fillRadialGradientColorStops[i + 1] as string;
+          radialGradient.addColorStop(position, color);
+        }
+
+        ctx.fillStyle = radialGradient;
+        ctx.fillRect(0, 0, stripWidth, stripHeight);
+      }
+
+      drawPhotosAndForeground();
+    };
+
     if (backgroundImage) {
       const bgImg = new Image();
       bgImg.src = backgroundImage;
@@ -254,9 +305,7 @@ const App: React.FC = () => {
         drawPhotosAndForeground();
       };
     } else {
-      ctx.fillStyle = frameColor;
-      ctx.fillRect(0, 0, stripWidth, stripHeight);
-      drawPhotosAndForeground();
+      applyGradient();
     }
   };
 
@@ -379,10 +428,10 @@ const App: React.FC = () => {
                   ))}
                 </div>
                 <div className="step-navigation">
-                  <button className="reset-button" onClick={resetAll}>
+                  <button className="cta-button" onClick={resetAll}>
                     Reset All
                   </button>
-                  <button className="next-button" onClick={goToNextStep}>
+                  <button className="cta-button" onClick={goToNextStep}>
                     Next →
                   </button>
                 </div>
@@ -391,47 +440,25 @@ const App: React.FC = () => {
             {step === 2 && (
               <div className="step-2">
                 <h2 className="step-title">Capture Your Moments</h2>
-                <div className="capture-container">
-                  <CameraFeed
-                    onCapture={handlePhotoCapture}
-                    onGifComplete={handleGifComplete}
-                    layout={layout}
-                    maxPhotos={maxPhotos}
-                    currentPhotos={previewPhotos.length}
-                    timerEnabled={timerEnabled}
-                    setIsCreatingGif={setIsCreatingGif}
-                    countdownTime={countdownTime}
-                    isMirrored={isMirrored}
-                    onTimerChange={handleTimeChange}
-                    onMirrorToggle={setIsMirrored}
-                  />
-                </div>
-                <PreviewPhotos
-                  previewPhotos={previewPhotos}
-                  selectedPhotos={selectedPhotos}
-                  getRootProps={getRootProps}
-                  getInputProps={getInputProps}
-                  isDragActive={isDragActive}
-                  layout={layout}
-                  setPreviewPhotos={setPreviewPhotos}
-                  setSelectedPhotos={setSelectedPhotos}
-                  isViewOnly
-                />
-                <div className="step-navigation">
-                  <button className="reset-button" onClick={resetAll}>
-                    Reset All
-                  </button>
-                  <button className="next-button" onClick={goToNextStep}>
-                    Next →
-                  </button>
-                </div>
-              </div>
-            )}
-            {step === 3 && (
-              <div className="step-3">
-                <h2 className="step-title">Edit Your Photo Strip</h2>
                 <div className="edit-container">
-                  <div className="edit-sidebar-left">
+                  <div className="edit-main">
+                    <div className="capture-container">
+                      <CameraFeed
+                        onCapture={handlePhotoCapture}
+                        onGifComplete={handleGifComplete}
+                        layout={layout}
+                        maxPhotos={maxPhotos}
+                        currentPhotos={previewPhotos.length}
+                        timerEnabled={timerEnabled}
+                        setIsCreatingGif={setIsCreatingGif}
+                        countdownTime={countdownTime}
+                        isMirrored={isMirrored}
+                        onTimerChange={handleTimeChange}
+                        onMirrorToggle={setIsMirrored}
+                      />
+                    </div>
+                  </div>
+                  <div className="edit-sidebar-right">
                     <PreviewPhotos
                       previewPhotos={previewPhotos}
                       selectedPhotos={selectedPhotos}
@@ -441,8 +468,24 @@ const App: React.FC = () => {
                       layout={layout}
                       setPreviewPhotos={setPreviewPhotos}
                       setSelectedPhotos={setSelectedPhotos}
+                      isViewOnly
                     />
                   </div>
+                </div>
+                <div className="step-navigation">
+                  <button className="cta-button" onClick={resetAll}>
+                    Reset All
+                  </button>
+                  <button className="cta-button" onClick={goToNextStep}>
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+            {step === 3 && (
+              <div className="step-3">
+                <h2 className="step-title">Edit Your Photo Strip</h2>
+                <div className="edit-container">
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
@@ -463,6 +506,16 @@ const App: React.FC = () => {
                     />
                   </div>
                   <div className="edit-sidebar-right">
+                    <PreviewPhotos
+                      previewPhotos={previewPhotos}
+                      selectedPhotos={selectedPhotos}
+                      getRootProps={getRootProps}
+                      getInputProps={getInputProps}
+                      isDragActive={isDragActive}
+                      layout={layout}
+                      setPreviewPhotos={setPreviewPhotos}
+                      setSelectedPhotos={setSelectedPhotos}
+                    />
                     <FrameControls
                       onColorChange={setFrameColor}
                       onBackgroundChange={setBackgroundImage}
@@ -483,10 +536,10 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="step-navigation">
-                  <button className="reset-button" onClick={resetAll}>
+                  <button className="cta-button" onClick={resetAll}>
                     Reset All
                   </button>
-                  <button className="next-button" onClick={goToNextStep}>
+                  <button className="cta-button" onClick={goToNextStep}>
                     Next →
                   </button>
                 </div>
@@ -531,7 +584,7 @@ const App: React.FC = () => {
                           hidden
                         />
                       </label>
-                      <div className="sticker-preview">
+                      {!!uploadedStickers?.length && <div className="sticker-preview">
                         {uploadedStickers.map((sticker, index) => (
                           <img
                             key={index}
@@ -541,15 +594,15 @@ const App: React.FC = () => {
                             onClick={() => addStickerToCanvas(sticker)}
                           />
                         ))}
-                      </div>
+                      </div>}
                     </div>
                   </div>
                 </div>
                 <div className="step-navigation">
-                  <button className="reset-button" onClick={resetAll}>
+                  <button className="cta-button" onClick={resetAll}>
                     Reset All
                   </button>
-                  <button className="next-button" onClick={goToNextStep}>
+                  <button className="cta-button" onClick={goToNextStep}>
                     Next →
                   </button>
                 </div>
@@ -591,10 +644,10 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="step-navigation">
-                  <button className="reset-button" onClick={resetAll}>
+                  <button className="cta-button" onClick={resetAll}>
                     Reset All
                   </button>
-                  <button className="download-button" onClick={downloadImage}>
+                  <button className="cta-button" onClick={downloadImage}>
                     Download
                   </button>
                 </div>

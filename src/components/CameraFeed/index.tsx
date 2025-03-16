@@ -271,11 +271,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       style={{
         width: `${CAMERA_WIDTH}px`,
         height: `${CAMERA_HEIGHT}px`,
-        position: "relative",
-        background: "#000",
-        border: "2px solid #fff",
-        borderRadius: "10px",
-        overflow: "hidden",
       }}
     >
       {cameraError ? (
@@ -320,7 +315,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
                 fontSize: "40px",
                 fontWeight: "bold",
                 padding: "5px 10px",
-                borderRadius: "5px",
               }}
             >
               {countdown}

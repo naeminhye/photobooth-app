@@ -1,3 +1,4 @@
+// src/components/GradientPicker/index.tsx
 import { useEffect, useState } from "react";
 
 export interface Gradient {
@@ -27,7 +28,7 @@ const gradients: Gradient[] = [
     id: "radial-gradient",
     // Radial gradient properties
     fillRadialGradientStartPoint: { x: 100, y: 300 }, // Center (adjust dynamically in PhotoStrip)
-    fillRadialGradientEndPoint: { x: 100, y: 300 }, // Same as start for uniform radial
+    // fillRadialGradientEndPoint: { x: 100, y: 300 }, // Same as start for uniform radial
     fillRadialGradientStartRadius: 0, // Start from center
     fillRadialGradientEndRadius: 300, // Adjust dynamically in PhotoStrip
     fillRadialGradientColorStops: [
@@ -48,67 +49,67 @@ const gradients: Gradient[] = [
       1, "#2B59C3", // Blue at 100%
     ],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-1",
     fillLinearGradientColorStops: [0, "#FCE38A", 1, "#F38181"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-2",
     fillLinearGradientColorStops: [0, "#F54EA2", 1, "#FF7676"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-3",
     fillLinearGradientColorStops: [0, "#17EAD9", 1, "#6078EA"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-4",
     fillLinearGradientColorStops: [0, "#622774", 1, "#C53364"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-5",
     fillLinearGradientColorStops: [0, "#7117EA", 1, "#EA6060"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-6",
     fillLinearGradientColorStops: [0, "#42E695", 1, "#3BB2B8"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-7",
     fillLinearGradientColorStops: [0, "#F02FC2", 1, "#6094EA"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-8",
     fillLinearGradientColorStops: [0, "#65799B", 1, "#5E2563"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-9",
     fillLinearGradientColorStops: [0, "#184E68", 1, "#57CA85"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
   {
     id: "gradient-10",
     fillLinearGradientColorStops: [0, "#5B247A", 1, "#1BCEDF"],
     fillLinearGradientStartPoint: { x: 0, y: 0 },
-    fillLinearGradientEndPoint: { x: 100, y: 100 },
+    // fillLinearGradientEndPoint: { x: 100, y: 100 },
   },
 ];
 
@@ -196,7 +197,6 @@ const GradientPicker = ({ gradient, onSelect }: GradientPickerProps) => {
                 selectedGradient?.id === gradient.id
                   ? "2px solid blue"
                   : "2px solid white",
-              borderRadius: "8px",
               ...getGradientStyle(gradient), // Apply the appropriate gradient style
             }}
           />

@@ -138,10 +138,10 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onColorChange }) => {
                     onClick={() => setShowPicker(!showPicker)}
                     style={{
                         backgroundColor: value,
-                        borderColor: getContrastColor(value)
+                        borderColor: value ? getContrastColor(value) : '#000'
                     }}
                 >
-                    <span style={{ color: getContrastColor(value) || '#000' }}>Click to pick a color</span>
+                    <span style={{ color: value ? getContrastColor(value) : '#000' }}>Click to pick a color</span>
                 </div>
             </div>
 
@@ -160,6 +160,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onColorChange }) => {
                             style={{
                                 left: spectrumPosition.x - 5,
                                 top: spectrumPosition.y - 5,
+                                borderColor: getContrastColor(value)
                             }}
                         />
                     </div>

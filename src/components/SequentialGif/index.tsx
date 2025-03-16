@@ -17,12 +17,8 @@ const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
             style={{
               width: CAMERA_WIDTH / 2,
               height: CAMERA_HEIGHT / 2,
-              border: "1px solid black",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: "#000",
             }}
+            className="loader-container"
           >
             <div className="loader"></div>
           </div>
@@ -34,7 +30,7 @@ const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
               width: CAMERA_WIDTH,
               height: CAMERA_HEIGHT,
               border: "1px solid black",
-              transform: isMirrored ? "scaleX(-1)" : "scaleX(1)", 
+              transform: isMirrored ? "scaleX(-1)" : "scaleX(1)",
             }}
           />
         ) : null}

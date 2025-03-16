@@ -1,4 +1,4 @@
-// src/components/FrameControls.tsx
+// src/components/FrameControls/index.tsx
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";

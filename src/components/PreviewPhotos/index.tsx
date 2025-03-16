@@ -65,16 +65,15 @@ const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
     }
   };
 
-  return previewPhotos?.length || !isViewOnly ? (
-    <div className="preview-photos">
-      <h3>Preview Photos</h3>
-      <div className="preview-photos-list">
+  return <div className="preview-photos">
+    <h3>Preview Photos</h3>
+    <div className="preview-photos-list">
+      {previewPhotos?.length ? (<>
         {previewPhotos.map((photo) => (
           <div
             key={photo.id}
-            className={`preview-photo ${
-              selectedPreviewPhotos.includes(photo.id) ? "selected" : ""
-            } ${selectedPhotos.length >= maxPhotos ? "cannot-select" : ""}`}
+            className={`preview-photo ${selectedPreviewPhotos.includes(photo.id) ? "selected" : ""
+              } ${selectedPhotos.length >= maxPhotos ? "cannot-select" : ""}`}
             onClick={() => toggleFromStrip(photo.id)}
           >
             <img src={photo.url} alt="Preview" />
@@ -108,12 +107,11 @@ const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
               style={{ fontSize: "24px", color: "#999" }}
             />
           </div>
-        )}
-      </div>
+        )}</>) : (
+        <>No captured photo yet!</>
+      )}
     </div>
-  ) : (
-    <></>
-  );
+  </div>
 };
 
 export default PreviewPhotos;
