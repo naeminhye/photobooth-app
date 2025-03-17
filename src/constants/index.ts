@@ -81,20 +81,20 @@ export const LAYOUTS: CanvasData[] = [
     ],
     templatePath: basic4Cut,
   },
-  {
-    name: "basic 4-cut 2",
-    canvas: {
-      width: 1080,
-      height: 1612,
-    },
-    rectangles: [
-      { x: 44, y: 90, width: 452, height: 363 },
-      { x: 44, y: 461, width: 452, height: 363 },
-      { x: 44, y: 833, width: 452, height: 363 },
-      { x: 44, y: 1206, width: 452, height: 363 },
-    ],
-    templatePath: basic4Cut2,
-  },
+  // {
+  //   name: "basic 4-cut 2",
+  //   canvas: {
+  //     width: 1080,
+  //     height: 1612,
+  //   },
+  //   rectangles: [
+  //     { x: 44, y: 90, width: 452, height: 363 },
+  //     { x: 44, y: 461, width: 452, height: 363 },
+  //     { x: 44, y: 833, width: 452, height: 363 },
+  //     { x: 44, y: 1206, width: 452, height: 363 },
+  //   ],
+  //   templatePath: basic4Cut2,
+  // },
   {
     name: "basic 6-cut",
     canvas: {

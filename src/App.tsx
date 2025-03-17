@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./App.css";
 import PhotoStrip from "./components/PhotoStrip";
@@ -15,6 +14,7 @@ import GradientBackground from "./components/GradientBackground";
 import { getContrastColor } from "./utils/colors";
 import { Gradient } from "./components/GradientPicker";
 import { getDeviceType } from "./utils";
+import CropModal from "./components/CropModal";
 
 interface Photo {
   id: string;
@@ -36,12 +36,16 @@ const App: React.FC = () => {
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [previewPhotos, setPreviewPhotos] = useState<Photo[]>([]);
   const [frameColor, setFrameColor] = useState<string>("#FFFFFF");
-  const [gradient, setGradientColor] = useState<Gradient | undefined>(undefined);
+  const [gradient, setGradientColor] = useState<Gradient | undefined>(
+    undefined
+  );
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [layout, setLayout] = useState<number>(0);
   const [foregroundImage, setForegroundImage] = useState<string | null>(null);
   const [stickers, setStickers] = useState<Sticker[]>([]);
-  const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>([]);
+  const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>(
+    []
+  );
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [countdownTime, setCountdownTime] = useState<number>(0);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
@@ -51,15 +55,25 @@ const App: React.FC = () => {
   const photoStripRef: any = useRef(null);
   const sequentialGifRef = useRef<HTMLDivElement>(null);
   const [combinedImage, setCombinedImage] = useState<string | null>(null);
-  const [selectedStickerId, setSelectedStickerId] = useState<number | null>(null);
+  const [selectedStickerId, setSelectedStickerId] = useState<number | null>(
+    null
+  );
   const [filter, setFilter] = useState<string>("none");
   const stageRef = useRef<any>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [tempBackgroundImage, setTempBackgroundImage] = useState<string | null>(
+    null
+  );
 
   const currentLayout = useMemo(() => LAYOUTS[layout], [layout]);
-  const maxPhotos = useMemo(() => currentLayout.rectangles.length, [currentLayout]);
+  const maxPhotos = useMemo(
+    () => currentLayout.rectangles.length,
+    [currentLayout]
+  );
 
   const textColor = useMemo(
-    () => (backgroundImage || gradient ? "#FFFFFF" : getContrastColor(frameColor)),
+    () =>
+      backgroundImage || gradient ? "#FFFFFF" : getContrastColor(frameColor),
     [backgroundImage, frameColor, gradient]
   );
 
@@ -75,7 +89,7 @@ const App: React.FC = () => {
       setHasPermission(true);
     } catch (error) {
       console.error("Camera error:", error);
-      setHasPermission(false); // Ensure hasPermission is false on error
+      setHasPermission(false);
     }
   };
 
@@ -255,7 +269,6 @@ const App: React.FC = () => {
       }
 
       if (gradient.fillLinearGradientColorStops) {
-        // Linear Gradient
         const linearGradient = ctx.createLinearGradient(
           gradient.fillLinearGradientStartPoint?.x || 0,
           gradient.fillLinearGradientStartPoint?.y || 0,
@@ -263,7 +276,11 @@ const App: React.FC = () => {
           gradient.fillLinearGradientEndPoint?.y || stripHeight
         );
 
-        for (let i = 0; i < gradient.fillLinearGradientColorStops.length; i += 2) {
+        for (
+          let i = 0;
+          i < gradient.fillLinearGradientColorStops.length;
+          i += 2
+        ) {
           const position = gradient.fillLinearGradientColorStops[i] as number;
           const color = gradient.fillLinearGradientColorStops[i + 1] as string;
           linearGradient.addColorStop(position, color);
@@ -272,18 +289,21 @@ const App: React.FC = () => {
         ctx.fillStyle = linearGradient;
         ctx.fillRect(0, 0, stripWidth, stripHeight);
       } else if (gradient.fillRadialGradientColorStops) {
-        debugger
-        // Radial Gradient
         const radialGradient = ctx.createRadialGradient(
           gradient.fillRadialGradientStartPoint?.x || stripWidth / 2,
           gradient.fillRadialGradientStartPoint?.y || stripHeight / 2,
           gradient.fillRadialGradientStartRadius || 0,
           gradient.fillRadialGradientEndPoint?.x || stripWidth / 2,
           gradient.fillRadialGradientEndPoint?.y || stripHeight / 2,
-          gradient.fillRadialGradientEndRadius || Math.max(stripWidth, stripHeight) / 2
+          gradient.fillRadialGradientEndRadius ||
+            Math.max(stripWidth, stripHeight) / 2
         );
 
-        for (let i = 0; i < gradient.fillRadialGradientColorStops.length; i += 2) {
+        for (
+          let i = 0;
+          i < gradient.fillRadialGradientColorStops.length;
+          i += 2
+        ) {
           const position = gradient.fillRadialGradientColorStops[i] as number;
           const color = gradient.fillRadialGradientColorStops[i + 1] as string;
           radialGradient.addColorStop(position, color);
@@ -352,7 +372,7 @@ const App: React.FC = () => {
       const stage = stageRef.current;
       if (stage) {
         const dataUrl = stage.toDataURL({
-          pixelRatio: 3, // Adjusted for better quality
+          pixelRatio: 3,
         });
 
         const img = new Image();
@@ -379,13 +399,19 @@ const App: React.FC = () => {
   }));
 
   const handleOuterClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (photoStripRef.current && !photoStripRef.current.contains(e.target as Node)) {
+    if (
+      photoStripRef.current &&
+      !photoStripRef.current.contains(e.target as Node)
+    ) {
       setSelectedStickerId(null);
     }
   };
 
   const handleOuterTouch = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (photoStripRef.current && !photoStripRef.current.contains(e.target as Node)) {
+    if (
+      photoStripRef.current &&
+      !photoStripRef.current.contains(e.target as Node)
+    ) {
       setSelectedStickerId(null);
     }
   };
@@ -399,8 +425,36 @@ const App: React.FC = () => {
     setFilter(filterValue);
   };
 
+  const handleBackgroundChange = (file: File | null) => {
+    if (!file) {
+      setBackgroundImage(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setTempBackgroundImage(e.target?.result as string);
+      setIsCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropConfirm = (croppedImage: HTMLImageElement) => {
+    setBackgroundImage(croppedImage.src);
+    setIsCropModalOpen(false);
+    setTempBackgroundImage(null);
+  };
+
+  const handleCropCancel = () => {
+    setIsCropModalOpen(false);
+    setTempBackgroundImage(null);
+  };
+
   return (
-    <div className="app" onMouseDown={handleOuterClick} onTouchStart={handleOuterTouch}>
+    <div
+      className="app"
+      onMouseDown={handleOuterClick}
+      onTouchStart={handleOuterTouch}
+    >
       <GradientBackground />
       <div className="main-container">
         {hasPermission ? (
@@ -412,7 +466,9 @@ const App: React.FC = () => {
                   {layouts.map((layoutItem) => (
                     <div
                       key={layoutItem.id}
-                      className={`layout-option ${layoutItem.id === layout ? "active" : ""}`}
+                      className={`layout-option ${
+                        layoutItem.id === layout ? "active" : ""
+                      }`}
                       onClick={() => setLayout(layoutItem.id)}
                     >
                       <img
@@ -514,7 +570,7 @@ const App: React.FC = () => {
                     />
                     <FrameControls
                       onColorChange={setFrameColor}
-                      onBackgroundChange={setBackgroundImage}
+                      onBackgroundChange={handleBackgroundChange}
                       onForegroundChange={setForegroundImage}
                       backgroundImage={backgroundImage}
                       foregroundImage={foregroundImage}
@@ -580,17 +636,19 @@ const App: React.FC = () => {
                           hidden
                         />
                       </label>
-                      {!!uploadedStickers?.length && <div className="sticker-preview">
-                        {uploadedStickers.map((sticker, index) => (
-                          <img
-                            key={index}
-                            src={sticker.src}
-                            alt="Sticker"
-                            className="sticker-item"
-                            onClick={() => addStickerToCanvas(sticker)}
-                          />
-                        ))}
-                      </div>}
+                      {!!uploadedStickers?.length && (
+                        <div className="sticker-preview">
+                          {uploadedStickers.map((sticker, index) => (
+                            <img
+                              key={index}
+                              src={sticker.src}
+                              alt="Sticker"
+                              className="sticker-item"
+                              onClick={() => addStickerToCanvas(sticker)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -630,14 +688,16 @@ const App: React.FC = () => {
                       stageRef={stageRef}
                     />
                   </div>
-                  <div className="edit-sidebar-right">
-                    <SequentialGif
-                      ref={sequentialGifRef}
-                      gifUrl={gifUrl}
-                      isCreatingGif={isCreatingGif}
-                      isMirrored={isMirrored}
-                    />
-                  </div>
+                  {gifUrl && (
+                    <div className="edit-sidebar-right">
+                      <SequentialGif
+                        ref={sequentialGifRef}
+                        gifUrl={gifUrl}
+                        isCreatingGif={isCreatingGif}
+                        isMirrored={isMirrored}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="step-navigation">
                   <button className="cta-button" onClick={resetAll}>
@@ -652,7 +712,19 @@ const App: React.FC = () => {
           </div>
         ) : (
           <p className="no-permission">
-            Please allow camera access to use the photobooth. Ensure you’re accessing this site over HTTPS and have granted camera permissions in your browser settings.          </p>
+            Please allow camera access to use the photobooth. Ensure you’re
+            accessing this site over HTTPS and have granted camera permissions
+            in your browser settings.
+          </p>
+        )}
+        {isCropModalOpen && tempBackgroundImage && (
+          <CropModal
+            imageUrl={tempBackgroundImage}
+            layoutWidth={currentLayout.canvas.width}
+            layoutHeight={currentLayout.canvas.height}
+            onConfirm={handleCropConfirm}
+            onCancel={handleCropCancel}
+          />
         )}
       </div>
       <div className="device-info-text">{deviceType}</div>

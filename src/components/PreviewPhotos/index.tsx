@@ -65,53 +65,59 @@ const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
     }
   };
 
-  return <div className="preview-photos">
-    <h3>Preview Photos</h3>
-    <div className="preview-photos-list">
-      {previewPhotos?.length ? (<>
-        {previewPhotos.map((photo) => (
-          <div
-            key={photo.id}
-            className={`preview-photo ${selectedPreviewPhotos.includes(photo.id) ? "selected" : ""
+  return (
+    <div className="preview-photos">
+      <h3>Preview Photos</h3>
+      <div className="preview-photos-list">
+        <>
+          {previewPhotos?.map((photo) => (
+            <div
+              key={photo.id}
+              className={`preview-photo ${
+                selectedPreviewPhotos.includes(photo.id) ? "selected" : ""
               } ${selectedPhotos.length >= maxPhotos ? "cannot-select" : ""}`}
-            onClick={() => toggleFromStrip(photo.id)}
-          >
-            <img src={photo.url} alt="Preview" />
-            {selectedPreviewPhotos.includes(photo.id) && (
-              <div className="selected-count">
-                <FontAwesomeIcon icon={faCircleCheck} className="check-icon" />
-              </div>
-            )}
-            {!isViewOnly && (
-              <button
-                className="delete-icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deletePreviewPhoto(photo.id);
-                }}
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </button>
-            )}
-          </div>
-        ))}
-        {previewPhotos.length < 10 && !isViewOnly && (
-          <div
-            {...getRootProps()}
-            className="upload-placeholder"
-            style={{ background: isDragActive ? "#e1e1e1" : "transparent" }}
-          >
-            <input {...getInputProps()} />
-            <FontAwesomeIcon
-              icon={faPlus}
-              style={{ fontSize: "24px", color: "#999" }}
-            />
-          </div>
-        )}</>) : (
-        <>No captured photo yet!</>
-      )}
+              onClick={() => toggleFromStrip(photo.id)}
+            >
+              <img src={photo.url} alt="Preview" />
+              {selectedPreviewPhotos.includes(photo.id) && (
+                <div className="selected-count">
+                  <FontAwesomeIcon
+                    icon={faCircleCheck}
+                    className="check-icon"
+                  />
+                </div>
+              )}
+              {!isViewOnly && (
+                <button
+                  className="delete-icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deletePreviewPhoto(photo.id);
+                  }}
+                >
+                  <FontAwesomeIcon icon={faTrash} />
+                </button>
+              )}
+            </div>
+          ))}
+          {previewPhotos.length < 10 && !isViewOnly && (
+            <div
+              {...getRootProps()}
+              className="upload-placeholder"
+              style={{ background: isDragActive ? "#e1e1e1" : "transparent" }}
+            >
+              <input {...getInputProps()} />
+              <FontAwesomeIcon
+                icon={faPlus}
+                style={{ fontSize: "24px", color: "#999" }}
+              />
+            </div>
+          )}
+          {!previewPhotos?.length && isViewOnly && <>No captured photo yet!</>}
+        </>
+      </div>
     </div>
-  </div>
+  );
 };
 
 export default PreviewPhotos;

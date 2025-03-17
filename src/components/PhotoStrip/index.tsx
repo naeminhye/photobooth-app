@@ -74,7 +74,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
   ) => {
     const transformerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    // const [scale, setScale] = useState(1);
 
     const currentLayout: CanvasData = LAYOUTS[layout];
     const maxPhotos = currentLayout.rectangles.length;
@@ -105,27 +104,89 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       []
     );
 
+    // Generic cropping function to fit any image to target dimensions
+    const cropImageToFit = (
+      image: HTMLImageElement,
+      targetWidth: number,
+      targetHeight: number
+    ): Promise<HTMLImageElement> => {
+      return new Promise((resolve) => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(image);
+
+        const imgWidth = image.width;
+        const imgHeight = image.height;
+        const targetRatio = targetWidth / targetHeight;
+        const imgRatio = imgWidth / imgHeight;
+
+        let cropWidth, cropHeight, cropX, cropY;
+
+        if (imgRatio > targetRatio) {
+          // Image is wider than the target, crop horizontally
+          cropWidth = imgHeight * targetRatio;
+          cropHeight = imgHeight;
+          cropX = (imgWidth - cropWidth) / 2;
+          cropY = 0;
+        } else {
+          // Image is taller than the target, crop vertically
+          cropHeight = imgWidth / targetRatio;
+          cropWidth = imgWidth;
+          cropX = 0;
+          cropY = (imgHeight - cropHeight) / 2;
+        }
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(
+          image,
+          cropX,
+          cropY,
+          cropWidth,
+          cropHeight,
+          0,
+          0,
+          targetWidth,
+          targetHeight
+        );
+
+        const croppedImage = new Image();
+        croppedImage.onload = () => resolve(croppedImage);
+        croppedImage.src = canvas.toDataURL("image/png", 1.0);
+      });
+    };
+
+    // Crop and set background image
     useEffect(() => {
       if (backgroundImage) {
         const img = new Image();
         img.crossOrigin = "Anonymous";
         img.src = backgroundImage;
-        img.onload = () => setBgImage(img);
+        img.onload = async () => {
+          const croppedImg = await cropImageToFit(img, stripWidth, stripHeight);
+          setBgImage(croppedImg);
+        };
       } else {
         setBgImage(null);
       }
-    }, [backgroundImage]);
+    }, [backgroundImage, stripWidth, stripHeight]);
 
+    // Crop and set foreground image
     useEffect(() => {
       if (foregroundImage) {
         const img = new Image();
         img.crossOrigin = "Anonymous";
         img.src = foregroundImage;
-        img.onload = () => setFgImage(img);
+        img.onload = async () => {
+          const croppedImg = await cropImageToFit(img, stripWidth, stripHeight);
+          setFgImage(croppedImg);
+        };
       } else {
         setFgImage(null);
       }
-    }, [foregroundImage]);
+    }, [foregroundImage, stripWidth, stripHeight]);
 
     const cropImageToRectangle = (
       image: HTMLImageElement,
@@ -289,7 +350,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       const clickedOnSticker = e.target.id()?.includes("sticker");
       const clickedOnDeleteButton = e.target.id()?.includes("delete-button");
 
-      // Deselect only if the click is not on a sticker or its delete button
       if (!clickedOnSticker && !clickedOnDeleteButton) {
         setSelectedStickerId(null);
       }
@@ -335,7 +395,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       [selectedStickerId, setStickers, isViewOnly]
     );
 
-    // Inside PhotoStrip, before rendering the Rect
     const adjustedGradient = gradient
       ? {
           ...gradient,
@@ -344,18 +403,17 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             gradient.fillRadialGradientStartPoint || {
               x: stripWidth / 2,
               y: stripHeight / 2,
-            }, // Center of the canvas
+            },
           fillRadialGradientEndPoint: gradient.fillRadialGradientEndPoint || {
             x: stripWidth / 2,
             y: stripHeight / 2,
-          }, // Same as start point
+          },
           fillRadialGradientEndRadius:
             gradient.fillRadialGradientEndRadius ||
-            Math.max(stripWidth, stripHeight) / 2, // Ensure the gradient covers the entire canvas
+            Math.max(stripWidth, stripHeight) / 2,
         }
       : null;
 
-    // Attach Transformer to the selected sticker
     useEffect(
       () => {
         if (
@@ -409,7 +467,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 <Rect
                   width={stripWidth}
                   height={stripHeight}
-                  fill={gradient ? undefined : frameColor} // Use gradient if provided, else frameColor
+                  fill={gradient ? undefined : frameColor}
                   {...(adjustedGradient || {})}
                 />
               )}
@@ -498,9 +556,9 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                         x={
                           sticker.x * SCALE_FACTOR +
                           sticker.width * SCALE_FACTOR +
-                          15 // Position to the right of the sticker
+                          15
                         }
-                        y={sticker.y * SCALE_FACTOR - 15} // Position above the top-right corner
+                        y={sticker.y * SCALE_FACTOR - 15}
                         radius={10}
                         fill="red"
                         onClick={handleDeleteSticker}
