@@ -1,45 +1,24 @@
-/* .loader {
-    width: 50px;
-    padding: 8px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: #25b09b;
-    --_m:
-        conic-gradient(#0000 10%, #000),
-        linear-gradient(#000 0 0) content-box;
-    -webkit-mask: var(--_m);
-    mask: var(--_m);
-    -webkit-mask-composite: source-out;
-    mask-composite: subtract;
-    animation: l3 1s infinite linear;
-}
-
-@keyframes l3 {
-    to {
-        transform: rotate(1turn);
-    }
-} */
-
-/* src/components/SequentialGif/styles.css */
-.sequential-gif {
+/* src/components/SequentialVideo/styles.css */
+.sequential-video {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
     max-width: 640px;
-    /* Matches CameraFeed's max baseWidth */
+    /* Matches CameraFeed's max baseWidth, adjust as needed */
     margin: 0 auto;
 }
 
-.sequential-gif img {
+.sequential-video video {
     max-width: 100%;
     height: auto;
     object-fit: cover;
-    /* Ensures GIF fills the container */
+    /* Ensures video fills the container without distortion */
     border: 1px solid #000;
+    /* Matches your original border */
 }
 
-/* Loader styles */
+/* Loader styles (reused from SequentialGif) */
 .loader-container {
     display: flex;
     justify-content: center;
@@ -69,19 +48,22 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .sequential-gif {
+    .sequential-video {
         max-width: 480px;
+        /* Matches CameraFeed's tablet breakpoint */
     }
 }
 
 @media (max-width: 425px) {
-    .sequential-gif {
+    .sequential-video {
         max-width: 380px;
+        /* Matches CameraFeed's medium mobile breakpoint */
     }
 }
 
 @media (max-width: 320px) {
-    .sequential-gif {
+    .sequential-video {
         max-width: 280px;
+        /* Matches CameraFeed's small mobile breakpoint */
     }
 }

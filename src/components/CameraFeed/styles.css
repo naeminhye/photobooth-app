@@ -41,32 +41,31 @@
 /* Countdown */
 .countdown {
     position: absolute;
-    top: 10px;
+    top: 5px;
     left: 10px;
     color: white;
-    font-size: 40px;
+    font-size: 64px;
     font-weight: bold;
-    background: rgba(0, 0, 0, 0.5);
     padding: 5px 10px;
     border-radius: 5px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Camera control */
 .camera-control {
     display: flex;
-    gap: 5px;
-    background-color: #fff1;
-    border-radius: 20px;
-    padding: 4px;
+    gap: 8px;
 }
 
 button.camera-control-button {
-    background: none;
-    border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: 1px solid #000;
+    background: #fff;
+    width: 36px;
+    height: 36px;
 }
 
 .camera-control-button img {

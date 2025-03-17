@@ -1,18 +1,18 @@
+// src/components/SequentialGif/index.tsx
 import React, { forwardRef } from "react";
 import "./styles.css";
 import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 
 interface SequentialGifProps {
   gifUrl: string | null;
-  isCreatingGif: boolean;
-  isMirrored: boolean;
+  isRecordingGif: boolean;
 }
 
 const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
-  ({ gifUrl, isCreatingGif, isMirrored }, ref) => {
+  ({ gifUrl, isRecordingGif }, ref) => {
     return (
       <div ref={ref} className="sequential-gif">
-        {isCreatingGif ? (
+        {isRecordingGif ? (
           <div
             style={{
               width: CAMERA_WIDTH / 2,
@@ -25,12 +25,11 @@ const SequentialGif = forwardRef<HTMLDivElement, SequentialGifProps>(
         ) : gifUrl ? (
           <img
             src={gifUrl}
-            alt="photo-gif"
+            alt="Sequential GIF"
             style={{
               width: CAMERA_WIDTH,
               height: CAMERA_HEIGHT,
               border: "1px solid black",
-              transform: isMirrored ? "scaleX(-1)" : "scaleX(1)",
             }}
           />
         ) : null}
