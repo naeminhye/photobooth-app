@@ -50,6 +50,8 @@ interface PhotoStripProps {
   isViewOnly: boolean;
   filter?: string;
   gradient?: Gradient | null;
+  loading: boolean; // Add loading prop
+  setLoading: (isLoading: boolean) => void; // Add setLoading prop
 }
 
 const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
@@ -69,6 +71,8 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       stageRef,
       isViewOnly,
       filter,
+      loading,
+      setLoading,
     },
     ref
   ) => {
@@ -88,15 +92,11 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       return `${day}.${month}.${year}`;
     };
 
-    useEffect(
-      () => {
-        if (isViewOnly && selectedStickerId) {
-          setSelectedStickerId(null);
-        }
-      },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [selectedStickerId, isViewOnly]
-    );
+    useEffect(() => {
+      if (isViewOnly && selectedStickerId) {
+        setSelectedStickerId(null);
+      }
+    }, [selectedStickerId, setSelectedStickerId, isViewOnly]);
 
     const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
     const [fgImage, setFgImage] = useState<HTMLImageElement | null>(null);
@@ -123,13 +123,11 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         let cropWidth, cropHeight, cropX, cropY;
 
         if (imgRatio > targetRatio) {
-          // Image is wider than the target, crop horizontally
           cropWidth = imgHeight * targetRatio;
           cropHeight = imgHeight;
           cropX = (imgWidth - cropWidth) / 2;
           cropY = 0;
         } else {
-          // Image is taller than the target, crop vertically
           cropHeight = imgWidth / targetRatio;
           cropWidth = imgWidth;
           cropX = 0;
@@ -259,7 +257,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
         switch (filterType) {
           case "bw": {
-            // Grayscale filter
             for (let i = 0; i < data.length; i += 4) {
               const r = data[i];
               const g = data[i + 1];
@@ -272,20 +269,18 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             break;
           }
           case "whitening": {
-            // Brighten filter
             for (let i = 0; i < data.length; i += 4) {
-              data[i] = Math.min(255, data[i] + 20); // Red
-              data[i + 1] = Math.min(255, data[i + 1] + 20); // Green
-              data[i + 2] = Math.min(255, data[i + 2] + 20); // Blue
+              data[i] = Math.min(255, data[i] + 20);
+              data[i + 1] = Math.min(255, data[i + 1] + 20);
+              data[i + 2] = Math.min(255, data[i + 2] + 20);
             }
             break;
           }
           case "darker": {
-            // Darken filter
             for (let i = 0; i < data.length; i += 4) {
-              data[i] = Math.max(0, data[i] - 20); // Red
-              data[i + 1] = Math.max(0, data[i + 1] - 20); // Green
-              data[i + 2] = Math.max(0, data[i + 2] - 20); // Blue
+              data[i] = Math.max(0, data[i] - 20);
+              data[i + 1] = Math.max(0, data[i + 1] - 20);
+              data[i + 2] = Math.max(0, data[i + 2] - 20);
             }
             break;
           }
@@ -349,8 +344,16 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     ) => {
       const clickedOnSticker = e.target.id()?.includes("sticker");
       const clickedOnDeleteButton = e.target.id()?.includes("delete-button");
+      const clickedOnTransformer =
+        e.target.getClassName() === "Transformer" ||
+        e.target.parent?.getClassName() === "Transformer" ||
+        e.target.attrs?.name?.includes("anchor");
 
-      if (!clickedOnSticker && !clickedOnDeleteButton) {
+      if (
+        !clickedOnSticker &&
+        !clickedOnDeleteButton &&
+        !clickedOnTransformer
+      ) {
         setSelectedStickerId(null);
       }
     };
@@ -383,17 +386,13 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       [setStickers, isViewOnly]
     );
 
-    const handleDeleteSticker = useCallback(
-      () => {
-        if (isViewOnly || selectedStickerId === null) return;
-        setStickers((prev) =>
-          prev.filter((sticker) => sticker.id !== selectedStickerId)
-        );
-        setSelectedStickerId(null);
-      },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [selectedStickerId, setStickers, isViewOnly]
-    );
+    const handleDeleteSticker = useCallback(() => {
+      if (isViewOnly || selectedStickerId === null) return;
+      setStickers((prev) =>
+        prev.filter((sticker) => sticker.id !== selectedStickerId)
+      );
+      setSelectedStickerId(null);
+    }, [selectedStickerId, setStickers, isViewOnly, setSelectedStickerId]);
 
     const adjustedGradient = gradient
       ? {
@@ -414,25 +413,17 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         }
       : null;
 
-    useEffect(
-      () => {
-        if (
-          transformerRef.current &&
-          selectedStickerId !== null &&
-          !isViewOnly
-        ) {
-          const stage = stageRef.current;
-          const layer = stage.findOne("Layer");
-          const stickerNode = layer.findOne(`#sticker-${selectedStickerId}`);
-          if (stickerNode) {
-            transformerRef.current.nodes([stickerNode]);
-            transformerRef.current.getLayer().batchDraw();
-          }
+    useEffect(() => {
+      if (transformerRef.current && selectedStickerId !== null && !isViewOnly) {
+        const stage = stageRef.current;
+        const layer = stage.findOne("Layer");
+        const stickerNode = layer.findOne(`#sticker-${selectedStickerId}`);
+        if (stickerNode) {
+          transformerRef.current.nodes([stickerNode]);
+          transformerRef.current.getLayer().batchDraw();
         }
-      },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [selectedStickerId, isViewOnly]
-    );
+      }
+    }, [selectedStickerId, isViewOnly, stageRef]);
 
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -598,6 +589,12 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
               />
             </Layer>
           </Stage>
+          {loading && (
+            <div className="loading-overlay">
+              <div className="spinner"></div>
+              <p>Merging Layers...</p>
+            </div>
+          )}
         </div>
       </div>
     );

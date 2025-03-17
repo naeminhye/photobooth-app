@@ -12,10 +12,6 @@ interface FrameControlsProps {
   onForegroundChange: (image: string | null) => void;
   layout: number;
   onLayoutChange: (layout: number) => void;
-  selectedPhotos: string[];
-  onReset: () => void;
-  onPhotoUpload: (files: File[]) => void;
-  photoStripRef: React.RefObject<HTMLDivElement>;
   frameColor: string;
   backgroundImage: string | null;
   foregroundImage: string | null;
@@ -28,10 +24,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   onColorChange,
   onBackgroundChange,
   onForegroundChange,
-  selectedPhotos,
-  onReset,
-  onPhotoUpload,
-  photoStripRef,
   frameColor,
   backgroundImage,
   foregroundImage,
