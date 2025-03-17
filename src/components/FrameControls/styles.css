@@ -1,17 +1,14 @@
 /* components/FrameControls/styles.css */
 .frame-controls {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  border-radius: 15px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  /* background: #fff;
+  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 0.2);
   padding: 20px;
   max-width: 320px;
-  font-family: "Poppins", sans-serif;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid #000; */
 }
 
 .tabs {
   display: flex;
-  gap: 15px;
 }
 
 .tab-list {
@@ -19,9 +16,7 @@
   flex-direction: column;
   width: 100px;
   background: #ffffff;
-  border-radius: 10px 0 0 10px;
-  padding: 10px 0;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #000;
 }
 
 .tab-button {
@@ -44,12 +39,7 @@
   background: #6b48ff;
   color: white;
   font-weight: 600;
-  border-radius: 0 10px 10px 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.tab-button:first-child {
-  border-radius: 10px 0 0 0;
 }
 
 .tab-button:last-child {
@@ -58,10 +48,11 @@
 
 .tab-content {
   padding: 15px;
-  flex: 1;
+  flex: 1 1;
   background: #ffffff;
-  border-radius: 0 10px 10px 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #000;
+  border-left: 0;
+  min-height: 360px;
 }
 
 .frame-controls-section {
@@ -79,11 +70,10 @@
 .frame-controls-select {
   width: 100%;
   padding: 10px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid #000;
   font-size: 14px;
-  background: #fafafa;
   transition: border-color 0.3s ease;
+  font-family: 'Geo', sans-serif;
 }
 
 .frame-controls-select:focus {
@@ -95,7 +85,6 @@
   width: 100%;
   padding: 5px;
   border: 2px solid #ddd;
-  border-radius: 8px;
   cursor: pointer;
   height: 40px;
   transition: border-color 0.3s ease;
@@ -116,12 +105,12 @@
   padding: 10px 15px;
   background: #6b48ff;
   color: white;
-  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.3s ease;
   border: none;
+  text-transform: uppercase;
 }
 
 .upload-button:hover {
@@ -150,15 +139,15 @@
 
 .image-preview-container {
   position: relative;
-  padding: 5px;
-  border-radius: 8px;
-  background: #f0f0f0;
-  margin-top: 10px;
+  margin-top: 16px;
+  justify-content: center;
+  display: flex;
+  background-color: #f0f0f0;
 }
 
 .image-preview {
-  width: 100%;
-  border-radius: 5px;
+  max-width: 200px;
+  max-height: 200px;
   border: 1px solid #ddd;
 }
 
@@ -192,7 +181,6 @@
   overflow-y: auto;
   padding: 5px;
   background: #f9f9f9;
-  border-radius: 8px;
 }
 
 .sticker-item {
@@ -200,11 +188,4 @@
   height: 50px;
   object-fit: contain;
   cursor: pointer;
-  border-radius: 5px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.sticker-item:hover {
-  transform: scale(1.1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

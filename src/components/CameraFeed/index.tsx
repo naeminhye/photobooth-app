@@ -70,22 +70,35 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const capturePhoto = useCallback(() => {
-    if (webcamRef.current && webcamRef.current.video && webcamRef.current.video.readyState === 4) {
-      console.log("Attempting to capture screenshot...");
+    if (
+      webcamRef.current &&
+      webcamRef.current.video &&
+      webcamRef.current.video.readyState === 4
+    ) {
+      console.log("[DEV] Attempting to capture screenshot...");
       const photo = webcamRef.current.getScreenshot({
         width: webcamRef.current.video.videoWidth || 640,
         height: webcamRef.current.video.videoHeight || 480,
       });
       if (photo) {
-        console.log("Screenshot captured successfully:", photo);
+        console.log("[DEV] Screenshot captured successfully.");
         onCapture(photo);
       } else {
-        console.error("Failed to capture screenshot. Video stream or resolution issue?");
-        setCameraError("Failed to capture photo. The video stream may not be ready or the resolution is unsupported. Try adjusting the resolution or restarting the camera.");
+        console.error(
+          "Failed to capture screenshot. Video stream or resolution issue?"
+        );
+        setCameraError(
+          "Failed to capture photo. The video stream may not be ready or the resolution is unsupported. Try adjusting the resolution or restarting the camera."
+        );
       }
     } else {
-      console.error("Video stream not ready. Ready state:", webcamRef.current?.video?.readyState);
-      setCameraError("Failed to capture photo. The video stream is not ready. Please wait a moment and try again.");
+      console.error(
+        "Video stream not ready. Ready state:",
+        webcamRef.current?.video?.readyState
+      );
+      setCameraError(
+        "Failed to capture photo. The video stream is not ready. Please wait a moment and try again."
+      );
     }
   }, [onCapture]);
 
@@ -104,11 +117,13 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
           CAMERA_HEIGHT
         );
         const frame = context.getImageData(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
-        console.log("Captured frame:", frame);
+        console.log("[DEV] Captured frame:", frame);
         return frame;
       }
     }
-    console.error("Failed to capture frame. Canvas or video context unavailable.");
+    console.error(
+      "Failed to capture frame. Canvas or video context unavailable."
+    );
     return null;
   };
 
@@ -126,7 +141,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       const gif = new GIF({
         workers: 2,
         quality: 10,
-        workerScript: "/gif.worker.js",
+        workerScript: process.env.PUBLIC_URL + "/gif.worker.js",
         width: CAMERA_WIDTH,
         height: CAMERA_HEIGHT,
       });
@@ -177,18 +192,23 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     createGif();
   };
 
-  const startCountdown = useCallback(() => {
-    if (currentPhotos >= MAX_PHOTOS) {
-      setCameraError(`Maximum preview photo limit (${MAX_PHOTOS}) reached.`);
-      return;
-    }
+  const startCountdown = useCallback(
+    () => {
+      if (currentPhotos >= MAX_PHOTOS) {
+        setCameraError(`Maximum preview photo limit (${MAX_PHOTOS}) reached.`);
+        return;
+      }
 
-    if (currentPhotos >= (timerEnabled ? maxPhotos + 4 : 10) || isCapturing) return;
-    setIsCapturing(true);
+      if (currentPhotos >= (timerEnabled ? maxPhotos + 4 : 10) || isCapturing)
+        return;
+      setIsCapturing(true);
 
-    gifFrames.current = [];
-    runCountdown();
-  }, [currentPhotos, timerEnabled, maxPhotos, isCapturing]);
+      gifFrames.current = [];
+      runCountdown();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentPhotos, timerEnabled, maxPhotos, isCapturing]
+  );
 
   const handleMouseDown = () => {
     if (currentPhotos < (timerEnabled ? maxPhotos + 4 : 10) && !isCapturing) {
@@ -255,7 +275,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   useEffect(() => {
     const checkVideoDimensions = () => {
       if (webcamRef.current && webcamRef.current.video) {
-        console.log("Video dimensions:", {
+        console.log("[DEV] Video dimensions:", {
           width: webcamRef.current.video.videoWidth,
           height: webcamRef.current.video.videoHeight,
         });
@@ -271,11 +291,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       style={{
         width: `${CAMERA_WIDTH}px`,
         height: `${CAMERA_HEIGHT}px`,
-        position: "relative",
-        background: "#000",
-        border: "2px solid #fff",
-        borderRadius: "10px",
-        overflow: "hidden",
       }}
     >
       {cameraError ? (
@@ -320,7 +335,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
                 fontSize: "40px",
                 fontWeight: "bold",
                 padding: "5px 10px",
-                borderRadius: "5px",
               }}
             >
               {countdown}

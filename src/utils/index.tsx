@@ -17,7 +17,7 @@ const getDeviceType = () => {
         return "Mobile (Other)"; // Fallback for other mobile OS
       }
     } else if (device === undefined) {
-      return `Desktop (${result.os.name} ver${result.os.version})`; // Desktop/laptop devices have device.type as undefined
+      return `Desktop (${result.os.name} ${result.os.version})`; // Desktop/laptop devices have device.type as undefined
     } else {
       return "Other Device"; // Handle console, smarttv, wearable, xr, embedded
     }

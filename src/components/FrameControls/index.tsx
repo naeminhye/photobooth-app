@@ -1,4 +1,4 @@
-// src/components/FrameControls.tsx
+// src/components/FrameControls/index.tsx
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
@@ -71,6 +71,10 @@ const FrameControls: React.FC<FrameControlsProps> = ({
       const reader = new FileReader();
       reader.onload = () => onBackgroundChange(reader.result as string);
       reader.readAsDataURL(file);
+
+      // Clear selected color
+      onColorChange('');
+      onSelectFrameGradient(undefined);
     }
   };
 
@@ -101,10 +105,13 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                 Background Color or Image
               </label>
               <ColorPicker
-                value={frameColor}
+                value={backgroundImage ? '' : frameColor}
                 onColorChange={handleBackgroundColorChange} />
+              <div style={{ fontSize: 12, textAlign: 'center', marginTop: 12 }}>
+                Or pick a Gradient
+              </div>
               <GradientPicker
-                gradient={frameGradient}
+                gradient={backgroundImage ? undefined : frameGradient}
                 onSelect={handleGradientChange}
               />
               {backgroundImage ? (
@@ -122,7 +129,7 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                   </button>
                 </div>
               ) : (
-                <label className="upload-button">
+                <label className="upload-button" style={{ marginTop: 16 }}>
                   <FontAwesomeIcon icon={faUpload} /> Upload Background
                   <input
                     type="file"
