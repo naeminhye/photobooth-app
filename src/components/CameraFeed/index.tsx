@@ -15,6 +15,7 @@ import timer10Fill from "../../assets/icons/timer_10_fill.png";
 import timer10Outline from "../../assets/icons/timer_10_outline.png";
 
 import "./styles.css";
+import { getDeviceType } from "../../utils";
 
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
@@ -53,14 +54,74 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const countdownRef = useRef<number>(countdownTime);
   const maxPhotosRef = useRef<number>(maxPhotos);
+  const [cameraDimensions, setCameraDimensions] = useState({
+    width: CAMERA_WIDTH,
+    height: CAMERA_HEIGHT,
+  });
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(
+    isMirrored ? "user" : "environment"
+  );
 
+  const deviceType = getDeviceType();
+  const isMobile =
+    deviceType.includes("Mobile") ||
+    deviceType.includes("iOS") ||
+    deviceType.includes("Android");
+
+  // Update countdownRef when countdownTime changes
   useEffect(() => {
     countdownRef.current = countdownTime;
   }, [countdownTime]);
 
+  // Update maxPhotosRef when maxPhotos changes
   useEffect(() => {
     maxPhotosRef.current = maxPhotos;
   }, [maxPhotos]);
+
+  // Responsive camera dimensions based on breakpoints
+  useEffect(() => {
+    const updateCameraDimensions = () => {
+      const viewportWidth = window.innerWidth;
+      const isPortrait = window.innerHeight > window.innerWidth || isMobile;
+      const aspectRatio = isPortrait ? 4 / 3 : 3 / 4; // Portrait: 4:3, Landscape: 3:4
+
+      let baseWidth: number;
+
+      // Breakpoints
+      if (viewportWidth <= 320) {
+        baseWidth = 280; // Fit within small screens
+      } else if (viewportWidth <= 425) {
+        baseWidth = 380; // Medium mobile
+      } else if (viewportWidth <= 768) {
+        baseWidth = 480; // Tablet
+      } else {
+        baseWidth = 640; // Default for larger screens
+      }
+
+      // Ensure width doesn’t exceed viewport width
+      baseWidth = Math.min(baseWidth, viewportWidth * 0.9); // 90% of viewport width
+      const baseHeight = baseWidth * aspectRatio;
+
+      // Ensure height fits within viewport if needed
+      const maxHeight = window.innerHeight * 0.7; // Reserve space for controls
+      const finalHeight = Math.min(baseHeight, maxHeight);
+      const finalWidth = finalHeight / aspectRatio;
+
+      setCameraDimensions({
+        width: Math.round(finalWidth),
+        height: Math.round(finalHeight),
+      });
+    };
+
+    updateCameraDimensions(); // Initial call
+    window.addEventListener("resize", updateCameraDimensions);
+    window.addEventListener("orientationchange", updateCameraDimensions);
+
+    return () => {
+      window.removeEventListener("resize", updateCameraDimensions);
+      window.removeEventListener("orientationchange", updateCameraDimensions);
+    };
+  }, [isMobile]);
 
   const handleCameraError = (error: string | Error) => {
     console.error("Camera error:", error);
@@ -77,8 +138,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     ) {
       console.log("[DEV] Attempting to capture screenshot...");
       const photo = webcamRef.current.getScreenshot({
-        width: webcamRef.current.video.videoWidth || 640,
-        height: webcamRef.current.video.videoHeight || 480,
+        width: webcamRef.current.video.videoWidth || cameraDimensions.width,
+        height: webcamRef.current.video.videoHeight || cameraDimensions.height,
       });
       if (photo) {
         console.log("[DEV] Screenshot captured successfully.");
@@ -88,7 +149,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
           "Failed to capture screenshot. Video stream or resolution issue?"
         );
         setCameraError(
-          "Failed to capture photo. The video stream may not be ready or the resolution is unsupported. Try adjusting the resolution or restarting the camera."
+          "Failed to capture photo. The video stream may not be ready or the resolution is unsupported."
         );
       }
     } else {
@@ -100,23 +161,28 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         "Failed to capture photo. The video stream is not ready. Please wait a moment and try again."
       );
     }
-  }, [onCapture]);
+  }, [onCapture, cameraDimensions]);
 
   const captureFrame = () => {
     if (webcamRef.current && canvasRef.current && webcamRef.current.video) {
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d");
       if (context) {
-        canvas.width = CAMERA_WIDTH;
-        canvas.height = CAMERA_HEIGHT;
+        canvas.width = cameraDimensions.width;
+        canvas.height = cameraDimensions.height;
         context.drawImage(
           webcamRef.current.video,
           0,
           0,
-          CAMERA_WIDTH,
-          CAMERA_HEIGHT
+          cameraDimensions.width,
+          cameraDimensions.height
         );
-        const frame = context.getImageData(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+        const frame = context.getImageData(
+          0,
+          0,
+          cameraDimensions.width,
+          cameraDimensions.height
+        );
         console.log("[DEV] Captured frame:", frame);
         return frame;
       }
@@ -142,8 +208,8 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         workers: 2,
         quality: 10,
         workerScript: process.env.PUBLIC_URL + "/gif.worker.js",
-        width: CAMERA_WIDTH,
-        height: CAMERA_HEIGHT,
+        width: cameraDimensions.width,
+        height: cameraDimensions.height,
       });
 
       gifFrames.current.forEach((frame) => gif.addFrame(frame, { delay: 150 }));
@@ -155,13 +221,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         setIsCapturing(false);
         setIsCreatingGif(false);
       });
-
-      // gif.on("error", (error) => {
-      //   console.error("GIF creation error:", error);
-      //   setCameraError("Failed to create GIF. Please try again.");
-      //   setIsCapturing(false);
-      //   setIsCreatingGif(false);
-      // });
 
       gif.render();
     } catch (error) {
@@ -207,7 +266,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       runCountdown();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentPhotos, timerEnabled, maxPhotos, isCapturing]
+    [currentPhotos, timerEnabled, maxPhotos, isCapturing, capturePhoto]
   );
 
   const handleMouseDown = () => {
@@ -269,7 +328,9 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const handleMirrorToggle = () => {
-    onMirrorToggle(!isMirrored);
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(newFacingMode);
+    onMirrorToggle(newFacingMode === "user");
   };
 
   useEffect(() => {
@@ -289,8 +350,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     <div
       className="camera-feed"
       style={{
-        width: `${CAMERA_WIDTH}px`,
-        height: `${CAMERA_HEIGHT}px`,
+        width: `${cameraDimensions.width}px`,
+        height: `${cameraDimensions.height}px`,
+        maxWidth: "100%", // Ensure it fits within parent container
+        margin: "0 auto", // Center horizontally
       }}
     >
       {cameraError ? (
@@ -313,17 +376,18 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
             disablePictureInPicture
             screenshotFormat="image/jpeg"
             screenshotQuality={1}
-            width={CAMERA_WIDTH}
-            height={CAMERA_HEIGHT}
-            mirrored={isMirrored}
+            width={cameraDimensions.width}
+            height={cameraDimensions.height}
+            mirrored={facingMode === "user"}
             videoConstraints={{
-              width: { ideal: 1280, max: 1920, min: 640 },
-              height: { ideal: 720, max: 1440, min: 480 },
-              facingMode: isMirrored ? "user" : "environment",
+              width: { ideal: 1280, max: 1920, min: 280 },
+              height: { ideal: 720, max: 1440, min: 373 }, // Adjusted min for 280 * 4/3
+              facingMode,
               frameRate: { ideal: 30, max: 60 },
             }}
             onUserMediaError={handleCameraError}
             playsInline
+            style={{ objectFit: "cover" }} // Ensure video fills the container
           />
           {countdown !== null && (
             <div
@@ -392,29 +456,31 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
               </button>
             </div>
 
-            {/* Mirror Toggle with Icon */}
-            <button
-              onClick={handleMirrorToggle}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <img
-                src={flipIcon}
-                alt="Flip Camera"
+            {/* Mirror Toggle with Icon (only on mobile) */}
+            {isMobile && (
+              <button
+                onClick={handleMirrorToggle}
                 style={{
-                  width: "32px",
-                  height: "32px",
-                  opacity: isMirrored ? 1 : 0.5,
-                  transition: "opacity 0.2s ease",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-              />
-            </button>
+              >
+                <img
+                  src={flipIcon}
+                  alt="Flip Camera"
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    opacity: facingMode === "user" ? 1 : 0.5,
+                    transition: "opacity 0.2s ease",
+                  }}
+                />
+              </button>
+            )}
           </div>
 
           <button

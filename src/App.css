@@ -127,6 +127,7 @@ button {
 }
 
 .edit-main {
+  width: fit-content;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -313,6 +314,10 @@ button {
     aspect-ratio: 4 / 3;
   }
 
+  .preview-photos {
+    width: 392px;
+  }
+
   .preview-photo {
     width: 80px;
     height: 80px;
@@ -322,10 +327,28 @@ button {
     width: 80px;
     height: 80px;
   }
+}
 
-  .edit-container,
-  .capture-container {
-    flex-direction: column;
+@media (max-width: 425px) {
+  .preview-photos {
+    width: 302px;
+  }
+}
+
+@media (max-width: 320px) {
+  .preview-photos {
+    width: 302px;
+  }
+
+  .camera-control-button img {
+    width: 24px;
+    /* Smaller icons for tiny screens */
+    height: 24px;
+  }
+
+  .shutter-button {
+    width: 60px;
+    height: 60px;
   }
 }
 
@@ -344,39 +367,33 @@ button {
   align-items: center;
   cursor: pointer;
   padding: 5px;
-  border: 2px solid transparent;
   transition: border-color 0.3s;
-  height: fit-content;
-  width: fit-content;
+  height: 200px;
+  width: 200px;
+  justify-content: center;
+  border: 1px solid #000;
+  background: #fff;
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.2);
+  transform: translate(-3px, -3px);
+  transition: transform 0.3s;
 }
 
 .layout-option.active {
   border-color: #007bff;
+  transform: translate(0, 0);
+  box-shadow: none;
 }
 
 .layout-option img {
-  transition: transform 0.3s;
-}
-
-.layout-option:hover img {
-  transform: scale(1.05);
+  max-height: 80%;
+  cursor: pointer;
+  max-width: 80%;
 }
 
 .layout-option p {
   margin: 5px 0 0;
   font-size: 12px;
   color: #333;
-}
-
-@media (max-width: 768px) {
-  .layout-option {
-    width: 80px;
-  }
-
-  .layout-option img {
-    width: 100%;
-    height: auto;
-  }
 }
 
 .device-info-text {
