@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/photobooth-app/static/css/main.c59d22bc.css",
-    "main.js": "/photobooth-app/static/js/main.6db50150.js",
+    "main.css": "/photobooth-app/static/css/main.55b3aa2b.css",
+    "main.js": "/photobooth-app/static/js/main.4fc45394.js",
     "static/js/206.8525450e.chunk.js": "/photobooth-app/static/js/206.8525450e.chunk.js",
     "static/media/wide-4-cut.png": "/photobooth-app/static/media/wide-4-cut.f4e780c7b43b39ebaf5d.png",
     "static/media/basic-4-cut.png": "/photobooth-app/static/media/basic-4-cut.ae6f9d152848ca7fb5eb.png",
@@ -14,7 +14,7 @@
     "index.html": "/photobooth-app/index.html"
   },
   "entrypoints": [
-    "static/css/main.c59d22bc.css",
-    "static/js/main.6db50150.js"
+    "static/css/main.55b3aa2b.css",
+    "static/js/main.4fc45394.js"
   ]
 }
