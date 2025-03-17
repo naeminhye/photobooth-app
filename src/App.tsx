@@ -246,7 +246,6 @@ const App: React.FC = () => {
       });
     };
 
-    // Hàm áp dụng gradient
     const applyGradient = () => {
       if (!gradient) {
         ctx.fillStyle = frameColor;
@@ -419,7 +418,6 @@ const App: React.FC = () => {
                       <img
                         src={layoutItem.templatePath}
                         alt={layoutItem.name}
-                        style={{ width: "100px", height: "auto", cursor: "pointer" }}
                       />
                       <p>{layoutItem.name}</p>
                     </div>

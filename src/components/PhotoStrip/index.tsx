@@ -127,7 +127,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       }
     }, [foregroundImage]);
 
-    // Hàm crop ảnh tương tự handleMergeLayers
     const cropImageToRectangle = (
       image: HTMLImageElement,
       rect: Rectangle
@@ -181,7 +180,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       });
     };
 
-    // Hàm áp dụng filter trên canvas thay vì KonvaImage
     const applyFilterToImage = (
       image: HTMLImageElement,
       filterType: string
@@ -213,7 +211,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             break;
           }
           case "whitening": {
-            // Brighten filter (tăng độ sáng)
+            // Brighten filter
             for (let i = 0; i < data.length; i += 4) {
               data[i] = Math.min(255, data[i] + 20); // Red
               data[i + 1] = Math.min(255, data[i + 1] + 20); // Green
@@ -222,7 +220,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
             break;
           }
           case "darker": {
-            // Darken filter (giảm độ sáng)
+            // Darken filter
             for (let i = 0; i < data.length; i += 4) {
               data[i] = Math.max(0, data[i] - 20); // Red
               data[i + 1] = Math.max(0, data[i + 1] - 20); // Green
@@ -241,7 +239,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       });
     };
 
-    // Load và xử lý ảnh với filter
     useEffect(() => {
       const loadPhotos = async () => {
         if (photos.length === 1 && photos[0].id === "combined") {
