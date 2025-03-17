@@ -89,7 +89,7 @@ const App: React.FC = () => {
     setStickers([]);
     setUploadedStickers([]);
     setTimerEnabled(false);
-    setCountdownTime(10);
+    setCountdownTime(0);
     setGifUrl(null);
     setIsCreatingGif(false);
     setStep(1);
@@ -382,14 +382,12 @@ const App: React.FC = () => {
   const handleOuterClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (photoStripRef.current && !photoStripRef.current.contains(e.target as Node)) {
       setSelectedStickerId(null);
-      console.log("Clicked outside PhotoStrip");
     }
   };
 
   const handleOuterTouch = (e: React.TouchEvent<HTMLDivElement>) => {
     if (photoStripRef.current && !photoStripRef.current.contains(e.target as Node)) {
       setSelectedStickerId(null);
-      console.log("Touched outside PhotoStrip");
     }
   };
 

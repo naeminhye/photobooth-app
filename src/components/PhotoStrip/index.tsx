@@ -12,10 +12,13 @@ import {
   Rect,
   Transformer,
   Text,
+  Circle,
+  Group,
 } from "react-konva";
 import { LAYOUTS, CanvasData, Rectangle, SCALE_FACTOR } from "../../constants";
 import "./styles.css";
 import { Gradient } from "../GradientPicker";
+import Konva from "konva";
 
 interface Photo {
   id: string;
@@ -95,21 +98,6 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
       [selectedStickerId, isViewOnly]
     );
-
-    // useEffect(() => {
-    //   const updateScale = () => {
-    //     if (!containerRef.current) return;
-    //     const viewportHeight = window.innerHeight;
-    //     const maxDisplayHeight = viewportHeight * 0.8;
-    //     const scaleY = maxDisplayHeight / stripHeight;
-    //     const newScale = Math.min(Math.max(scaleY, 0.5), 1);
-    //     setScale(newScale);
-    //   };
-
-    //   updateScale();
-    //   window.addEventListener("resize", updateScale);
-    //   return () => window.removeEventListener("resize", updateScale);
-    // }, [stripHeight]);
 
     const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
     const [fgImage, setFgImage] = useState<HTMLImageElement | null>(null);
@@ -298,31 +286,37 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       setSelectedStickerId(parseInt(id));
     };
 
-    const handleDeselect = (e: any) => {
-      if (
-        e.target?.id()?.indexOf("sticker") === -1 &&
-        e.target.className !== "Rect"
-      ) {
+    const handleDeselect = (
+      e: Konva.KonvaEventObject<MouseEvent | TouchEvent>
+    ) => {
+      const clickedOnSticker = e.target.id()?.includes("sticker");
+      const clickedOnDeleteButton = e.target.id()?.includes("delete-button");
+
+      // Deselect only if the click is not on a sticker or its delete button
+      if (!clickedOnSticker && !clickedOnDeleteButton) {
         setSelectedStickerId(null);
       }
     };
 
     const handleTransform = useCallback(
-      (e: any) => {
-        if (isViewOnly) return;
+      (e: Konva.KonvaEventObject<Event>) => {
+        if (isViewOnly) {
+          e.currentTarget.stopDrag();
+          return;
+        }
         const node = e.target;
         const id = parseInt(node.id().replace("sticker-", ""));
         setStickers((prev) =>
           prev.map((sticker) =>
             sticker.id === id
               ? {
-                ...sticker,
-                x: node.x() / SCALE_FACTOR,
-                y: node.y() / SCALE_FACTOR,
-                width: (node.width() * node.scaleX()) / SCALE_FACTOR,
-                height: (node.height() * node.scaleY()) / SCALE_FACTOR,
-                rotation: node.rotation(),
-              }
+                  ...sticker,
+                  x: node.x() / SCALE_FACTOR,
+                  y: node.y() / SCALE_FACTOR,
+                  width: (node.width() * node.scaleX()) / SCALE_FACTOR,
+                  height: (node.height() * node.scaleY()) / SCALE_FACTOR,
+                  rotation: node.rotation(),
+                }
               : sticker
           )
         );
@@ -334,13 +328,11 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
     const handleDeleteSticker = useCallback(
       () => {
-        if (isViewOnly) return;
-        if (selectedStickerId !== null) {
-          setStickers((prev) =>
-            prev.filter((sticker) => sticker.id !== selectedStickerId)
-          );
-          setSelectedStickerId(null);
-        }
+        if (isViewOnly || selectedStickerId === null) return;
+        setStickers((prev) =>
+          prev.filter((sticker) => sticker.id !== selectedStickerId)
+        );
+        setSelectedStickerId(null);
       },
       // eslint-disable-next-line react-hooks/exhaustive-deps
       [selectedStickerId, setStickers, isViewOnly]
@@ -349,21 +341,54 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     // Inside PhotoStrip, before rendering the Rect
     const adjustedGradient = gradient
       ? {
-        ...gradient,
-        fillLinearGradientEndPoint: { x: stripWidth, y: stripHeight },
-        fillRadialGradientStartPoint: gradient.fillRadialGradientStartPoint || {
-          x: stripWidth / 2,
-          y: stripHeight / 2,
-        }, // Center of the canvas
-        fillRadialGradientEndPoint: gradient.fillRadialGradientEndPoint || {
-          x: stripWidth / 2,
-          y: stripHeight / 2,
-        }, // Same as start point
-        fillRadialGradientEndRadius:
-          gradient.fillRadialGradientEndRadius ||
-          Math.max(stripWidth, stripHeight) / 2, // Ensure the gradient covers the entire canvas
-      }
+          ...gradient,
+          fillLinearGradientEndPoint: { x: stripWidth, y: stripHeight },
+          fillRadialGradientStartPoint:
+            gradient.fillRadialGradientStartPoint || {
+              x: stripWidth / 2,
+              y: stripHeight / 2,
+            }, // Center of the canvas
+          fillRadialGradientEndPoint: gradient.fillRadialGradientEndPoint || {
+            x: stripWidth / 2,
+            y: stripHeight / 2,
+          }, // Same as start point
+          fillRadialGradientEndRadius:
+            gradient.fillRadialGradientEndRadius ||
+            Math.max(stripWidth, stripHeight) / 2, // Ensure the gradient covers the entire canvas
+        }
       : null;
+
+    // Attach Transformer to the selected sticker
+    useEffect(
+      () => {
+        if (
+          transformerRef.current &&
+          selectedStickerId !== null &&
+          !isViewOnly
+        ) {
+          const stage = stageRef.current;
+          const layer = stage.findOne("Layer");
+          const stickerNode = layer.findOne(`#sticker-${selectedStickerId}`);
+          if (stickerNode) {
+            transformerRef.current.nodes([stickerNode]);
+            transformerRef.current.getLayer().batchDraw();
+          }
+        }
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [selectedStickerId, isViewOnly]
+    );
+
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (isViewOnly || selectedStickerId === null) return;
+        if (e.key === "Delete") {
+          handleDeleteSticker();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [selectedStickerId, isViewOnly, handleDeleteSticker]);
 
     return (
       <div ref={ref} className="photo-strip" style={{ position: "relative" }}>
@@ -394,42 +419,42 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
               {photos.length === 1 && photos[0].id === "combined"
                 ? photoImages[0] && (
-                  <KonvaImage
-                    image={photoImages[0]}
-                    width={stripWidth}
-                    height={stripHeight}
-                    listening={false}
-                  />
-                )
+                    <KonvaImage
+                      image={photoImages[0]}
+                      width={stripWidth}
+                      height={stripHeight}
+                      listening={false}
+                    />
+                  )
                 : currentLayout.rectangles.map((rect, index) => {
-                  const croppedImage = photoImages[index];
-                  if (croppedImage) {
-                    return (
-                      <KonvaImage
-                        key={index}
-                        image={croppedImage}
-                        x={rect.x * SCALE_FACTOR}
-                        y={rect.y * SCALE_FACTOR}
-                        width={rect.width * SCALE_FACTOR}
-                        height={rect.height * SCALE_FACTOR}
-                        listening={false}
-                      />
-                    );
-                  } else {
-                    return (
-                      <Rect
-                        key={index}
-                        x={rect.x * SCALE_FACTOR}
-                        y={rect.y * SCALE_FACTOR}
-                        width={rect.width * SCALE_FACTOR}
-                        height={rect.height * SCALE_FACTOR}
-                        fill="rgba(200, 200, 200, 0.5)"
-                        stroke="gray"
-                        strokeWidth={1 * SCALE_FACTOR}
-                      />
-                    );
-                  }
-                })}
+                    const croppedImage = photoImages[index];
+                    if (croppedImage) {
+                      return (
+                        <KonvaImage
+                          key={index}
+                          image={croppedImage}
+                          x={rect.x * SCALE_FACTOR}
+                          y={rect.y * SCALE_FACTOR}
+                          width={rect.width * SCALE_FACTOR}
+                          height={rect.height * SCALE_FACTOR}
+                          listening={false}
+                        />
+                      );
+                    } else {
+                      return (
+                        <Rect
+                          key={index}
+                          x={rect.x * SCALE_FACTOR}
+                          y={rect.y * SCALE_FACTOR}
+                          width={rect.width * SCALE_FACTOR}
+                          height={rect.height * SCALE_FACTOR}
+                          fill="rgba(200, 200, 200, 0.5)"
+                          stroke="gray"
+                          strokeWidth={1 * SCALE_FACTOR}
+                        />
+                      );
+                    }
+                  })}
 
               {fgImage && (
                 <KonvaImage
@@ -440,21 +465,69 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
               )}
 
               {stickers.map((sticker) => (
-                <KonvaImage
-                  key={sticker.id}
-                  id={`sticker-${sticker.id}`}
-                  image={sticker.image}
-                  x={sticker.x * SCALE_FACTOR}
-                  y={sticker.y * SCALE_FACTOR}
-                  width={sticker.width * SCALE_FACTOR}
-                  height={sticker.height * SCALE_FACTOR}
-                  rotation={sticker.rotation}
-                  draggable
-                  onClick={handleSelectSticker}
-                  onTap={handleSelectSticker}
-                  onDragEnd={handleTransform}
-                  onTransformEnd={handleTransform}
-                />
+                <Group key={sticker.id}>
+                  <KonvaImage
+                    id={`sticker-${sticker.id}`}
+                    image={sticker.image}
+                    x={sticker.x * SCALE_FACTOR}
+                    y={sticker.y * SCALE_FACTOR}
+                    width={sticker.width * SCALE_FACTOR}
+                    height={sticker.height * SCALE_FACTOR}
+                    rotation={sticker.rotation}
+                    draggable={!isViewOnly}
+                    onClick={handleSelectSticker}
+                    onTap={handleSelectSticker}
+                    onDragEnd={handleTransform}
+                    onTransformEnd={handleTransform}
+                  />
+                  {selectedStickerId === sticker.id && !isViewOnly && (
+                    <>
+                      <Transformer
+                        id={`transformer-${sticker.id}`}
+                        ref={transformerRef}
+                        anchorSize={10}
+                        anchorCornerRadius={4}
+                        borderStrokeWidth={2}
+                        rotateEnabled
+                        enabledAnchors={[
+                          "top-left",
+                          "top-right",
+                          "bottom-left",
+                          "bottom-right",
+                        ]}
+                      />
+                      <Circle
+                        id={`delete-button-${sticker.id}`}
+                        x={
+                          sticker.x * SCALE_FACTOR +
+                          sticker.width * SCALE_FACTOR +
+                          15 // Position to the right of the sticker
+                        }
+                        y={sticker.y * SCALE_FACTOR - 15} // Position above the top-right corner
+                        radius={10}
+                        fill="red"
+                        onClick={handleDeleteSticker}
+                        onTap={handleDeleteSticker}
+                        draggable={false}
+                        listening={true}
+                      />
+                      <Text
+                        id={`delete-text-${sticker.id}`}
+                        x={
+                          sticker.x * SCALE_FACTOR +
+                          sticker.width * SCALE_FACTOR +
+                          10
+                        }
+                        y={sticker.y * SCALE_FACTOR - 20}
+                        text="X"
+                        fontSize={12}
+                        fill="white"
+                        align="center"
+                        listening={false}
+                      />
+                    </>
+                  )}
+                </Group>
               ))}
 
               <Text
@@ -468,47 +541,9 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 perfectDrawEnabled={true}
                 listening={false}
               />
-
-              {selectedStickerId !== null && !isViewOnly && (
-                <Transformer
-                  id="transformer"
-                  ref={transformerRef}
-                  anchorSize={8}
-                  anchorCornerRadius={4}
-                  borderStrokeWidth={1}
-                  rotateEnabled
-                  enabledAnchors={[
-                    "top-left",
-                    "top-right",
-                    "bottom-left",
-                    "bottom-right",
-                  ]}
-                />
-              )}
             </Layer>
           </Stage>
         </div>
-
-        {selectedStickerId !== null && (
-          <button
-            onClick={handleDeleteSticker}
-            style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              background: "red",
-              color: "white",
-              border: "none",
-              borderRadius: "50%",
-              width: "30px",
-              height: "30px",
-              cursor: "pointer",
-              zIndex: 10,
-            }}
-          >
-            X
-          </button>
-        )}
       </div>
     );
   }
