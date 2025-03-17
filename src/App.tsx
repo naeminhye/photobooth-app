@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./App.css";
 import PhotoStrip from "./components/PhotoStrip";
@@ -15,6 +14,7 @@ import GradientBackground from "./components/GradientBackground";
 import { getContrastColor } from "./utils/colors";
 import { Gradient } from "./components/GradientPicker";
 import { getDeviceType } from "./utils";
+import CropModal from "./components/CropModal";
 
 interface Photo {
   id: string;
@@ -36,30 +36,45 @@ const App: React.FC = () => {
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [previewPhotos, setPreviewPhotos] = useState<Photo[]>([]);
   const [frameColor, setFrameColor] = useState<string>("#FFFFFF");
-  const [gradient, setGradientColor] = useState<Gradient | undefined>(undefined);
+  const [gradient, setGradientColor] = useState<Gradient | undefined>(
+    undefined
+  );
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [layout, setLayout] = useState<number>(0);
   const [foregroundImage, setForegroundImage] = useState<string | null>(null);
   const [stickers, setStickers] = useState<Sticker[]>([]);
-  const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>([]);
+  const [uploadedStickers, setUploadedStickers] = useState<HTMLImageElement[]>(
+    []
+  );
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [countdownTime, setCountdownTime] = useState<number>(0);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [isCreatingGif, setIsCreatingGif] = useState(false);
   const [step, setStep] = useState<number>(1);
   const [isMirrored, setIsMirrored] = useState<boolean>(true);
-  const photoStripRef: any = useRef(null);
-  const sequentialGifRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   const [combinedImage, setCombinedImage] = useState<string | null>(null);
-  const [selectedStickerId, setSelectedStickerId] = useState<number | null>(null);
+  const [selectedStickerId, setSelectedStickerId] = useState<number | null>(
+    null
+  );
   const [filter, setFilter] = useState<string>("none");
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [tempBackgroundImage, setTempBackgroundImage] = useState<string | null>(
+    null
+  );
   const stageRef = useRef<any>(null);
+  const photoStripRef: any = useRef<HTMLDivElement>(null);
+  const sequentialGifRef = useRef<HTMLDivElement>(null);
 
   const currentLayout = useMemo(() => LAYOUTS[layout], [layout]);
-  const maxPhotos = useMemo(() => currentLayout.rectangles.length, [currentLayout]);
+  const maxPhotos = useMemo(
+    () => currentLayout.rectangles.length,
+    [currentLayout]
+  );
 
   const textColor = useMemo(
-    () => (backgroundImage || gradient ? "#FFFFFF" : getContrastColor(frameColor)),
+    () =>
+      backgroundImage || gradient ? "#FFFFFF" : getContrastColor(frameColor),
     [backgroundImage, frameColor, gradient]
   );
 
@@ -75,7 +90,7 @@ const App: React.FC = () => {
       setHasPermission(true);
     } catch (error) {
       console.error("Camera error:", error);
-      setHasPermission(false); // Ensure hasPermission is false on error
+      setHasPermission(false);
     }
   };
 
@@ -95,6 +110,7 @@ const App: React.FC = () => {
     setStep(1);
     setIsMirrored(true);
     setCombinedImage(null);
+    setLoading(false);
   };
 
   const handlePhotoCapture = (photo: string) => {
@@ -146,165 +162,244 @@ const App: React.FC = () => {
       handleMergeLayers();
       setStep(4);
     } else if (step === 4) {
-      handleMergeLayers();
       setStep(5);
     } else {
       alert("Please capture or select at least one photo before proceeding.");
     }
   };
 
-  const handleMergeLayers = () => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  const handleMergeLayers = async () => {
+    setLoading(true); // Start loading
+    console.log("handleMergeLayers called, loading set to true");
 
-    const stripWidth = currentLayout.canvas.width * 2;
-    const stripHeight = currentLayout.canvas.height * 2;
-    canvas.width = stripWidth;
-    canvas.height = stripHeight;
-
-    const drawPhotosAndForeground = () => {
-      const rectangles = currentLayout.rectangles.map((rect) => ({
-        x: rect.x * 2,
-        y: rect.y * 2,
-        width: rect.width * 2,
-        height: rect.height * 2,
-      }));
-
-      selectedPhotos.forEach((photo, index) => {
-        if (index >= rectangles.length) return;
-        const rect = rectangles[index];
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = photo.url;
-        img.onload = () => {
-          const cropImageToRectangle = (
-            image: HTMLImageElement,
-            rect: { width: number; height: number }
-          ) => {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return image;
-
-            const imgWidth = image.width;
-            const imgHeight = image.height;
-            const rectWidth = rect.width;
-            const rectHeight = rect.height;
-
-            const rectRatio = rectWidth / rectHeight;
-            const imgRatio = imgWidth / imgHeight;
-
-            let cropWidth, cropHeight, cropX, cropY;
-
-            if (imgRatio > rectRatio) {
-              cropWidth = imgHeight * rectRatio;
-              cropHeight = imgHeight;
-              cropX = (imgWidth - cropWidth) / 2;
-              cropY = 0;
-            } else {
-              cropHeight = imgWidth / rectRatio;
-              cropWidth = imgWidth;
-              cropX = 0;
-              cropY = (imgHeight - cropHeight) / 2;
-            }
-
-            canvas.width = rectWidth;
-            canvas.height = rectHeight;
-            ctx.drawImage(
-              image,
-              cropX,
-              cropY,
-              cropWidth,
-              cropHeight,
-              0,
-              0,
-              rectWidth,
-              rectHeight
-            );
-
-            const croppedImage = new Image();
-            croppedImage.src = canvas.toDataURL("image/png");
-            return croppedImage;
-          };
-
-          const croppedImg = cropImageToRectangle(img, rect);
-          croppedImg.onload = () => {
-            ctx.drawImage(croppedImg, rect.x, rect.y, rect.width, rect.height);
-
-            if (index === selectedPhotos.length - 1 && foregroundImage) {
-              const fgImg = new Image();
-              fgImg.src = foregroundImage;
-              fgImg.onload = () => {
-                ctx.drawImage(fgImg, 0, 0, stripWidth, stripHeight);
-                setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
-              };
-            } else if (index === selectedPhotos.length - 1) {
-              setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
-            }
-          };
-        };
-      });
-    };
-
-    const applyGradient = () => {
-      if (!gradient) {
-        ctx.fillStyle = frameColor;
-        ctx.fillRect(0, 0, stripWidth, stripHeight);
-        drawPhotosAndForeground();
-        return;
+    try {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("Failed to get canvas context");
       }
 
-      if (gradient.fillLinearGradientColorStops) {
-        // Linear Gradient
-        const linearGradient = ctx.createLinearGradient(
-          gradient.fillLinearGradientStartPoint?.x || 0,
-          gradient.fillLinearGradientStartPoint?.y || 0,
-          gradient.fillLinearGradientEndPoint?.x || stripWidth,
-          gradient.fillLinearGradientEndPoint?.y || stripHeight
-        );
+      const stripWidth = currentLayout.canvas.width * 2;
+      const stripHeight = currentLayout.canvas.height * 2;
+      canvas.width = stripWidth;
+      canvas.height = stripHeight;
 
-        for (let i = 0; i < gradient.fillLinearGradientColorStops.length; i += 2) {
-          const position = gradient.fillLinearGradientColorStops[i] as number;
-          const color = gradient.fillLinearGradientColorStops[i + 1] as string;
-          linearGradient.addColorStop(position, color);
-        }
-
-        ctx.fillStyle = linearGradient;
-        ctx.fillRect(0, 0, stripWidth, stripHeight);
-      } else if (gradient.fillRadialGradientColorStops) {
-        debugger
-        // Radial Gradient
-        const radialGradient = ctx.createRadialGradient(
-          gradient.fillRadialGradientStartPoint?.x || stripWidth / 2,
-          gradient.fillRadialGradientStartPoint?.y || stripHeight / 2,
-          gradient.fillRadialGradientStartRadius || 0,
-          gradient.fillRadialGradientEndPoint?.x || stripWidth / 2,
-          gradient.fillRadialGradientEndPoint?.y || stripHeight / 2,
-          gradient.fillRadialGradientEndRadius || Math.max(stripWidth, stripHeight) / 2
-        );
-
-        for (let i = 0; i < gradient.fillRadialGradientColorStops.length; i += 2) {
-          const position = gradient.fillRadialGradientColorStops[i] as number;
-          const color = gradient.fillRadialGradientColorStops[i + 1] as string;
-          radialGradient.addColorStop(position, color);
-        }
-
-        ctx.fillStyle = radialGradient;
-        ctx.fillRect(0, 0, stripWidth, stripHeight);
-      }
-
-      drawPhotosAndForeground();
-    };
-
-    if (backgroundImage) {
-      const bgImg = new Image();
-      bgImg.src = backgroundImage;
-      bgImg.onload = () => {
-        ctx.drawImage(bgImg, 0, 0, stripWidth, stripHeight);
-        drawPhotosAndForeground();
+      // Hàm vẽ background (nếu có)
+      const drawBackground = () => {
+        return new Promise<void>((resolve) => {
+          if (!backgroundImage) {
+            resolve();
+            return;
+          }
+          const bgImg = new Image();
+          bgImg.src = backgroundImage;
+          bgImg.onload = () => {
+            ctx.drawImage(bgImg, 0, 0, stripWidth, stripHeight);
+            resolve();
+          };
+          bgImg.onerror = () => {
+            console.error("Failed to load background image");
+            resolve(); // Vẫn tiếp tục dù lỗi
+          };
+        });
       };
-    } else {
-      applyGradient();
+
+      // Hàm áp dụng gradient (nếu không có background)
+      const applyGradient = () => {
+        if (!gradient) {
+          ctx.fillStyle = frameColor;
+          ctx.fillRect(0, 0, stripWidth, stripHeight);
+          return;
+        }
+
+        if (gradient.fillLinearGradientColorStops) {
+          const linearGradient = ctx.createLinearGradient(
+            gradient.fillLinearGradientStartPoint?.x || 0,
+            gradient.fillLinearGradientStartPoint?.y || 0,
+            gradient.fillLinearGradientEndPoint?.x || stripWidth,
+            gradient.fillLinearGradientEndPoint?.y || stripHeight
+          );
+
+          for (
+            let i = 0;
+            i < gradient.fillLinearGradientColorStops.length;
+            i += 2
+          ) {
+            const position = gradient.fillLinearGradientColorStops[i] as number;
+            const color = gradient.fillLinearGradientColorStops[
+              i + 1
+            ] as string;
+            linearGradient.addColorStop(position, color);
+          }
+
+          ctx.fillStyle = linearGradient;
+          ctx.fillRect(0, 0, stripWidth, stripHeight);
+        } else if (gradient.fillRadialGradientColorStops) {
+          const radialGradient = ctx.createRadialGradient(
+            gradient.fillRadialGradientStartPoint?.x || stripWidth / 2,
+            gradient.fillRadialGradientStartPoint?.y || stripHeight / 2,
+            gradient.fillRadialGradientStartRadius || 0,
+            gradient.fillRadialGradientEndPoint?.x || stripWidth / 2,
+            gradient.fillRadialGradientEndPoint?.y || stripHeight / 2,
+            gradient.fillRadialGradientEndRadius ||
+              Math.max(stripWidth, stripHeight) / 2
+          );
+
+          for (
+            let i = 0;
+            i < gradient.fillRadialGradientColorStops.length;
+            i += 2
+          ) {
+            const position = gradient.fillRadialGradientColorStops[i] as number;
+            const color = gradient.fillRadialGradientColorStops[
+              i + 1
+            ] as string;
+            radialGradient.addColorStop(position, color);
+          }
+
+          ctx.fillStyle = radialGradient;
+          ctx.fillRect(0, 0, stripWidth, stripHeight);
+        }
+      };
+
+      // Hàm vẽ photos
+      const drawPhotos = () => {
+        const rectangles = currentLayout.rectangles.map((rect) => ({
+          x: rect.x * 2,
+          y: rect.y * 2,
+          width: rect.width * 2,
+          height: rect.height * 2,
+        }));
+
+        const promises = selectedPhotos.map((photo, index) => {
+          if (index >= rectangles.length) return Promise.resolve();
+          const rect = rectangles[index];
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.src = photo.url;
+          return new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              const cropImageToRectangle = (
+                image: HTMLImageElement,
+                rect: { width: number; height: number }
+              ) => {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                if (!ctx) {
+                  reject(
+                    new Error("Failed to get canvas context for cropping")
+                  );
+                  return image;
+                }
+
+                const imgWidth = image.width;
+                const imgHeight = image.height;
+                const rectWidth = rect.width;
+                const rectHeight = rect.height;
+
+                const rectRatio = rectWidth / rectHeight;
+                const imgRatio = imgWidth / imgHeight;
+
+                let cropWidth, cropHeight, cropX, cropY;
+
+                if (imgRatio > rectRatio) {
+                  cropWidth = imgHeight * rectRatio;
+                  cropHeight = imgHeight;
+                  cropX = (imgWidth - cropWidth) / 2;
+                  cropY = 0;
+                } else {
+                  cropHeight = imgWidth / rectRatio;
+                  cropWidth = imgWidth;
+                  cropX = 0;
+                  cropY = (imgHeight - cropHeight) / 2;
+                }
+
+                canvas.width = rectWidth;
+                canvas.height = rectHeight;
+                ctx.drawImage(
+                  image,
+                  cropX,
+                  cropY,
+                  cropWidth,
+                  cropHeight,
+                  0,
+                  0,
+                  rectWidth,
+                  rectHeight
+                );
+
+                const croppedImage = new Image();
+                croppedImage.src = canvas.toDataURL("image/png");
+                return croppedImage;
+              };
+
+              const croppedImg = cropImageToRectangle(img, rect);
+              croppedImg.onload = () => {
+                ctx.drawImage(
+                  croppedImg,
+                  rect.x,
+                  rect.y,
+                  rect.width,
+                  rect.height
+                );
+                resolve();
+              };
+              croppedImg.onerror = () => {
+                console.error("Failed to load cropped image");
+                reject(new Error("Failed to load cropped image"));
+              };
+            };
+            img.onerror = () => {
+              console.error("Failed to load photo image");
+              reject(new Error("Failed to load photo image"));
+            };
+          });
+        });
+
+        return Promise.all(promises);
+      };
+
+      // Hàm vẽ foreground (nếu có)
+      const drawForeground = () => {
+        return new Promise<void>((resolve) => {
+          if (!foregroundImage) {
+            resolve();
+            return;
+          }
+          const fgImg = new Image();
+          fgImg.src = foregroundImage;
+          fgImg.onload = () => {
+            ctx.drawImage(fgImg, 0, 0, stripWidth, stripHeight);
+            resolve();
+          };
+          fgImg.onerror = () => {
+            console.error("Failed to load foreground image");
+            resolve(); // Vẫn tiếp tục dù lỗi
+          };
+        });
+      };
+
+      // Quy trình vẽ chính
+      // 1. Vẽ background hoặc gradient
+      if (backgroundImage) {
+        await drawBackground();
+      } else {
+        applyGradient();
+      }
+
+      // 2. Vẽ photos
+      await drawPhotos();
+
+      // 3. Vẽ foreground
+      await drawForeground();
+
+      // 4. Lưu kết quả và tắt loading
+      setCombinedImage(canvas.toDataURL("image/jpeg", 1.0));
+      setLoading(false); // Chỉ tắt loading khi tất cả đã hoàn tất
+      console.log("handleMergeLayers completed, loading set to false");
+    } catch (error) {
+      console.error("Error in handleMergeLayers:", error);
+      setLoading(false);
     }
   };
 
@@ -340,34 +435,19 @@ const App: React.FC = () => {
   };
 
   const downloadImage = () => {
-    const photoStrip = photoStripRef.current;
-    if (photoStrip) {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+    const stage = stageRef.current;
+    if (stage) {
+      const highQualityPixelRatio = 4;
+      const dataUrl = stage.toDataURL({
+        pixelRatio: highQualityPixelRatio,
+        mimeType: "image/png",
+        quality: 1.0,
+      });
 
-      canvas.width = currentLayout.canvas.width;
-      canvas.height = currentLayout.canvas.height;
-
-      const stage = stageRef.current;
-      if (stage) {
-        const dataUrl = stage.toDataURL({
-          pixelRatio: 3, // Adjusted for better quality
-        });
-
-        const img = new Image();
-        img.src = dataUrl;
-        img.onload = () => {
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-          const link = document.createElement("a");
-          link.download = `photobooth_${Date.now()}.jpg`;
-          link.href = canvas.toDataURL("image/jpeg", 1.0);
-          link.click();
-        };
-      }
+      const link = document.createElement("a");
+      link.download = `photobooth_${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
     }
   };
 
@@ -379,13 +459,19 @@ const App: React.FC = () => {
   }));
 
   const handleOuterClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (photoStripRef.current && !photoStripRef.current.contains(e.target as Node)) {
+    if (
+      photoStripRef.current &&
+      !photoStripRef.current.contains(e.target as Node)
+    ) {
       setSelectedStickerId(null);
     }
   };
 
   const handleOuterTouch = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (photoStripRef.current && !photoStripRef.current.contains(e.target as Node)) {
+    if (
+      photoStripRef.current &&
+      !photoStripRef.current.contains(e.target as Node)
+    ) {
       setSelectedStickerId(null);
     }
   };
@@ -399,8 +485,36 @@ const App: React.FC = () => {
     setFilter(filterValue);
   };
 
+  const handleBackgroundChange = (file: File | null) => {
+    if (!file) {
+      setBackgroundImage(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setTempBackgroundImage(e.target?.result as string);
+      setIsCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropConfirm = (croppedImage: HTMLImageElement) => {
+    setBackgroundImage(croppedImage.src);
+    setIsCropModalOpen(false);
+    setTempBackgroundImage(null);
+  };
+
+  const handleCropCancel = () => {
+    setIsCropModalOpen(false);
+    setTempBackgroundImage(null);
+  };
+
   return (
-    <div className="app" onMouseDown={handleOuterClick} onTouchStart={handleOuterTouch}>
+    <div
+      className="app"
+      onMouseDown={handleOuterClick}
+      onTouchStart={handleOuterTouch}
+    >
       <GradientBackground />
       <div className="main-container">
         {hasPermission ? (
@@ -412,7 +526,9 @@ const App: React.FC = () => {
                   {layouts.map((layoutItem) => (
                     <div
                       key={layoutItem.id}
-                      className={`layout-option ${layoutItem.id === layout ? "active" : ""}`}
+                      className={`layout-option ${
+                        layoutItem.id === layout ? "active" : ""
+                      }`}
                       onClick={() => setLayout(layoutItem.id)}
                     >
                       <img
@@ -485,6 +601,8 @@ const App: React.FC = () => {
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
+                      loading={loading}
+                      setLoading={setLoading}
                       isViewOnly={false}
                       photos={selectedPhotos}
                       frameColor={frameColor}
@@ -514,16 +632,12 @@ const App: React.FC = () => {
                     />
                     <FrameControls
                       onColorChange={setFrameColor}
-                      onBackgroundChange={setBackgroundImage}
+                      onBackgroundChange={handleBackgroundChange}
                       onForegroundChange={setForegroundImage}
                       backgroundImage={backgroundImage}
                       foregroundImage={foregroundImage}
                       layout={layout}
                       onLayoutChange={setLayout}
-                      selectedPhotos={selectedPhotos.map((photo) => photo.url)}
-                      onReset={resetAll}
-                      onPhotoUpload={handlePhotoUpload}
-                      photoStripRef={photoStripRef}
                       frameColor={frameColor}
                       onFilterChange={handleFilterChange}
                       frameGradient={gradient}
@@ -548,6 +662,8 @@ const App: React.FC = () => {
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
+                      loading={loading}
+                      setLoading={setLoading}
                       isViewOnly={false}
                       photos={
                         combinedImage
@@ -580,17 +696,19 @@ const App: React.FC = () => {
                           hidden
                         />
                       </label>
-                      {!!uploadedStickers?.length && <div className="sticker-preview">
-                        {uploadedStickers.map((sticker, index) => (
-                          <img
-                            key={index}
-                            src={sticker.src}
-                            alt="Sticker"
-                            className="sticker-item"
-                            onClick={() => addStickerToCanvas(sticker)}
-                          />
-                        ))}
-                      </div>}
+                      {!!uploadedStickers?.length && (
+                        <div className="sticker-preview">
+                          {uploadedStickers.map((sticker, index) => (
+                            <img
+                              key={index}
+                              src={sticker.src}
+                              alt="Sticker"
+                              className="sticker-item"
+                              onClick={() => addStickerToCanvas(sticker)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -611,6 +729,8 @@ const App: React.FC = () => {
                   <div className="edit-main">
                     <PhotoStrip
                       ref={photoStripRef}
+                      loading={loading}
+                      setLoading={setLoading}
                       isViewOnly={!!combinedImage}
                       photos={
                         combinedImage
@@ -630,14 +750,16 @@ const App: React.FC = () => {
                       stageRef={stageRef}
                     />
                   </div>
-                  <div className="edit-sidebar-right">
-                    <SequentialGif
-                      ref={sequentialGifRef}
-                      gifUrl={gifUrl}
-                      isCreatingGif={isCreatingGif}
-                      isMirrored={isMirrored}
-                    />
-                  </div>
+                  {gifUrl && (
+                    <div className="edit-sidebar-right">
+                      <SequentialGif
+                        ref={sequentialGifRef}
+                        gifUrl={gifUrl}
+                        isCreatingGif={isCreatingGif}
+                        isMirrored={isMirrored}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="step-navigation">
                   <button className="cta-button" onClick={resetAll}>
@@ -652,7 +774,19 @@ const App: React.FC = () => {
           </div>
         ) : (
           <p className="no-permission">
-            Please allow camera access to use the photobooth. Ensure you’re accessing this site over HTTPS and have granted camera permissions in your browser settings.          </p>
+            Please allow camera access to use the photobooth. Ensure you’re
+            accessing this site over HTTPS and have granted camera permissions
+            in your browser settings.
+          </p>
+        )}
+        {isCropModalOpen && tempBackgroundImage && (
+          <CropModal
+            imageUrl={tempBackgroundImage}
+            layoutWidth={currentLayout.canvas.width}
+            layoutHeight={currentLayout.canvas.height}
+            onConfirm={handleCropConfirm}
+            onCancel={handleCropCancel}
+          />
         )}
       </div>
       <div className="device-info-text">{deviceType}</div>

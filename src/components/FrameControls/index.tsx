@@ -8,14 +8,10 @@ import ColorPicker from "../ColorPicker";
 
 interface FrameControlsProps {
   onColorChange: (color: string) => void;
-  onBackgroundChange: (image: string | null) => void;
+  onBackgroundChange: (file: File | null) => void;
   onForegroundChange: (image: string | null) => void;
   layout: number;
   onLayoutChange: (layout: number) => void;
-  selectedPhotos: string[];
-  onReset: () => void;
-  onPhotoUpload: (files: File[]) => void;
-  photoStripRef: React.RefObject<HTMLDivElement>;
   frameColor: string;
   backgroundImage: string | null;
   foregroundImage: string | null;
@@ -28,10 +24,6 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   onColorChange,
   onBackgroundChange,
   onForegroundChange,
-  selectedPhotos,
-  onReset,
-  onPhotoUpload,
-  photoStripRef,
   frameColor,
   backgroundImage,
   foregroundImage,
@@ -45,12 +37,12 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   const handleBackgroundColorChange = (color: string) => {
     onColorChange(color);
     onSelectFrameGradient(undefined);
-  }
+  };
 
   const handleGradientChange = (gradient?: Gradient) => {
-    onColorChange('');
+    onColorChange("");
     onSelectFrameGradient(gradient);
-  }
+  };
 
   const handleForegroundUpload = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -68,13 +60,7 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   ) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = () => onBackgroundChange(reader.result as string);
-      reader.readAsDataURL(file);
-
-      // Clear selected color
-      onColorChange('');
-      onSelectFrameGradient(undefined);
+      onBackgroundChange(file); // Pass the file to App's handler
     }
   };
 
@@ -105,9 +91,10 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                 Background Color or Image
               </label>
               <ColorPicker
-                value={backgroundImage ? '' : frameColor}
-                onColorChange={handleBackgroundColorChange} />
-              <div style={{ fontSize: 12, textAlign: 'center', marginTop: 12 }}>
+                value={backgroundImage ? "" : frameColor}
+                onColorChange={handleBackgroundColorChange}
+              />
+              <div style={{ fontSize: 12, textAlign: "center", marginTop: 12 }}>
                 Or pick a Gradient
               </div>
               <GradientPicker

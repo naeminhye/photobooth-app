@@ -150,10 +150,10 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, onColorChange }) => {
           onClick={() => setShowPicker(!showPicker)}
           style={{
             backgroundColor: value,
-            borderColor: value ? getContrastColor(value) : "#000",
+            borderColor: !!value ? getContrastColor(value) : "#000",
           }}
         >
-          <span style={{ color: value ? getContrastColor(value) : "#000" }}>
+          <span style={{ color: !!value ? getContrastColor(value) : "#000" }}>
             Click to pick a color
           </span>
         </div>
