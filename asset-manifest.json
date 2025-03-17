@@ -1,20 +1,19 @@
 {
   "files": {
-    "main.css": "/photobooth-app/static/css/main.55b3aa2b.css",
-    "main.js": "/photobooth-app/static/js/main.4fc45394.js",
+    "main.css": "/photobooth-app/static/css/main.7a51bef5.css",
+    "main.js": "/photobooth-app/static/js/main.43082e1b.js",
     "static/js/206.8525450e.chunk.js": "/photobooth-app/static/js/206.8525450e.chunk.js",
     "static/media/wide-4-cut.png": "/photobooth-app/static/media/wide-4-cut.f4e780c7b43b39ebaf5d.png",
     "static/media/basic-4-cut.png": "/photobooth-app/static/media/basic-4-cut.ae6f9d152848ca7fb5eb.png",
     "static/media/basic-6-cut.png": "/photobooth-app/static/media/basic-6-cut.1fbcabee5e01ad3ce47c.png",
     "static/media/rizz-4-cut.png": "/photobooth-app/static/media/rizz-4-cut.e1f061b7bada03258574.png",
-    "static/media/basic-4-cut-2.png": "/photobooth-app/static/media/basic-4-cut-2.78d97eda5bdb5037b77c.png",
     "static/media/film-3-cut.png": "/photobooth-app/static/media/film-3-cut.c6dee69c1fc8945bfc4d.png",
     "static/media/flip.png": "/photobooth-app/static/media/flip.e8f5746e0dabb58d0c56.png",
     "static/media/timer_10_outline.png": "/photobooth-app/static/media/timer_10_outline.90d8f6331c119ef7d771.png",
     "index.html": "/photobooth-app/index.html"
   },
   "entrypoints": [
-    "static/css/main.55b3aa2b.css",
-    "static/js/main.4fc45394.js"
+    "static/css/main.7a51bef5.css",
+    "static/js/main.43082e1b.js"
   ]
 }
