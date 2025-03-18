@@ -3,6 +3,7 @@ import "./App.css";
 import PhotoStrip from "./components/PhotoStrip";
 import FrameControls from "./components/FrameControls";
 import CameraFeed from "./components/CameraFeed";
+import SequentialVideo from "./components/SequentialVideo";
 import SequentialGif from "./components/SequentialGif";
 import PreviewPhotos from "./components/PreviewPhotos";
 import { LAYOUTS, MAX_PHOTOS } from "./constants";
@@ -31,6 +32,15 @@ interface Sticker {
   rotation: number;
 }
 
+type CaptureMode = "photostrip" | "gif" | "video"; // New type for modes
+
+const layouts = LAYOUTS.map((layout, index) => ({
+  id: index,
+  name: layout.name,
+  maxPhotos: layout.rectangles.length,
+  templatePath: layout.templatePath,
+}));
+
 const App: React.FC = () => {
   const [hasPermission, setHasPermission] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
@@ -48,9 +58,11 @@ const App: React.FC = () => {
   );
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [countdownTime, setCountdownTime] = useState<number>(0);
-  const [gifUrl, setGifUrl] = useState<string | null>(null);
-  const [isCreatingGif, setIsCreatingGif] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoMimeType, setVideoMimeType] = useState<string>("");
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [step, setStep] = useState<number>(1);
+  const [captureMode, setCaptureMode] = useState<CaptureMode>("photostrip");
   const [isMirrored, setIsMirrored] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [combinedImage, setCombinedImage] = useState<string | null>(null);
@@ -64,6 +76,7 @@ const App: React.FC = () => {
   );
   const stageRef = useRef<any>(null);
   const photoStripRef: any = useRef<HTMLDivElement>(null);
+  const sequentialVideoRef = useRef<HTMLDivElement>(null);
   const sequentialGifRef = useRef<HTMLDivElement>(null);
 
   const currentLayout = useMemo(() => LAYOUTS[layout], [layout]);
@@ -105,9 +118,11 @@ const App: React.FC = () => {
     setUploadedStickers([]);
     setTimerEnabled(false);
     setCountdownTime(0);
-    setGifUrl(null);
-    setIsCreatingGif(false);
+    setVideoUrl(null);
+    setVideoMimeType("");
+    setIsRecordingVideo(false);
     setStep(1);
+    setCaptureMode("photostrip"); // Reset to default mode
     setIsMirrored(true);
     setCombinedImage(null);
     setLoading(false);
@@ -122,8 +137,26 @@ const App: React.FC = () => {
     setPreviewPhotos((prev) => [...prev, newPhoto]);
   };
 
-  const handleGifComplete = (gifUrl: string) => {
-    setGifUrl(gifUrl);
+  const handleVideoComplete = (videoUrl: string, mimeType: string) => {
+    setVideoUrl(videoUrl);
+    setVideoMimeType(mimeType);
+  };
+
+  const downloadVideo = () => {
+    if (videoUrl) {
+      const extension = videoMimeType.includes("gif")
+        ? "gif"
+        : videoMimeType.includes("mp4")
+        ? "mp4"
+        : "webm";
+      const prefix = videoMimeType.includes("gif")
+        ? "photobooth_gif"
+        : "photobooth_video";
+      const link = document.createElement("a");
+      link.href = videoUrl;
+      link.download = `${prefix}_${Date.now()}.${extension}`;
+      link.click();
+    }
   };
 
   const handlePhotoUpload = (files: File[]) => {
@@ -155,14 +188,16 @@ const App: React.FC = () => {
 
   const goToNextStep = () => {
     if (step === 1) {
-      setStep(2);
-    } else if (step === 2 && previewPhotos.length > 0) {
-      setStep(3);
-    } else if (step === 3 && selectedPhotos.length > 0) {
+      setStep(2); // Move to mode selection
+    } else if (step === 2) {
+      setStep(3); // Move to CameraFeed with mode set
+    } else if (step === 3 && previewPhotos.length > 0) {
+      setStep(4); // Edit photostrip
+    } else if (step === 4 && selectedPhotos.length > 0) {
       handleMergeLayers();
-      setStep(4);
-    } else if (step === 4) {
-      setStep(5);
+      setStep(5); // Add stickers
+    } else if (step === 5) {
+      setStep(6); // Review and download
     } else {
       alert("Please capture or select at least one photo before proceeding.");
     }
@@ -451,13 +486,6 @@ const App: React.FC = () => {
     }
   };
 
-  const layouts = LAYOUTS.map((layout, index) => ({
-    id: index,
-    name: layout.name,
-    maxPhotos: layout.rectangles.length,
-    templatePath: layout.templatePath,
-  }));
-
   const handleOuterClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (
       photoStripRef.current &&
@@ -551,22 +579,66 @@ const App: React.FC = () => {
             )}
             {step === 2 && (
               <div className="step-2">
+                <h2 className="step-title">Choose Capture Mode</h2>
+                <div className="mode-toggle">
+                  <div
+                    className={`mode-option ${
+                      captureMode === "photostrip" ? "active" : ""
+                    }`}
+                    onClick={() => setCaptureMode("photostrip")}
+                  >
+                    <p>Photostrip Only</p>
+                  </div>
+                  <div
+                    className={`mode-option ${
+                      captureMode === "gif" ? "active" : ""
+                    }`}
+                    onClick={() => setCaptureMode("gif")}
+                  >
+                    <p>Photostrip with GIF</p>
+                  </div>
+                  <div
+                    className={`mode-option ${
+                      captureMode === "video" ? "active" : ""
+                    }`}
+                    onClick={() => setCaptureMode("video")}
+                  >
+                    <p>Photostrip with Video</p>
+                  </div>
+                </div>
+                <div className="step-navigation">
+                  <button className="cta-button" onClick={resetAll}>
+                    Reset All
+                  </button>
+                  <button className="cta-button" onClick={goToNextStep}>
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+            {step === 3 && (
+              <div className="step-3">
                 <h2 className="step-title">Capture Your Moments</h2>
                 <div className="edit-container">
                   <div className="edit-main">
                     <div className="capture-container">
                       <CameraFeed
                         onCapture={handlePhotoCapture}
-                        onGifComplete={handleGifComplete}
+                        onVideoComplete={
+                          captureMode === "video" || captureMode === "gif"
+                            ? handleVideoComplete
+                            : undefined
+                        }
                         layout={layout}
                         maxPhotos={maxPhotos}
                         currentPhotos={previewPhotos.length}
                         timerEnabled={timerEnabled}
-                        setIsCreatingGif={setIsCreatingGif}
+                        setIsRecordingVideo={setIsRecordingVideo}
                         countdownTime={countdownTime}
                         isMirrored={isMirrored}
                         onTimerChange={handleTimeChange}
                         onMirrorToggle={setIsMirrored}
+                        captureMode={captureMode}
                       />
                     </div>
                   </div>
@@ -594,8 +666,8 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {step === 3 && (
-              <div className="step-3">
+            {step === 4 && (
+              <div className="step-4">
                 <h2 className="step-title">Edit Your Photo Strip</h2>
                 <div className="edit-container">
                   <div className="edit-main">
@@ -655,8 +727,8 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {step === 4 && (
-              <div className="step-4">
+            {step === 5 && (
+              <div className="step-5">
                 <h2 className="step-title">Add Stickers</h2>
                 <div className="edit-container">
                   <div className="edit-main">
@@ -722,8 +794,8 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {step === 5 && (
-              <div className="step-5">
+            {step === 6 && (
+              <div className="step-6">
                 <h2 className="step-title">Review and Download</h2>
                 <div className="edit-container">
                   <div className="edit-main">
@@ -750,14 +822,22 @@ const App: React.FC = () => {
                       stageRef={stageRef}
                     />
                   </div>
-                  {gifUrl && (
+                  {videoUrl && (
                     <div className="edit-sidebar-right">
-                      <SequentialGif
-                        ref={sequentialGifRef}
-                        gifUrl={gifUrl}
-                        isCreatingGif={isCreatingGif}
-                        isMirrored={isMirrored}
-                      />
+                      {captureMode === "gif" ? (
+                        <SequentialGif
+                          ref={sequentialGifRef}
+                          gifUrl={videoUrl}
+                          isRecordingGif={isRecordingVideo}
+                        />
+                      ) : captureMode === "video" ? (
+                        <SequentialVideo
+                          ref={sequentialVideoRef}
+                          videoUrl={videoUrl}
+                          isRecordingVideo={isRecordingVideo}
+                          isMirrored={isMirrored}
+                        />
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -766,8 +846,18 @@ const App: React.FC = () => {
                     Reset All
                   </button>
                   <button className="cta-button" onClick={downloadImage}>
-                    Download
+                    Download Image
                   </button>
+                  {captureMode === "video" && videoUrl && (
+                    <button className="cta-button" onClick={downloadVideo}>
+                      Download Video
+                    </button>
+                  )}
+                  {captureMode === "gif" && videoUrl && (
+                    <button className="cta-button" onClick={downloadVideo}>
+                      Download GIF
+                    </button>
+                  )}
                 </div>
               </div>
             )}
