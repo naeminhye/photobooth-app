@@ -592,7 +592,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           {loading && (
             <div className="loading-overlay">
               <div className="spinner"></div>
-              <p>Merging Layers...</p>
+              <p>Loading...</p>
             </div>
           )}
         </div>

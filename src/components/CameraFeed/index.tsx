@@ -66,7 +66,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const [facingMode, setFacingMode] = useState<"user" | "environment">(
     isMirrored ? "user" : "environment"
   );
-  const [selectedMimeType, setSelectedMimeType] = useState<string>("");
   const gifFrames = useRef<ImageData[]>([]);
 
   const deviceType = getDeviceType();
@@ -74,6 +73,12 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     deviceType.includes("Mobile") ||
     deviceType.includes("iOS") ||
     deviceType.includes("Android");
+
+  useEffect(() => {
+    if (captureMode !== "photostrip" && countdownTime === 0) {
+      onTimerChange(2);
+    }
+  }, [countdownTime, captureMode]);
 
   useEffect(() => {
     countdownRef.current = countdownTime;
@@ -195,7 +200,9 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       height: cameraDimensions.height,
     });
 
-    // Flip each frame before adding it to the GIF
+    // ✅ Debug: Log frame count
+    console.log("📸 Creating GIF from", gifFrames.current.length, "frames");
+
     gifFrames.current.forEach((frame) => {
       const flippedFrame = flipFrameHorizontally(frame, isMirrored);
       gif.addFrame(flippedFrame, { delay: 150 });
@@ -203,6 +210,9 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
     gif.on("finished", (blob) => {
       const gifUrl = URL.createObjectURL(blob);
+
+      console.log("✅ GIF created successfully:", gifUrl);
+
       onVideoComplete(gifUrl, "image/gif");
       gifFrames.current = [];
       setIsRecording(false);
@@ -213,62 +223,114 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const getSupportedVideoMimeType = () => {
-    const mp4Type = "video/mp4;codecs=avc1.42E01E";
     const webmType = "video/webm;codecs=vp9";
-    if (MediaRecorder.isTypeSupported(mp4Type)) {
-      console.log("MP4 is supported");
+    const webmAlternative = "video/webm;codecs=vp8";
+    const mp4Type = "video/mp4"; // Avoid specifying a codec
+
+    if (MediaRecorder.isTypeSupported(webmType)) {
+      return webmType;
+    } else if (MediaRecorder.isTypeSupported(webmAlternative)) {
+      return webmAlternative;
+    } else if (MediaRecorder.isTypeSupported(mp4Type)) {
       return mp4Type;
     } else {
-      console.log("MP4 not supported, falling back to WebM");
-      return webmType;
+      console.error("No supported video formats found.");
+      return "";
     }
   };
 
   const startVideoRecording = useCallback(() => {
-    if (
-      webcamRef.current &&
-      webcamRef.current.stream &&
-      currentPhotos < maxPhotosRef.current &&
-      onVideoComplete
-    ) {
-      setRecordedChunks([]);
-      const stream = webcamRef.current.stream;
-      const mimeType = getSupportedVideoMimeType();
-      setSelectedMimeType(mimeType);
-
-      try {
-        mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
-
-        mediaRecorderRef.current.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            setRecordedChunks((prev) => [...prev, event.data]);
-          }
-        };
-
-        mediaRecorderRef.current.onstop = () => {
-          const blob = new Blob(recordedChunks, { type: mimeType });
-          const videoUrl = URL.createObjectURL(blob);
-          onVideoComplete(videoUrl, mimeType);
-          setIsRecording(false);
-          setIsRecordingVideo(false);
-        };
-
-        mediaRecorderRef.current.onerror = (event) => {
-          console.error("MediaRecorder error:", event);
-          setCameraError("An error occurred while recording the video.");
-          setIsRecording(false);
-          setIsRecordingVideo(false);
-        };
-
-        mediaRecorderRef.current.start();
-        setIsRecording(true);
-        setIsRecordingVideo(true);
-      } catch (error) {
-        console.error("Error starting MediaRecorder:", error);
-        setCameraError("Failed to start video recording.");
-      }
+    if (!webcamRef.current || !webcamRef.current.video) {
+      console.warn("Webcam video not available.");
+      return;
     }
-  }, [currentPhotos, onVideoComplete, setIsRecordingVideo]);
+
+    const originalStream = webcamRef.current.video.srcObject as MediaStream;
+    if (!originalStream) {
+      console.warn("Original camera stream not found.");
+      return;
+    }
+
+    const mimeType = getSupportedVideoMimeType();
+    if (!mimeType) {
+      console.warn("No supported video format found.");
+      return;
+    }
+
+    // Create a hidden canvas for flipping
+    const videoTrack = originalStream.getVideoTracks()[0];
+    const settings = videoTrack.getSettings();
+    const canvas = document.createElement("canvas");
+    canvas.width = settings.width || 1280;
+    canvas.height = settings.height || 720;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      console.warn("Failed to get 2D context for canvas.");
+      return;
+    }
+
+    // Capture flipped video frames
+    const outputStream = canvas.captureStream(30);
+    const flippedTrack = outputStream.getVideoTracks()[0];
+
+    mediaRecorderRef.current = new MediaRecorder(outputStream, { mimeType });
+
+    let chunks: Blob[] = [];
+
+    mediaRecorderRef.current.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+
+    mediaRecorderRef.current.onstop = () => {
+      if (chunks.length > 0) {
+        const videoBlob = new Blob(chunks, { type: mimeType });
+        const videoUrl = URL.createObjectURL(videoBlob);
+
+        if (onVideoComplete) {
+          onVideoComplete(videoUrl, mimeType);
+        } else {
+          console.warn("onVideoComplete is undefined, skipping callback.");
+        }
+      } else {
+        console.warn("No recorded video data.");
+      }
+      setIsRecording(false);
+      setIsRecordingVideo(false);
+    };
+
+    mediaRecorderRef.current.onerror = (error) => {
+      console.error("MediaRecorder error:", error);
+      setIsRecording(false);
+      setIsRecordingVideo(false);
+    };
+
+    // Function to flip and draw frames onto canvas
+    const drawFlippedFrame = () => {
+      if (!ctx || !webcamRef.current || !webcamRef.current.video) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+
+      if (isMirrored) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1); // Flip horizontally
+      }
+
+      ctx.drawImage(webcamRef.current.video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      requestAnimationFrame(drawFlippedFrame);
+    };
+
+    drawFlippedFrame(); // Start rendering flipped frames
+
+    mediaRecorderRef.current.start();
+    setIsRecording(true);
+    setIsRecordingVideo(true);
+  }, [onVideoComplete, isMirrored]);
 
   const stopVideoRecording = () => {
     if (
@@ -276,36 +338,145 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       mediaRecorderRef.current.state !== "inactive"
     ) {
       mediaRecorderRef.current.stop();
+
+      mediaRecorderRef.current.onstop = async () => {
+        if (recordedChunks.length === 0) {
+          console.error("❌ No recorded video data. Recording failed.");
+          return;
+        }
+
+        console.log("✅ Video recording complete. Processing at 2x speed...");
+
+        const videoBlob = new Blob(recordedChunks, { type: "video/webm" });
+        const videoUrl = URL.createObjectURL(videoBlob);
+
+        // ✅ Debug: Confirm video exists before processing
+        console.log("🎥 Recorded video available at:", videoUrl);
+
+        // Create a video element to process the speed
+        const videoElement = document.createElement("video");
+        videoElement.src = videoUrl;
+        videoElement.playbackRate = 2.0; // Set speed to 2x
+        videoElement.muted = true;
+        videoElement.crossOrigin = "anonymous";
+        videoElement.style.display = "none"; // Hide processing video
+
+        document.body.appendChild(videoElement); // Add to DOM for proper playback
+
+        await new Promise((resolve, reject) => {
+          videoElement.onloadedmetadata = resolve;
+          videoElement.onerror = () => {
+            reject(new Error("❌ Error loading video metadata."));
+          };
+        });
+
+        console.log("🎞️ Video metadata loaded. Processing...");
+
+        // Create a canvas to capture frames
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          console.error("❌ Failed to get canvas rendering context.");
+          return;
+        }
+
+        canvas.width = videoElement.videoWidth || 1280;
+        canvas.height = videoElement.videoHeight || 720;
+
+        // Create a MediaRecorder to store the processed video
+        const stream = canvas.captureStream(30);
+        const processedRecorder = new MediaRecorder(stream, {
+          mimeType: "video/webm",
+        });
+        let processedChunks: Blob[] = [];
+
+        processedRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            processedChunks.push(event.data);
+          }
+        };
+
+        processedRecorder.onstop = () => {
+          if (processedChunks.length === 0) {
+            console.warn("❌ Processed video has no data.");
+            return;
+          }
+
+          const processedBlob = new Blob(processedChunks, {
+            type: "video/webm",
+          });
+          const processedVideoUrl = URL.createObjectURL(processedBlob);
+
+          console.log("✅ Processed video available at:", processedVideoUrl);
+
+          // Remove hidden video element from DOM
+          document.body.removeChild(videoElement);
+
+          // Pass processed video to `onVideoComplete`
+          if (onVideoComplete) {
+            onVideoComplete(processedVideoUrl, "video/webm");
+          } else {
+            console.warn("⚠️ onVideoComplete is undefined, skipping callback.");
+          }
+        };
+
+        // Function to capture frames at 2x speed
+        const captureFrames = () => {
+          if (!ctx || videoElement.paused || videoElement.ended) return;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+          requestAnimationFrame(captureFrames);
+        };
+
+        // ✅ Debug: Ensure MediaRecorder actually starts
+        videoElement.onplay = () => {
+          console.log("▶️ Video started playing, capturing frames...");
+          processedRecorder.start();
+          captureFrames();
+        };
+
+        videoElement.onended = () => {
+          console.log("⏹️ Video playback finished. Stopping recording...");
+          processedRecorder.stop();
+        };
+
+        videoElement.play(); // Start playback at 2x speed
+      };
+    } else {
+      console.warn("⚠️ Tried to stop recording, but it's already inactive.");
     }
   };
 
   const runCountdown = async () => {
-    if (captureMode === "video" && onVideoComplete) {
-      startVideoRecording(); // Start recording before the first countdown
+    if (captureMode === "video" && !isRecording) {
+      startVideoRecording(); // Start recording at the beginning
     }
 
     for (let i = 0; i < maxPhotosRef.current; i++) {
       if (!webcamRef.current || !countdownRef.current) break;
 
+      console.log(
+        `Starting countdown for photo ${i + 1}/${maxPhotosRef.current}`
+      );
+
       for (let sec = countdownRef.current; sec >= 0; sec--) {
         setCountdown(sec);
-        if (captureMode === "gif") {
-          const frame = captureFrame();
-          if (frame) gifFrames.current.push(frame);
-        }
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
-      capturePhoto();
+      capturePhoto(); // Capture photo after countdown for this step
     }
 
     setCountdown(null);
-    if (captureMode === "gif") {
-      createGif();
-    } else if (captureMode === "video") {
-      stopVideoRecording(); // Stop recording after all photos are taken
+
+    // Stop video recording **only after all countdowns are done**
+    if (captureMode === "video") {
+      console.log("All countdowns finished, stopping video recording...");
+      stopVideoRecording();
     } else {
-      setIsRecording(false); // Reset for photostrip mode
+      setIsRecording(false);
     }
   };
 
@@ -430,13 +601,57 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   return (
     <>
       <div className="camera-control">
+        {captureMode === "photostrip" && (
+          <button
+            onClick={() => handleTimerChange(0)}
+            className="camera-control-button"
+          >
+            <img
+              src={countdownTime === 0 ? timerOffFill : timerOffOutline}
+              alt="Off"
+            />
+          </button>
+        )}
         <button
-          onClick={() => handleTimerChange(0)}
+          onClick={() => handleTimerChange(2)}
           className="camera-control-button"
         >
           <img
-            src={countdownTime === 0 ? timerOffFill : timerOffOutline}
-            alt="Off"
+            src={countdownTime === 2 ? timer2Fill : timer2Outline}
+            alt="2s"
+          />
+        </button>
+        <button
+          onClick={() => handleTimerChange(5)}
+          className="camera-control-button"
+        >
+          <img
+            src={countdownTime === 5 ? timer5Fill : timer5Outline}
+            alt="5s"
+          />
+        </button>
+        <button
+          onClick={() => handleTimerChange(10)}
+          className="camera-control-button"
+        >
+          <img
+            src={countdownTime === 10 ? timer10Fill : timer10Outline}
+            alt="10s"
+          />
+        </button>
+        <button onClick={handleMirrorToggle} className="camera-control-button">
+          <img
+            src={flipIcon}
+            alt="Flip Camera"
+            style={{
+              width: "32px",
+              height: "32px",
+              opacity: facingMode === "user" ? 1 : 0.5,
+              transition: "opacity 0.2s ease",
+            }}
+            onUserMediaError={handleCameraError}
+            playsInline
+            style={{ objectFit: "cover" }} // Ensure video fills the container
           />
         </button>
         <button

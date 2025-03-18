@@ -138,17 +138,17 @@ export const LAYOUTS: CanvasData[] = [
     ],
     templatePath: wide4Cut,
   },
-  {
-    name: "rizz 4-cut",
-    canvas: { width: 1080, height: 1347 },
-    rectangles: [
-      { x: 136, y: 164, width: 388, height: 556 },
-      { x: 555, y: 46, width: 388, height: 556 },
-      { x: 136, y: 756, width: 388, height: 556 },
-      { x: 555, y: 638, width: 388, height: 556 },
-    ],
-    templatePath: rizz4Cut,
-  },
+  // {
+  //   name: "rizz 4-cut",
+  //   canvas: { width: 1080, height: 1347 },
+  //   rectangles: [
+  //     { x: 136, y: 164, width: 388, height: 556 },
+  //     { x: 555, y: 46, width: 388, height: 556 },
+  //     { x: 136, y: 756, width: 388, height: 556 },
+  //     { x: 555, y: 638, width: 388, height: 556 },
+  //   ],
+  //   templatePath: rizz4Cut,
+  // },
 ];
 //   name: "layer 4-cut",
 // Basic 4 cut: 1652 x 4920
@@ -169,4 +169,3 @@ export const LAYOUTS: CanvasData[] = [
 //     { x: 747, y: 1189, width: 251, height: 251 },
 //   ],
 // },
-

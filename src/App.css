@@ -48,10 +48,11 @@ button {
 
 .capture-container {
   display: flex;
-  gap: 30px;
+  gap: 16px;
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
+  flex-direction: column;
 }
 
 .capture-options {

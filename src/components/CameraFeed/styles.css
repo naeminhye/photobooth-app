@@ -64,13 +64,13 @@ button.camera-control-button {
     justify-content: center;
     border: 1px solid #000;
     background: #fff;
-    width: 36px;
-    height: 36px;
+    width: 50px;
+    height: 50px;
 }
 
 .camera-control-button img {
-    width: 32px;
-    height: 32px;
+    max-width: 100%;
+    max-height: 100%;
     transition: opacity 0.2s ease;
     background-color: #fff3;
     border-radius: 16px;

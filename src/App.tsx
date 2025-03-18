@@ -99,10 +99,11 @@ const App: React.FC = () => {
 
   const requestCameraPermission = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (!stream) throw new Error("No stream received.");
       setHasPermission(true);
     } catch (error) {
-      console.error("Camera error:", error);
+      console.error("Camera permission error:", error);
       setHasPermission(false);
     }
   };
@@ -835,7 +836,6 @@ const App: React.FC = () => {
                           ref={sequentialVideoRef}
                           videoUrl={videoUrl}
                           isRecordingVideo={isRecordingVideo}
-                          isMirrored={isMirrored}
                         />
                       ) : null}
                     </div>
