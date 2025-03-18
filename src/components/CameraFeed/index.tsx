@@ -355,6 +355,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
       for (let sec = countdownRef.current; sec >= 0; sec--) {
         setCountdown(sec);
+        if (captureMode === "gif") {
+          const frame = captureFrame();
+          if (frame) gifFrames.current.push(frame);
+        }
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
@@ -363,8 +367,11 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
     setCountdown(null);
 
+    if (captureMode === "gif") {
+      createGif();
+    }
     // Stop video recording **only after all countdowns are done**
-    if (captureMode === "video") {
+    else if (captureMode === "video") {
       console.log("All countdowns finished, stopping video recording...");
       stopVideoRecording();
     } else {

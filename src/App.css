@@ -290,70 +290,6 @@ button {
   background: #f5f7fa;
 }
 
-/* Responsive */
-@media (max-width: 1440px) {
-  .preview-photos {
-    width: 472px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .preview-photos {
-    width: 472px;
-  }
-
-  .edit-sidebar-left,
-  .edit-sidebar-right {
-    align-items: center;
-  }
-}
-
-@media (max-width: 768px) {
-  .camera-feed {
-    width: 100%;
-    max-width: 600px;
-    height: auto;
-    aspect-ratio: 4 / 3;
-  }
-
-  .preview-photos {
-    width: 392px;
-  }
-
-  .preview-photo {
-    width: 80px;
-    height: 80px;
-  }
-
-  .upload-placeholder {
-    width: 80px;
-    height: 80px;
-  }
-}
-
-@media (max-width: 425px) {
-  .preview-photos {
-    width: 302px;
-  }
-}
-
-@media (max-width: 320px) {
-  .preview-photos {
-    width: 302px;
-  }
-
-  .camera-control-button img {
-    width: 24px;
-    /* Smaller icons for tiny screens */
-    height: 24px;
-  }
-
-  .shutter-button {
-    width: 60px;
-    height: 60px;
-  }
-}
-
 /* Style cho layout toggle */
 .layout-toggle {
   display: flex;
@@ -445,19 +381,6 @@ button {
   /* Remove shadow */
 }
 
-.sequential-gif img {
-  border: 1px solid black;
-  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.2);
-}
-
-.sequential-gif .loader-container {
-  border: 1px solid black;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #000;
-}
-
 /* Add to App.css */
 .modal-overlay {
   position: fixed;
@@ -510,9 +433,8 @@ button {
 }
 
 .mode-option {
-  padding: 15px 25px;
-  border: 2px solid #ccc;
-  border-radius: 5px;
+  padding: 8px 16px;
+  border: 1px solid #000;
   cursor: pointer;
   text-align: center;
   transition: all 0.3s ease;
@@ -526,4 +448,78 @@ button {
 
 .mode-option:hover {
   border-color: #3498db;
+}
+
+
+
+/* Responsive */
+@media (max-width: 1440px) {
+  .preview-photos {
+    width: 472px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .preview-photos {
+    width: 472px;
+  }
+
+  .edit-sidebar-left,
+  .edit-sidebar-right {
+    align-items: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .camera-feed {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+
+  .preview-photos {
+    width: 392px;
+  }
+
+  .preview-photo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .upload-placeholder {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+@media (max-width: 425px) {
+  .step-title {
+    font-size: 24px;
+  }
+
+  .preview-photos {
+    width: 302px;
+  }
+
+  .mode-toggle {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 320px) {
+  .preview-photos {
+    width: 302px;
+  }
+
+  .camera-control-button img {
+    width: 24px;
+    /* Smaller icons for tiny screens */
+    height: 24px;
+  }
+
+  .shutter-button {
+    width: 60px;
+    height: 60px;
+  }
 }
