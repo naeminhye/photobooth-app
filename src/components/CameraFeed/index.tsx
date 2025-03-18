@@ -200,9 +200,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       height: cameraDimensions.height,
     });
 
-    // ✅ Debug: Log frame count
-    console.log("📸 Creating GIF from", gifFrames.current.length, "frames");
-
+    // Flip each frame before adding it to the GIF
     gifFrames.current.forEach((frame) => {
       const flippedFrame = flipFrameHorizontally(frame, isMirrored);
       gif.addFrame(flippedFrame, { delay: 150 });
@@ -210,9 +208,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
     gif.on("finished", (blob) => {
       const gifUrl = URL.createObjectURL(blob);
-
-      console.log("✅ GIF created successfully:", gifUrl);
-
       onVideoComplete(gifUrl, "image/gif");
       gifFrames.current = [];
       setIsRecording(false);
@@ -338,114 +333,11 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       mediaRecorderRef.current.state !== "inactive"
     ) {
       mediaRecorderRef.current.stop();
-
-      mediaRecorderRef.current.onstop = async () => {
-        if (recordedChunks.length === 0) {
-          console.error("❌ No recorded video data. Recording failed.");
-          return;
-        }
-
-        console.log("✅ Video recording complete. Processing at 2x speed...");
-
-        const videoBlob = new Blob(recordedChunks, { type: "video/webm" });
-        const videoUrl = URL.createObjectURL(videoBlob);
-
-        // ✅ Debug: Confirm video exists before processing
-        console.log("🎥 Recorded video available at:", videoUrl);
-
-        // Create a video element to process the speed
-        const videoElement = document.createElement("video");
-        videoElement.src = videoUrl;
-        videoElement.playbackRate = 2.0; // Set speed to 2x
-        videoElement.muted = true;
-        videoElement.crossOrigin = "anonymous";
-        videoElement.style.display = "none"; // Hide processing video
-
-        document.body.appendChild(videoElement); // Add to DOM for proper playback
-
-        await new Promise((resolve, reject) => {
-          videoElement.onloadedmetadata = resolve;
-          videoElement.onerror = () => {
-            reject(new Error("❌ Error loading video metadata."));
-          };
-        });
-
-        console.log("🎞️ Video metadata loaded. Processing...");
-
-        // Create a canvas to capture frames
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) {
-          console.error("❌ Failed to get canvas rendering context.");
-          return;
-        }
-
-        canvas.width = videoElement.videoWidth || 1280;
-        canvas.height = videoElement.videoHeight || 720;
-
-        // Create a MediaRecorder to store the processed video
-        const stream = canvas.captureStream(30);
-        const processedRecorder = new MediaRecorder(stream, {
-          mimeType: "video/webm",
-        });
-        let processedChunks: Blob[] = [];
-
-        processedRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            processedChunks.push(event.data);
-          }
-        };
-
-        processedRecorder.onstop = () => {
-          if (processedChunks.length === 0) {
-            console.warn("❌ Processed video has no data.");
-            return;
-          }
-
-          const processedBlob = new Blob(processedChunks, {
-            type: "video/webm",
-          });
-          const processedVideoUrl = URL.createObjectURL(processedBlob);
-
-          console.log("✅ Processed video available at:", processedVideoUrl);
-
-          // Remove hidden video element from DOM
-          document.body.removeChild(videoElement);
-
-          // Pass processed video to `onVideoComplete`
-          if (onVideoComplete) {
-            onVideoComplete(processedVideoUrl, "video/webm");
-          } else {
-            console.warn("⚠️ onVideoComplete is undefined, skipping callback.");
-          }
-        };
-
-        // Function to capture frames at 2x speed
-        const captureFrames = () => {
-          if (!ctx || videoElement.paused || videoElement.ended) return;
-
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          requestAnimationFrame(captureFrames);
-        };
-
-        // ✅ Debug: Ensure MediaRecorder actually starts
-        videoElement.onplay = () => {
-          console.log("▶️ Video started playing, capturing frames...");
-          processedRecorder.start();
-          captureFrames();
-        };
-
-        videoElement.onended = () => {
-          console.log("⏹️ Video playback finished. Stopping recording...");
-          processedRecorder.stop();
-        };
-
-        videoElement.play(); // Start playback at 2x speed
-      };
+      console.log(
+        "Video recording stopped automatically after all countdowns."
+      );
     } else {
-      console.warn("⚠️ Tried to stop recording, but it's already inactive.");
+      console.warn("Tried to stop recording, but it's already inactive.");
     }
   };
 
@@ -612,48 +504,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
             />
           </button>
         )}
-        <button
-          onClick={() => handleTimerChange(2)}
-          className="camera-control-button"
-        >
-          <img
-            src={countdownTime === 2 ? timer2Fill : timer2Outline}
-            alt="2s"
-          />
-        </button>
-        <button
-          onClick={() => handleTimerChange(5)}
-          className="camera-control-button"
-        >
-          <img
-            src={countdownTime === 5 ? timer5Fill : timer5Outline}
-            alt="5s"
-          />
-        </button>
-        <button
-          onClick={() => handleTimerChange(10)}
-          className="camera-control-button"
-        >
-          <img
-            src={countdownTime === 10 ? timer10Fill : timer10Outline}
-            alt="10s"
-          />
-        </button>
-        <button onClick={handleMirrorToggle} className="camera-control-button">
-          <img
-            src={flipIcon}
-            alt="Flip Camera"
-            style={{
-              width: "32px",
-              height: "32px",
-              opacity: facingMode === "user" ? 1 : 0.5,
-              transition: "opacity 0.2s ease",
-            }}
-            onUserMediaError={handleCameraError}
-            playsInline
-            style={{ objectFit: "cover" }} // Ensure video fills the container
-          />
-        </button>
         <button
           onClick={() => handleTimerChange(2)}
           className="camera-control-button"
