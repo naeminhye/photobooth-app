@@ -66,7 +66,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const [facingMode, setFacingMode] = useState<"user" | "environment">(
     isMirrored ? "user" : "environment"
   );
-  const [selectedMimeType, setSelectedMimeType] = useState<string>("");
   const gifFrames = useRef<ImageData[]>([]);
 
   const deviceType = getDeviceType();
@@ -74,6 +73,12 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     deviceType.includes("Mobile") ||
     deviceType.includes("iOS") ||
     deviceType.includes("Android");
+
+  useEffect(() => {
+    if (captureMode !== "photostrip" && countdownTime === 0) {
+      onTimerChange(2);
+    }
+  }, [countdownTime, captureMode]);
 
   useEffect(() => {
     countdownRef.current = countdownTime;
@@ -213,62 +218,114 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   };
 
   const getSupportedVideoMimeType = () => {
-    const mp4Type = "video/mp4;codecs=avc1.42E01E";
     const webmType = "video/webm;codecs=vp9";
-    if (MediaRecorder.isTypeSupported(mp4Type)) {
-      console.log("MP4 is supported");
+    const webmAlternative = "video/webm;codecs=vp8";
+    const mp4Type = "video/mp4"; // Avoid specifying a codec
+
+    if (MediaRecorder.isTypeSupported(webmType)) {
+      return webmType;
+    } else if (MediaRecorder.isTypeSupported(webmAlternative)) {
+      return webmAlternative;
+    } else if (MediaRecorder.isTypeSupported(mp4Type)) {
       return mp4Type;
     } else {
-      console.log("MP4 not supported, falling back to WebM");
-      return webmType;
+      console.error("No supported video formats found.");
+      return "";
     }
   };
 
   const startVideoRecording = useCallback(() => {
-    if (
-      webcamRef.current &&
-      webcamRef.current.stream &&
-      currentPhotos < maxPhotosRef.current &&
-      onVideoComplete
-    ) {
-      setRecordedChunks([]);
-      const stream = webcamRef.current.stream;
-      const mimeType = getSupportedVideoMimeType();
-      setSelectedMimeType(mimeType);
-
-      try {
-        mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
-
-        mediaRecorderRef.current.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            setRecordedChunks((prev) => [...prev, event.data]);
-          }
-        };
-
-        mediaRecorderRef.current.onstop = () => {
-          const blob = new Blob(recordedChunks, { type: mimeType });
-          const videoUrl = URL.createObjectURL(blob);
-          onVideoComplete(videoUrl, mimeType);
-          setIsRecording(false);
-          setIsRecordingVideo(false);
-        };
-
-        mediaRecorderRef.current.onerror = (event) => {
-          console.error("MediaRecorder error:", event);
-          setCameraError("An error occurred while recording the video.");
-          setIsRecording(false);
-          setIsRecordingVideo(false);
-        };
-
-        mediaRecorderRef.current.start();
-        setIsRecording(true);
-        setIsRecordingVideo(true);
-      } catch (error) {
-        console.error("Error starting MediaRecorder:", error);
-        setCameraError("Failed to start video recording.");
-      }
+    if (!webcamRef.current || !webcamRef.current.video) {
+      console.warn("Webcam video not available.");
+      return;
     }
-  }, [currentPhotos, onVideoComplete, setIsRecordingVideo]);
+
+    const originalStream = webcamRef.current.video.srcObject as MediaStream;
+    if (!originalStream) {
+      console.warn("Original camera stream not found.");
+      return;
+    }
+
+    const mimeType = getSupportedVideoMimeType();
+    if (!mimeType) {
+      console.warn("No supported video format found.");
+      return;
+    }
+
+    // Create a hidden canvas for flipping
+    const videoTrack = originalStream.getVideoTracks()[0];
+    const settings = videoTrack.getSettings();
+    const canvas = document.createElement("canvas");
+    canvas.width = settings.width || 1280;
+    canvas.height = settings.height || 720;
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      console.warn("Failed to get 2D context for canvas.");
+      return;
+    }
+
+    // Capture flipped video frames
+    const outputStream = canvas.captureStream(30);
+    const flippedTrack = outputStream.getVideoTracks()[0];
+
+    mediaRecorderRef.current = new MediaRecorder(outputStream, { mimeType });
+
+    let chunks: Blob[] = [];
+
+    mediaRecorderRef.current.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+
+    mediaRecorderRef.current.onstop = () => {
+      if (chunks.length > 0) {
+        const videoBlob = new Blob(chunks, { type: mimeType });
+        const videoUrl = URL.createObjectURL(videoBlob);
+
+        if (onVideoComplete) {
+          onVideoComplete(videoUrl, mimeType);
+        } else {
+          console.warn("onVideoComplete is undefined, skipping callback.");
+        }
+      } else {
+        console.warn("No recorded video data.");
+      }
+      setIsRecording(false);
+      setIsRecordingVideo(false);
+    };
+
+    mediaRecorderRef.current.onerror = (error) => {
+      console.error("MediaRecorder error:", error);
+      setIsRecording(false);
+      setIsRecordingVideo(false);
+    };
+
+    // Function to flip and draw frames onto canvas
+    const drawFlippedFrame = () => {
+      if (!ctx || !webcamRef.current || !webcamRef.current.video) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+
+      if (isMirrored) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1); // Flip horizontally
+      }
+
+      ctx.drawImage(webcamRef.current.video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      requestAnimationFrame(drawFlippedFrame);
+    };
+
+    drawFlippedFrame(); // Start rendering flipped frames
+
+    mediaRecorderRef.current.start();
+    setIsRecording(true);
+    setIsRecordingVideo(true);
+  }, [onVideoComplete, isMirrored]);
 
   const stopVideoRecording = () => {
     if (
@@ -276,16 +333,25 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       mediaRecorderRef.current.state !== "inactive"
     ) {
       mediaRecorderRef.current.stop();
+      console.log(
+        "Video recording stopped automatically after all countdowns."
+      );
+    } else {
+      console.warn("Tried to stop recording, but it's already inactive.");
     }
   };
 
   const runCountdown = async () => {
-    if (captureMode === "video" && onVideoComplete) {
-      startVideoRecording(); // Start recording before the first countdown
+    if (captureMode === "video" && !isRecording) {
+      startVideoRecording(); // Start recording at the beginning
     }
 
     for (let i = 0; i < maxPhotosRef.current; i++) {
       if (!webcamRef.current || !countdownRef.current) break;
+
+      console.log(
+        `Starting countdown for photo ${i + 1}/${maxPhotosRef.current}`
+      );
 
       for (let sec = countdownRef.current; sec >= 0; sec--) {
         setCountdown(sec);
@@ -296,16 +362,20 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
-      capturePhoto();
+      capturePhoto(); // Capture photo after countdown for this step
     }
 
     setCountdown(null);
+
     if (captureMode === "gif") {
       createGif();
-    } else if (captureMode === "video") {
-      stopVideoRecording(); // Stop recording after all photos are taken
+    }
+    // Stop video recording **only after all countdowns are done**
+    else if (captureMode === "video") {
+      console.log("All countdowns finished, stopping video recording...");
+      stopVideoRecording();
     } else {
-      setIsRecording(false); // Reset for photostrip mode
+      setIsRecording(false);
     }
   };
 
@@ -430,15 +500,17 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   return (
     <>
       <div className="camera-control">
-        <button
-          onClick={() => handleTimerChange(0)}
-          className="camera-control-button"
-        >
-          <img
-            src={countdownTime === 0 ? timerOffFill : timerOffOutline}
-            alt="Off"
-          />
-        </button>
+        {captureMode === "photostrip" && (
+          <button
+            onClick={() => handleTimerChange(0)}
+            className="camera-control-button"
+          >
+            <img
+              src={countdownTime === 0 ? timerOffFill : timerOffOutline}
+              alt="Off"
+            />
+          </button>
+        )}
         <button
           onClick={() => handleTimerChange(2)}
           className="camera-control-button"

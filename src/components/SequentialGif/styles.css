@@ -26,7 +26,7 @@
     justify-content: center;
     align-items: center;
     width: 100%;
-    max-width: 640px;
+    max-width: 480px;
     /* Matches CameraFeed's max baseWidth */
     margin: 0 auto;
 }
@@ -37,6 +37,7 @@
     object-fit: cover;
     /* Ensures GIF fills the container */
     border: 1px solid #000;
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.2);
 }
 
 /* Loader styles */
@@ -44,6 +45,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    border: 1px solid black;
+    background-color: #000;
 }
 
 .loader {

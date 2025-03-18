@@ -6,11 +6,10 @@ import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 interface SequentialVideoProps {
   videoUrl: string | null;
   isRecordingVideo: boolean;
-  isMirrored: boolean;
 }
 
 const SequentialVideo = forwardRef<HTMLDivElement, SequentialVideoProps>(
-  ({ videoUrl, isRecordingVideo, isMirrored }, ref) => {
+  ({ videoUrl, isRecordingVideo }, ref) => {
     return (
       <div ref={ref} className="sequential-video">
         {isRecordingVideo ? (
@@ -34,7 +33,6 @@ const SequentialVideo = forwardRef<HTMLDivElement, SequentialVideoProps>(
               width: CAMERA_WIDTH,
               height: CAMERA_HEIGHT,
               border: "1px solid black",
-              transform: isMirrored ? "scaleX(-1)" : "scaleX(1)",
             }}
           />
         ) : null}
