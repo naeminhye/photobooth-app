@@ -1,10 +1,10 @@
 // constants/index.ts
-import basic4Cut from "../assets/illustrators/basic-4-cut.png";
-import basic4Cut2 from "../assets/illustrators/basic-4-cut-2.png";
-import basic6Cut from "../assets/illustrators/basic-6-cut.png";
-import film3Cut from "../assets/illustrators/film-3-cut.png";
-import wide4Cut from "../assets/illustrators/wide-4-cut.png";
-import rizz4Cut from "../assets/illustrators/rizz-4-cut.png";
+import basic4Cut from "@/assets/illustrators/basic-4-cut.png";
+import basic4Cut2 from "@/assets/illustrators/basic-4-cut-2.png";
+import basic6Cut from "@/assets/illustrators/basic-6-cut.png";
+import film3Cut from "@/assets/illustrators/film-3-cut.png";
+import wide4Cut from "@/assets/illustrators/wide-4-cut.png";
+import rizz4Cut from "@/assets/illustrators/rizz-4-cut.png";
 
 export const SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".svg", ".gif"];
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
@@ -36,6 +36,17 @@ export interface Sticker {
   rotation: number;
 }
 
+export interface TextItem {
+  id: number;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  fontFamily: string;
+  color: string;
+  rotation: number;
+}
+
 export const CAMERA_WIDTH = 600;
 export const CAMERA_HEIGHT = 450;
 
@@ -47,7 +58,12 @@ export interface Photo {
 //////////////////////////////////////////////////////////////////////////////
 
 export const SCALE_FACTOR = 1 / 3.5;
-export interface Canvas {
+
+export interface Position {
+  x: number;
+  y: number;
+}
+export interface Dimension {
   width: number;
   height: number;
 }
@@ -59,14 +75,15 @@ export interface Rectangle {
   height: number;
 }
 
-export interface CanvasData {
+export interface PhotoStripLayout {
   name: string;
-  canvas: Canvas;
+  canvas: Dimension;
   rectangles: Rectangle[];
   templatePath: string;
+  timestamp?: Position;
 }
 
-export const LAYOUTS: CanvasData[] = [
+export const LAYOUTS: PhotoStripLayout[] = [
   {
     name: "basic 4-cut",
     canvas: {
@@ -80,6 +97,9 @@ export const LAYOUTS: CanvasData[] = [
       { x: 68, y: 1896, width: 712, height: 572 },
     ],
     templatePath: basic4Cut,
+    timestamp: {
+      x: 76, y: 56
+    }
   },
   // {
   //   name: "basic 4-cut 2",
@@ -110,6 +130,9 @@ export const LAYOUTS: CanvasData[] = [
       { x: 612, y: 1221, width: 535, height: 517 },
     ],
     templatePath: basic6Cut,
+    timestamp: {
+      x: 75, y: 60
+    }
   },
   {
     name: "film 3-cut",

@@ -6,7 +6,8 @@ import {
   hslToRgb,
   rgbToHex,
   rgbToHsl,
-} from "../../utils/colors";
+} from "@/utils/colors";
+
 import "./styles.css";
 
 interface ColorPickerProps {

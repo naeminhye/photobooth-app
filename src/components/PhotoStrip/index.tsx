@@ -15,24 +15,16 @@ import {
   Circle,
   Group,
 } from "react-konva";
-import { LAYOUTS, CanvasData, Rectangle, SCALE_FACTOR } from "../../constants";
-import "./styles.css";
-import { Gradient } from "../GradientPicker";
 import Konva from "konva";
+
+import { LAYOUTS, PhotoStripLayout, Position, Rectangle, SCALE_FACTOR, Sticker } from "@/constants";
+import { Gradient } from "@/components/GradientPicker";
+
+import "./styles.css";
 
 interface Photo {
   id: string;
   url: string;
-}
-
-interface Sticker {
-  id: number;
-  image: HTMLImageElement;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
 }
 
 interface PhotoStripProps {
@@ -79,17 +71,20 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     const transformerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const currentLayout: CanvasData = LAYOUTS[layout];
+    const currentLayout: PhotoStripLayout = LAYOUTS[layout];
     const maxPhotos = currentLayout.rectangles.length;
     const stripWidth = currentLayout.canvas.width * SCALE_FACTOR;
     const stripHeight = currentLayout.canvas.height * SCALE_FACTOR;
+    const timestamp: Position = currentLayout?.timestamp || { x: currentLayout.canvas.width - 196, y: 12 / SCALE_FACTOR };
+
+    const isPhotoCombined = photos.length === 1 && photos[0].id === "combined";
 
     const getCurrentDate = () => {
       const today = new Date();
       const day = String(today.getDate()).padStart(2, "0");
       const month = String(today.getMonth() + 1).padStart(2, "0");
       const year = String(today.getFullYear()).slice(2);
-      return `${day}.${month}.${year}`;
+      return `⊹₊⟡⋆${day}.${month}.${year}₊˚⊹ ᰔ`;
     };
 
     useEffect(() => {
@@ -297,7 +292,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
     useEffect(() => {
       const loadPhotos = async () => {
-        if (photos.length === 1 && photos[0].id === "combined") {
+        if (isPhotoCombined) {
           const img = new Image();
           img.crossOrigin = "Anonymous";
           img.src = photos[0].url;
@@ -370,13 +365,13 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
           prev.map((sticker) =>
             sticker.id === id
               ? {
-                  ...sticker,
-                  x: node.x() / SCALE_FACTOR,
-                  y: node.y() / SCALE_FACTOR,
-                  width: (node.width() * node.scaleX()) / SCALE_FACTOR,
-                  height: (node.height() * node.scaleY()) / SCALE_FACTOR,
-                  rotation: node.rotation(),
-                }
+                ...sticker,
+                x: node.x() / SCALE_FACTOR,
+                y: node.y() / SCALE_FACTOR,
+                width: (node.width() * node.scaleX()) / SCALE_FACTOR,
+                height: (node.height() * node.scaleY()) / SCALE_FACTOR,
+                rotation: node.rotation(),
+              }
               : sticker
           )
         );
@@ -396,21 +391,21 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
 
     const adjustedGradient = gradient
       ? {
-          ...gradient,
-          fillLinearGradientEndPoint: { x: stripWidth, y: stripHeight },
-          fillRadialGradientStartPoint:
-            gradient.fillRadialGradientStartPoint || {
-              x: stripWidth / 2,
-              y: stripHeight / 2,
-            },
-          fillRadialGradientEndPoint: gradient.fillRadialGradientEndPoint || {
+        ...gradient,
+        fillLinearGradientEndPoint: { x: stripWidth, y: stripHeight },
+        fillRadialGradientStartPoint:
+          gradient.fillRadialGradientStartPoint || {
             x: stripWidth / 2,
             y: stripHeight / 2,
           },
-          fillRadialGradientEndRadius:
-            gradient.fillRadialGradientEndRadius ||
-            Math.max(stripWidth, stripHeight) / 2,
-        }
+        fillRadialGradientEndPoint: gradient.fillRadialGradientEndPoint || {
+          x: stripWidth / 2,
+          y: stripHeight / 2,
+        },
+        fillRadialGradientEndRadius:
+          gradient.fillRadialGradientEndRadius ||
+          Math.max(stripWidth, stripHeight) / 2,
+      }
       : null;
 
     useEffect(() => {
@@ -463,44 +458,44 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 />
               )}
 
-              {photos.length === 1 && photos[0].id === "combined"
+              {isPhotoCombined
                 ? photoImages[0] && (
-                    <KonvaImage
-                      image={photoImages[0]}
-                      width={stripWidth}
-                      height={stripHeight}
-                      listening={false}
-                    />
-                  )
+                  <KonvaImage
+                    image={photoImages[0]}
+                    width={stripWidth}
+                    height={stripHeight}
+                    listening={false}
+                  />
+                )
                 : currentLayout.rectangles.map((rect, index) => {
-                    const croppedImage = photoImages[index];
-                    if (croppedImage) {
-                      return (
-                        <KonvaImage
-                          key={index}
-                          image={croppedImage}
-                          x={rect.x * SCALE_FACTOR}
-                          y={rect.y * SCALE_FACTOR}
-                          width={rect.width * SCALE_FACTOR}
-                          height={rect.height * SCALE_FACTOR}
-                          listening={false}
-                        />
-                      );
-                    } else {
-                      return (
-                        <Rect
-                          key={index}
-                          x={rect.x * SCALE_FACTOR}
-                          y={rect.y * SCALE_FACTOR}
-                          width={rect.width * SCALE_FACTOR}
-                          height={rect.height * SCALE_FACTOR}
-                          fill="rgba(200, 200, 200, 0.5)"
-                          stroke="gray"
-                          strokeWidth={1 * SCALE_FACTOR}
-                        />
-                      );
-                    }
-                  })}
+                  const croppedImage = photoImages[index];
+                  if (croppedImage) {
+                    return (
+                      <KonvaImage
+                        key={index}
+                        image={croppedImage}
+                        x={rect.x * SCALE_FACTOR}
+                        y={rect.y * SCALE_FACTOR}
+                        width={rect.width * SCALE_FACTOR}
+                        height={rect.height * SCALE_FACTOR}
+                        listening={false}
+                      />
+                    );
+                  } else {
+                    return (
+                      <Rect
+                        key={index}
+                        x={rect.x * SCALE_FACTOR}
+                        y={rect.y * SCALE_FACTOR}
+                        width={rect.width * SCALE_FACTOR}
+                        height={rect.height * SCALE_FACTOR}
+                        fill="rgba(200, 200, 200, 0.5)"
+                        stroke="gray"
+                        strokeWidth={1 * SCALE_FACTOR}
+                      />
+                    );
+                  }
+                })}
 
               {fgImage && (
                 <KonvaImage
@@ -531,7 +526,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                       <Transformer
                         id={`transformer-${sticker.id}`}
                         ref={transformerRef}
-                        anchorSize={10}
+                        anchorSize={8}
                         anchorCornerRadius={4}
                         borderStrokeWidth={2}
                         rotateEnabled
@@ -564,9 +559,9 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                           sticker.width * SCALE_FACTOR +
                           10
                         }
-                        y={sticker.y * SCALE_FACTOR - 20}
-                        text="X"
-                        fontSize={12}
+                        y={sticker.y * SCALE_FACTOR - 23}
+                        text="×"
+                        fontSize={18}
                         fill="white"
                         align="center"
                         listening={false}
@@ -576,17 +571,17 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                 </Group>
               ))}
 
-              <Text
+              {isPhotoCombined && <Text
                 text={getCurrentDate()}
-                x={stripWidth / 2 - 20}
-                y={12}
+                x={timestamp.x * SCALE_FACTOR}
+                y={timestamp.y * SCALE_FACTOR}
                 fontSize={36 * SCALE_FACTOR}
-                fontFamily="Arial"
+                fontFamily="IBM Plex Mono"
                 fill={textColor}
                 align="right"
                 perfectDrawEnabled={true}
                 listening={false}
-              />
+              />}
             </Layer>
           </Stage>
           {loading && (

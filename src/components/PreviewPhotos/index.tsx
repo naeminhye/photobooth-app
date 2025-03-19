@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { DropzoneInputProps, DropzoneRootProps } from "react-dropzone";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -5,8 +6,8 @@ import {
   faTrash,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
-import { LAYOUTS } from "../../constants";
-import { useMemo } from "react";
+
+import { LAYOUTS } from "@/constants";
 
 interface Photo {
   id: string;
@@ -73,9 +74,8 @@ const PreviewPhotos: React.FC<PreviewPhotosProps> = ({
           {previewPhotos?.map((photo) => (
             <div
               key={photo.id}
-              className={`preview-photo ${
-                selectedPreviewPhotos.includes(photo.id) ? "selected" : ""
-              } ${selectedPhotos.length >= maxPhotos ? "cannot-select" : ""}`}
+              className={`preview-photo ${selectedPreviewPhotos.includes(photo.id) ? "selected" : ""
+                } ${selectedPhotos.length >= maxPhotos ? "cannot-select" : ""}`}
               onClick={() => toggleFromStrip(photo.id)}
             >
               <img src={photo.url} alt="Preview" />

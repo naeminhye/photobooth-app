@@ -2,22 +2,23 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import GIF from "gif.js";
-import { CAMERA_HEIGHT, CAMERA_WIDTH, MAX_PHOTOS } from "../../constants";
+
+import { CAMERA_HEIGHT, CAMERA_WIDTH, MAX_PHOTOS } from "@/constants";
+import { getDeviceType } from "@/utils";
+import { flipFrameHorizontally } from "@/utils/canvas";
 
 // Icons
-import flipIcon from "../../assets/icons/flip.png";
-import timerOffFill from "../../assets/icons/timer_off_fill.png";
-import timerOffOutline from "../../assets/icons/timer_off_outline.png";
-import timer2Fill from "../../assets/icons/timer_2_fill.png";
-import timer2Outline from "../../assets/icons/timer_2_outline.png";
-import timer5Fill from "../../assets/icons/timer_5_fill.png";
-import timer5Outline from "../../assets/icons/timer_5_outline.png";
-import timer10Fill from "../../assets/icons/timer_10_fill.png";
-import timer10Outline from "../../assets/icons/timer_10_outline.png";
+import flipIcon from "@/assets/icons/flip.png";
+import timerOffFill from "@/assets/icons/timer_off_fill.png";
+import timerOffOutline from "@/assets/icons/timer_off_outline.png";
+import timer2Fill from "@/assets/icons/timer_2_fill.png";
+import timer2Outline from "@/assets/icons/timer_2_outline.png";
+import timer5Fill from "@/assets/icons/timer_5_fill.png";
+import timer5Outline from "@/assets/icons/timer_5_outline.png";
+import timer10Fill from "@/assets/icons/timer_10_fill.png";
+import timer10Outline from "@/assets/icons/timer_10_outline.png";
 
 import "./styles.css";
-import { getDeviceType } from "../../utils";
-import { flipFrameHorizontally, imageDataToCanvas } from "../../utils/canvas";
 
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
@@ -594,21 +595,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
               style={{ objectFit: "cover" }}
             />
             {countdown !== null && <div className="countdown">{countdown}</div>}
-            {/* {isRecording && (
-            <div
-              style={{
-                position: "absolute",
-                top: "10px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                color: "red",
-                fontSize: "20px",
-                fontWeight: "bold",
-              }}
-            >
-              Recording...
-            </div>
-          )} */}
             <button
               ref={captureButtonRef}
               onMouseDown={handleMouseDown}
