@@ -1,7 +1,7 @@
 // src/components/SequentialGif/index.tsx
-import React, { forwardRef } from "react";
+import { forwardRef } from "react";
+import { CAMERA_HEIGHT, CAMERA_WIDTH } from "@/constants";
 import "./styles.css";
-import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 
 interface SequentialGifProps {
   gifUrl: string | null;

@@ -2,9 +2,11 @@
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
+
+import GradientPicker, { Gradient } from "@/components/GradientPicker";
+import ColorPicker from "@/components/ColorPicker";
+
 import "./styles.css";
-import GradientPicker, { Gradient } from "../GradientPicker";
-import ColorPicker from "../ColorPicker";
 
 interface FrameControlsProps {
   onColorChange: (color: string) => void;

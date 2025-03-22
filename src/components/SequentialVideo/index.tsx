@@ -1,7 +1,7 @@
 // src/components/SequentialVideo/index.tsx
-import React, { forwardRef } from "react";
+import { forwardRef } from "react";
+import { CAMERA_HEIGHT, CAMERA_WIDTH } from "@/constants";
 import "./styles.css"; // Reuse existing styles or create new ones
-import { CAMERA_HEIGHT, CAMERA_WIDTH } from "../../constants";
 
 interface SequentialVideoProps {
   videoUrl: string | null;

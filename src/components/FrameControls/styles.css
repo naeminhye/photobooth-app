@@ -73,7 +73,8 @@
   border: 1px solid #000;
   font-size: 14px;
   transition: border-color 0.3s ease;
-  font-family: 'Geo', sans-serif;
+  font-family: "Geo", sans-serif;
+  /* font-family: "IBM Plex Mono", monospace; */
 }
 
 .frame-controls-select:focus {

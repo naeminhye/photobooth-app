@@ -2,10 +2,12 @@
 body {
   margin: 0;
   font-family: "Geo", sans-serif;
+  /*  font-family: "IBM Plex Mono", monospace; */
 }
 
 button {
   font-family: "Geo", sans-serif;
+  /*  font-family: "IBM Plex Mono", monospace; */
   text-transform: uppercase;
 }
 
@@ -174,6 +176,7 @@ button {
   display: flex;
   gap: 20px;
   justify-content: center;
+  margin-top: 36px;
 }
 
 /* Photo Strip */
@@ -345,6 +348,7 @@ button {
 /* CTA Button */
 .cta-button {
   font-family: "Geo", sans-serif;
+  /*  font-family: "IBM Plex Mono", monospace; */
   text-transform: uppercase;
   border: 1px solid black;
   /* Thicker border for emphasis */
@@ -367,6 +371,10 @@ button {
   /* Subtle shadow for 3D effect */
   overflow: hidden;
   /* Ensure pseudo-elements don’t overflow */
+}
+
+.cta-button.danger {
+  background-color: #D0342C;
 }
 
 .cta-button:hover {
@@ -415,6 +423,7 @@ button {
 .modal-actions button {
   padding: 10px 20px;
   font-family: "Geo", sans-serif;
+  /* font-family: "IBM Plex Mono", monospace; */
   text-transform: uppercase;
   border: 1px solid var(--theme-color);
   background: white;
@@ -429,7 +438,6 @@ button {
   display: flex;
   justify-content: center;
   gap: 20px;
-  margin: 20px 0;
 }
 
 .mode-option {

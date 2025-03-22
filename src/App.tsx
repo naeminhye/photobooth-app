@@ -1,44 +1,34 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import "./App.css";
-import PhotoStrip from "./components/PhotoStrip";
-import FrameControls from "./components/FrameControls";
-import CameraFeed from "./components/CameraFeed";
-import SequentialVideo from "./components/SequentialVideo";
-import SequentialGif from "./components/SequentialGif";
-import PreviewPhotos from "./components/PreviewPhotos";
-import { LAYOUTS, MAX_PHOTOS } from "./constants";
 import { v4 as uuidv4 } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useDropzone } from "react-dropzone";
-import GradientBackground from "./components/GradientBackground";
-import { getContrastColor } from "./utils/colors";
-import { Gradient } from "./components/GradientPicker";
-import { getDeviceType } from "./utils";
-import CropModal from "./components/CropModal";
+
+import GradientBackground from "@/components/GradientBackground";
+import { Gradient } from "@/components/GradientPicker";
+import CropModal from "@/components/CropModal";
+import PhotoStrip from "@/components/PhotoStrip";
+import FrameControls from "@/components/FrameControls";
+import CameraFeed from "@/components/CameraFeed";
+import SequentialVideo from "@/components/SequentialVideo";
+import SequentialGif from "@/components/SequentialGif";
+import PreviewPhotos from "@/components/PreviewPhotos";
+import { LAYOUTS, MAX_PHOTOS, Sticker } from "@/constants";
+import { getDeviceType } from "@/utils";
+import { getContrastColor } from "@/utils/colors";
+
+import "./App.css";
 
 interface Photo {
   id: string;
   url: string;
 }
 
-interface Sticker {
-  id: number;
-  image: HTMLImageElement;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
-}
-
 type CaptureMode = "photostrip" | "gif" | "video"; // New type for modes
 
 const layouts = LAYOUTS.map((layout, index) => ({
   id: index,
-  name: layout.name,
-  maxPhotos: layout.rectangles.length,
-  templatePath: layout.templatePath,
+  ...layout,
 }));
 
 const App: React.FC = () => {
@@ -111,7 +101,8 @@ const App: React.FC = () => {
   const resetAll = () => {
     setSelectedPhotos([]);
     setPreviewPhotos([]);
-    setFrameColor("#FFF");
+    setFrameColor("#FFFFFF");
+    setGradientColor(undefined);
     setBackgroundImage(null);
     setForegroundImage(null);
     setLayout(0);
@@ -123,7 +114,7 @@ const App: React.FC = () => {
     setVideoMimeType("");
     setIsRecordingVideo(false);
     setStep(1);
-    setCaptureMode("photostrip"); // Reset to default mode
+    setCaptureMode("photostrip");
     setIsMirrored(true);
     setCombinedImage(null);
     setLoading(false);
@@ -148,8 +139,8 @@ const App: React.FC = () => {
       const extension = videoMimeType.includes("gif")
         ? "gif"
         : videoMimeType.includes("mp4")
-        ? "mp4"
-        : "webm";
+          ? "mp4"
+          : "webm";
       const prefix = videoMimeType.includes("gif")
         ? "photobooth_gif"
         : "photobooth_video";
@@ -278,7 +269,7 @@ const App: React.FC = () => {
             gradient.fillRadialGradientEndPoint?.x || stripWidth / 2,
             gradient.fillRadialGradientEndPoint?.y || stripHeight / 2,
             gradient.fillRadialGradientEndRadius ||
-              Math.max(stripWidth, stripHeight) / 2
+            Math.max(stripWidth, stripHeight) / 2
           );
 
           for (
@@ -519,6 +510,8 @@ const App: React.FC = () => {
       setBackgroundImage(null);
       return;
     }
+    setFrameColor("#FFFFFF");
+    setGradientColor(undefined);
     const reader = new FileReader();
     reader.onload = (e) => {
       setTempBackgroundImage(e.target?.result as string);
@@ -555,9 +548,8 @@ const App: React.FC = () => {
                   {layouts.map((layoutItem) => (
                     <div
                       key={layoutItem.id}
-                      className={`layout-option ${
-                        layoutItem.id === layout ? "active" : ""
-                      }`}
+                      className={`layout-option ${layoutItem.id === layout ? "active" : ""
+                        }`}
                       onClick={() => setLayout(layoutItem.id)}
                     >
                       <img
@@ -568,14 +560,6 @@ const App: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <div className="step-navigation">
-                  <button className="cta-button" onClick={resetAll}>
-                    Reset All
-                  </button>
-                  <button className="cta-button" onClick={goToNextStep}>
-                    Next →
-                  </button>
-                </div>
               </div>
             )}
             {step === 2 && (
@@ -583,37 +567,26 @@ const App: React.FC = () => {
                 <h2 className="step-title">Choose Capture Mode</h2>
                 <div className="mode-toggle">
                   <div
-                    className={`mode-option ${
-                      captureMode === "photostrip" ? "active" : ""
-                    }`}
+                    className={`mode-option ${captureMode === "photostrip" ? "active" : ""
+                      }`}
                     onClick={() => setCaptureMode("photostrip")}
                   >
                     <p>Photostrip Only</p>
                   </div>
                   <div
-                    className={`mode-option ${
-                      captureMode === "gif" ? "active" : ""
-                    }`}
+                    className={`mode-option ${captureMode === "gif" ? "active" : ""
+                      }`}
                     onClick={() => setCaptureMode("gif")}
                   >
                     <p>Photostrip with GIF</p>
                   </div>
                   <div
-                    className={`mode-option ${
-                      captureMode === "video" ? "active" : ""
-                    }`}
+                    className={`mode-option ${captureMode === "video" ? "active" : ""
+                      }`}
                     onClick={() => setCaptureMode("video")}
                   >
                     <p>Photostrip with Video</p>
                   </div>
-                </div>
-                <div className="step-navigation">
-                  <button className="cta-button" onClick={resetAll}>
-                    Reset All
-                  </button>
-                  <button className="cta-button" onClick={goToNextStep}>
-                    Next →
-                  </button>
                 </div>
               </div>
             )}
@@ -656,14 +629,6 @@ const App: React.FC = () => {
                       isViewOnly
                     />
                   </div>
-                </div>
-                <div className="step-navigation">
-                  <button className="cta-button" onClick={resetAll}>
-                    Reset All
-                  </button>
-                  <button className="cta-button" onClick={goToNextStep}>
-                    Next →
-                  </button>
                 </div>
               </div>
             )}
@@ -717,14 +682,6 @@ const App: React.FC = () => {
                       onSelectFrameGradient={setGradientColor}
                     />
                   </div>
-                </div>
-                <div className="step-navigation">
-                  <button className="cta-button" onClick={resetAll}>
-                    Reset All
-                  </button>
-                  <button className="cta-button" onClick={goToNextStep}>
-                    Next →
-                  </button>
                 </div>
               </div>
             )}
@@ -785,14 +742,6 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="step-navigation">
-                  <button className="cta-button" onClick={resetAll}>
-                    Reset All
-                  </button>
-                  <button className="cta-button" onClick={goToNextStep}>
-                    Next →
-                  </button>
-                </div>
               </div>
             )}
             {step === 6 && (
@@ -841,26 +790,32 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <div className="step-navigation">
-                  <button className="cta-button" onClick={resetAll}>
-                    Reset All
-                  </button>
-                  <button className="cta-button" onClick={downloadImage}>
-                    Download Image
-                  </button>
-                  {captureMode === "video" && videoUrl && (
-                    <button className="cta-button" onClick={downloadVideo}>
-                      Download Video
-                    </button>
-                  )}
-                  {captureMode === "gif" && videoUrl && (
-                    <button className="cta-button" onClick={downloadVideo}>
-                      Download GIF
-                    </button>
-                  )}
-                </div>
               </div>
             )}
+
+            <div className="step-navigation">
+              {step > 1 && <button className="cta-button danger" onClick={resetAll}>
+                Reset All
+              </button>}
+              {step < 6 && <button className="cta-button" onClick={goToNextStep}>
+                Next →
+              </button>}
+              {step === 6 && <>
+                <button className="cta-button" onClick={downloadImage}>
+                  Download Image
+                </button>
+                {captureMode === "video" && videoUrl && (
+                  <button className="cta-button" onClick={downloadVideo}>
+                    Download Video
+                  </button>
+                )}
+                {captureMode === "gif" && videoUrl && (
+                  <button className="cta-button" onClick={downloadVideo}>
+                    Download GIF
+                  </button>
+                )}
+              </>}
+            </div>
           </div>
         ) : (
           <p className="no-permission">
