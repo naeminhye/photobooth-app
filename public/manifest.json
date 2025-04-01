@@ -1,6 +1,6 @@
 {
-  "name": "PhotoBooth",
-  "short_name": "PhotoBooth",
+  "name": "MonoBooth",
+  "short_name": "MonoBooth",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
