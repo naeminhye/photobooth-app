@@ -52,7 +52,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const webcamRef = useRef<Webcam>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
   const captureButtonRef = useRef<HTMLButtonElement>(null);
   const [isHolding, setIsHolding] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -79,7 +78,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     if (captureMode !== "photostrip" && countdownTime === 0) {
       onTimerChange(2);
     }
-  }, [countdownTime, captureMode]);
+  }, [countdownTime, captureMode, onTimerChange]);
 
   useEffect(() => {
     countdownRef.current = countdownTime;
@@ -159,7 +158,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     }
   }, [onCapture, cameraDimensions]);
 
-  const captureFrame = () => {
+  const captureFrame = useCallback(() => {
     if (webcamRef.current && canvasRef.current && webcamRef.current.video) {
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d");
@@ -182,9 +181,9 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
       }
     }
     return null;
-  };
+  }, [cameraDimensions.width, cameraDimensions.height]);
 
-  const createGif = () => {
+  const createGif = useCallback(() => {
     if (!gifFrames.current?.length || !onVideoComplete) {
       setIsRecording(false);
       setIsRecordingVideo(false);
@@ -216,7 +215,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     });
 
     gif.render();
-  };
+  }, [cameraDimensions.width, cameraDimensions.height, isMirrored, onVideoComplete, setIsRecordingVideo]);
 
   const getSupportedVideoMimeType = () => {
     const webmType = "video/webm;codecs=vp9";
@@ -268,7 +267,6 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
     // Capture flipped video frames
     const outputStream = canvas.captureStream(30);
-    const flippedTrack = outputStream.getVideoTracks()[0];
 
     mediaRecorderRef.current = new MediaRecorder(outputStream, { mimeType });
 
@@ -326,7 +324,9 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     mediaRecorderRef.current.start();
     setIsRecording(true);
     setIsRecordingVideo(true);
-  }, [onVideoComplete, isMirrored]);
+  },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onVideoComplete, isMirrored]);
 
   const stopVideoRecording = () => {
     if (
@@ -342,7 +342,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     }
   };
 
-  const runCountdown = async () => {
+  const runCountdown = useCallback(async () => {
     if (captureMode === "video" && !isRecording) {
       startVideoRecording(); // Start recording at the beginning
     }
@@ -378,7 +378,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     } else {
       setIsRecording(false);
     }
-  };
+  }, [captureFrame, captureMode, capturePhoto, createGif, isRecording, startVideoRecording]);
 
   const startCountdown = useCallback(() => {
     if (currentPhotos >= MAX_PHOTOS) {
@@ -396,8 +396,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
     timerEnabled,
     maxPhotos,
     isRecording,
-    captureMode,
-    capturePhoto,
+    runCountdown
   ]);
 
   const handleMouseDown = () => {

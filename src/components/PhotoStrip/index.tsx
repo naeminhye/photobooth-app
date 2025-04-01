@@ -326,7 +326,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
         }
       };
       loadPhotos();
-    }, [photos, filter, maxPhotos, currentLayout.rectangles]);
+    }, [photos, filter, maxPhotos, currentLayout.rectangles, isPhotoCombined]);
 
     const handleSelectSticker = (e: any) => {
       if (isViewOnly) return;

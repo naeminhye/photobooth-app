@@ -1,10 +1,10 @@
 // constants/index.ts
 import basic4Cut from "@/assets/illustrators/basic-4-cut.png";
-import basic4Cut2 from "@/assets/illustrators/basic-4-cut-2.png";
+// import basic4Cut2 from "@/assets/illustrators/basic-4-cut-2.png";
 import basic6Cut from "@/assets/illustrators/basic-6-cut.png";
 import film3Cut from "@/assets/illustrators/film-3-cut.png";
 import wide4Cut from "@/assets/illustrators/wide-4-cut.png";
-import rizz4Cut from "@/assets/illustrators/rizz-4-cut.png";
+// import rizz4Cut from "@/assets/illustrators/rizz-4-cut.png";
 
 export const SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".svg", ".gif"];
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
