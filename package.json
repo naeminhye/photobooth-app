@@ -1,6 +1,6 @@
 {
   "name": "photobooth-app",
-  "homepage": "https://naeminhye.github.io/photobooth-app/",
+  "homepage": "https://mono-booth.vercel.app/",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
