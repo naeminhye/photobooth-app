@@ -43,6 +43,7 @@ export interface TextItem {
   y: number;
   fontSize: number;
   fontFamily: string;
+  fontStyle: string; // 'normal' | 'bold' | 'italic' | 'bold italic'
   color: string;
   rotation: number;
 }

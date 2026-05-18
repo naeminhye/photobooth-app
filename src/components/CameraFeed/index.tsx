@@ -21,6 +21,13 @@ import timer10Outline from "@/assets/icons/timer_10_outline.png";
 
 import "./styles.css";
 
+const FILTER_CSS: Record<string, string> = {
+  none: "none",
+  bw: "grayscale(1)",
+  whitening: "brightness(1.28) contrast(0.88) saturate(0.75)",
+  darker: "brightness(0.65) contrast(1.1)",
+};
+
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
   onVideoComplete?: (videoUrl: string, mimeType: string) => void;
@@ -34,6 +41,7 @@ interface CameraFeedProps {
   onTimerChange: (time: number) => void;
   onMirrorToggle: (isMirrored: boolean) => void;
   captureMode: "photostrip" | "gif" | "video";
+  filter?: string;
 }
 
 const CameraFeed: React.FC<CameraFeedProps> = ({
@@ -49,6 +57,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   onTimerChange,
   onMirrorToggle,
   captureMode,
+  filter = "none",
 }) => {
   const webcamRef = useRef<Webcam>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -594,7 +603,11 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
               }}
               onUserMediaError={handleCameraError}
               playsInline
-              style={{ objectFit: "cover" }}
+              style={{
+                objectFit: "cover",
+                filter: FILTER_CSS[filter] ?? "none",
+                transition: "filter 0.3s ease",
+              }}
             />
             {countdown !== null && <div className="countdown">{countdown}</div>}
             <button

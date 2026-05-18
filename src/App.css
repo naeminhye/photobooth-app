@@ -654,7 +654,269 @@ button {
   transform: translateY(-2px);
 }
 
-/* Device info */
+/* ── Overlay panels (text & sticker) ───────────────── */
+.overlay-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow);
+  padding: 16px;
+  max-width: 340px;
+  width: 340px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overlay-panel-title {
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+}
+
+/* Text input */
+.text-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--font-main);
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.text-input:focus {
+  border-color: rgba(167, 139, 250, 0.7);
+}
+
+.text-input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.text-font-select {
+  flex: 1;
+}
+
+.text-controls-row {
+  display: flex;
+  gap: 8px;
+}
+
+.text-size-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text-size-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 28px;
+  font-family: var(--font-main);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.text-size-slider {
+  flex: 1;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.text-size-val {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  min-width: 32px;
+  text-align: right;
+  font-family: var(--font-main);
+}
+
+.text-style-row {
+  display: flex;
+  gap: 6px;
+}
+
+.text-style-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  text-transform: none;
+}
+
+.text-style-btn.active {
+  background: rgba(167, 139, 250, 0.4);
+  border-color: rgba(167, 139, 250, 0.7);
+  color: #fff;
+}
+
+.text-color-swatches {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.text-color-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.text-color-swatch:hover {
+  transform: scale(1.18);
+}
+
+.text-color-swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.5);
+  transform: scale(1.1);
+}
+
+.add-text-btn {
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  align-self: flex-start;
+}
+
+.add-text-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ── Sticker packs ───────────────────────────────── */
+.pack-tabs {
+  display: flex;
+  gap: 5px;
+}
+
+.pack-tab {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  text-transform: none;
+}
+
+.pack-tab:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.08);
+}
+
+.pack-tab.active {
+  background: rgba(167, 139, 250, 0.38);
+  border-color: rgba(167, 139, 250, 0.7);
+}
+
+.pack-stickers-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.emoji-sticker-btn {
+  padding: 5px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  transition: transform 0.15s, background 0.15s;
+  text-transform: none;
+}
+
+.emoji-sticker-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.22);
+}
+
+/* ── Frame templates grid ───────────────────────── */
+.frames-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.frame-card {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px 4px 6px;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  overflow: hidden;
+  aspect-ratio: 2/3;
+  position: relative;
+}
+
+.frame-card:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: scale(1.04);
+}
+
+.frame-card.active {
+  border-color: rgba(167, 139, 250, 0.8);
+  background: rgba(167, 139, 250, 0.18);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.4);
+}
+
+.frame-card-img {
+  width: 100%;
+  flex: 1;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+
+.frame-card-name {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: var(--font-main);
+  line-height: 1.2;
+}
+
+/* ── Device info */
 .device-info-text {
   position: absolute;
   bottom: 10px;

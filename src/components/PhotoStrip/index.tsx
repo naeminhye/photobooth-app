@@ -17,7 +17,7 @@ import {
 } from "react-konva";
 import Konva from "konva";
 
-import { LAYOUTS, PhotoStripLayout, Position, Rectangle, SCALE_FACTOR, Sticker } from "@/constants";
+import { LAYOUTS, PhotoStripLayout, Position, Rectangle, SCALE_FACTOR, Sticker, TextItem } from "@/constants";
 import { Gradient } from "@/components/GradientPicker";
 
 import "./styles.css";
@@ -38,12 +38,16 @@ interface PhotoStripProps {
   setStickers: React.Dispatch<React.SetStateAction<Sticker[]>>;
   selectedStickerId: number | null;
   setSelectedStickerId: React.Dispatch<React.SetStateAction<number | null>>;
+  textItems?: TextItem[];
+  setTextItems?: React.Dispatch<React.SetStateAction<TextItem[]>>;
+  selectedTextId?: number | null;
+  setSelectedTextId?: React.Dispatch<React.SetStateAction<number | null>>;
   stageRef: React.RefObject<any>;
   isViewOnly: boolean;
   filter?: string;
   gradient?: Gradient | null;
-  loading: boolean; // Add loading prop
-  setLoading: (isLoading: boolean) => void; // Add setLoading prop
+  loading: boolean;
+  setLoading: (isLoading: boolean) => void;
 }
 
 const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
@@ -60,6 +64,10 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       setStickers,
       selectedStickerId,
       setSelectedStickerId,
+      textItems = [],
+      setTextItems,
+      selectedTextId = null,
+      setSelectedTextId,
       stageRef,
       isViewOnly,
       filter,
@@ -69,6 +77,7 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     ref
   ) => {
     const transformerRef = useRef<any>(null);
+    const textTransformerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const currentLayout: PhotoStripLayout = LAYOUTS[layout];
@@ -337,19 +346,18 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
     const handleDeselect = (
       e: Konva.KonvaEventObject<MouseEvent | TouchEvent>
     ) => {
-      const clickedOnSticker = e.target.id()?.includes("sticker");
-      const clickedOnDeleteButton = e.target.id()?.includes("delete-button");
+      const id = e.target.id() ?? "";
+      const clickedOnSticker = id.includes("sticker");
+      const clickedOnText = id.includes("text-item");
+      const clickedOnDeleteButton = id.includes("delete-button") || id.includes("delete-text");
       const clickedOnTransformer =
         e.target.getClassName() === "Transformer" ||
         e.target.parent?.getClassName() === "Transformer" ||
         e.target.attrs?.name?.includes("anchor");
 
-      if (
-        !clickedOnSticker &&
-        !clickedOnDeleteButton &&
-        !clickedOnTransformer
-      ) {
+      if (!clickedOnSticker && !clickedOnText && !clickedOnDeleteButton && !clickedOnTransformer) {
         setSelectedStickerId(null);
+        setSelectedTextId?.(null);
       }
     };
 
@@ -389,6 +397,56 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       setSelectedStickerId(null);
     }, [selectedStickerId, setStickers, isViewOnly, setSelectedStickerId]);
 
+    const handleSelectText = (e: any) => {
+      if (isViewOnly) return;
+      const id = parseInt(e.target.id().replace("text-item-", ""));
+      setSelectedStickerId(null);
+      setSelectedTextId?.(id);
+    };
+
+    const handleTextDragEnd = useCallback(
+      (e: Konva.KonvaEventObject<Event>) => {
+        if (isViewOnly) return;
+        const node = e.target;
+        const id = parseInt(node.id().replace("text-item-", ""));
+        setTextItems?.((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? { ...item, x: node.x() / SCALE_FACTOR, y: node.y() / SCALE_FACTOR }
+              : item
+          )
+        );
+      },
+      [setTextItems, isViewOnly]
+    );
+
+    const handleTextTransformEnd = useCallback(
+      (e: Konva.KonvaEventObject<Event>) => {
+        if (isViewOnly) return;
+        const node = e.target;
+        const id = parseInt(node.id().replace("text-item-", ""));
+        setTextItems?.((prev) =>
+          prev.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  x: node.x() / SCALE_FACTOR,
+                  y: node.y() / SCALE_FACTOR,
+                  rotation: node.rotation(),
+                }
+              : item
+          )
+        );
+      },
+      [setTextItems, isViewOnly]
+    );
+
+    const handleDeleteText = useCallback(() => {
+      if (isViewOnly || selectedTextId === null) return;
+      setTextItems?.((prev) => prev.filter((t) => t.id !== selectedTextId));
+      setSelectedTextId?.(null);
+    }, [selectedTextId, setTextItems, isViewOnly, setSelectedTextId]);
+
     const adjustedGradient = gradient
       ? {
         ...gradient,
@@ -408,28 +466,49 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
       }
       : null;
 
+    // Sync sticker transformer
     useEffect(() => {
       if (transformerRef.current && selectedStickerId !== null && !isViewOnly) {
         const stage = stageRef.current;
-        const layer = stage.findOne("Layer");
-        const stickerNode = layer.findOne(`#sticker-${selectedStickerId}`);
-        if (stickerNode) {
-          transformerRef.current.nodes([stickerNode]);
-          transformerRef.current.getLayer().batchDraw();
+        const layer = stage?.findOne("Layer");
+        const node = layer?.findOne(`#sticker-${selectedStickerId}`);
+        if (node) {
+          transformerRef.current.nodes([node]);
+          transformerRef.current.getLayer()?.batchDraw();
         }
+      } else if (transformerRef.current) {
+        transformerRef.current.nodes([]);
+        transformerRef.current.getLayer()?.batchDraw();
       }
     }, [selectedStickerId, isViewOnly, stageRef]);
 
+    // Sync text transformer
+    useEffect(() => {
+      if (textTransformerRef.current && selectedTextId !== null && !isViewOnly) {
+        const stage = stageRef.current;
+        const layer = stage?.findOne("Layer");
+        const node = layer?.findOne(`#text-item-${selectedTextId}`);
+        if (node) {
+          textTransformerRef.current.nodes([node]);
+          textTransformerRef.current.getLayer()?.batchDraw();
+        }
+      } else if (textTransformerRef.current) {
+        textTransformerRef.current.nodes([]);
+        textTransformerRef.current.getLayer()?.batchDraw();
+      }
+    }, [selectedTextId, isViewOnly, stageRef]);
+
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (isViewOnly || selectedStickerId === null) return;
+        if (isViewOnly) return;
         if (e.key === "Delete") {
-          handleDeleteSticker();
+          if (selectedStickerId !== null) handleDeleteSticker();
+          else if (selectedTextId !== null) handleDeleteText();
         }
       };
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedStickerId, isViewOnly, handleDeleteSticker]);
+    }, [selectedStickerId, selectedTextId, isViewOnly, handleDeleteSticker, handleDeleteText]);
 
     return (
       <div ref={ref} className="photo-strip" style={{ position: "relative" }}>
@@ -564,6 +643,60 @@ const PhotoStrip = forwardRef<HTMLDivElement, PhotoStripProps>(
                         fontSize={18}
                         fill="white"
                         align="center"
+                        listening={false}
+                      />
+                    </>
+                  )}
+                </Group>
+              ))}
+
+              {/* Text overlays */}
+              {textItems.map((item) => (
+                <Group key={item.id}>
+                  <Text
+                    id={`text-item-${item.id}`}
+                    text={item.text}
+                    x={item.x * SCALE_FACTOR}
+                    y={item.y * SCALE_FACTOR}
+                    fontSize={item.fontSize * SCALE_FACTOR}
+                    fontFamily={item.fontFamily}
+                    fontStyle={item.fontStyle || "normal"}
+                    fill={item.color}
+                    rotation={item.rotation}
+                    draggable={!isViewOnly}
+                    onClick={handleSelectText}
+                    onTap={handleSelectText}
+                    onDragEnd={handleTextDragEnd}
+                    onTransformEnd={handleTextTransformEnd}
+                    perfectDrawEnabled={true}
+                  />
+                  {selectedTextId === item.id && !isViewOnly && (
+                    <>
+                      <Transformer
+                        ref={textTransformerRef}
+                        enabledAnchors={[]}
+                        rotateEnabled={true}
+                        borderStrokeWidth={1}
+                        anchorSize={6}
+                        boundBoxFunc={(oldBox) => oldBox}
+                      />
+                      <Circle
+                        id={`delete-text-button-${item.id}`}
+                        x={item.x * SCALE_FACTOR + 12}
+                        y={item.y * SCALE_FACTOR - 14}
+                        radius={10}
+                        fill="red"
+                        onClick={handleDeleteText}
+                        onTap={handleDeleteText}
+                        listening={true}
+                      />
+                      <Text
+                        id={`delete-text-x-${item.id}`}
+                        x={item.x * SCALE_FACTOR + 7}
+                        y={item.y * SCALE_FACTOR - 22}
+                        text="×"
+                        fontSize={18}
+                        fill="white"
                         listening={false}
                       />
                     </>

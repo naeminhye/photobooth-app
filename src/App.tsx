@@ -13,9 +13,10 @@ import CameraFeed from "@/components/CameraFeed";
 import SequentialVideo from "@/components/SequentialVideo";
 import SequentialGif from "@/components/SequentialGif";
 import PreviewPhotos from "@/components/PreviewPhotos";
-import { LAYOUTS, MAX_PHOTOS, Sticker } from "@/constants";
+import { LAYOUTS, MAX_PHOTOS, Sticker, TextItem } from "@/constants";
 import { getDeviceType } from "@/utils";
 import { getContrastColor } from "@/utils/colors";
+import { STICKER_PACKS, createEmojiSticker } from "@/utils/stickerPacks";
 
 import "./App.css";
 
@@ -61,6 +62,15 @@ const App: React.FC = () => {
   );
   const [filter, setFilter] = useState<string>("none");
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [textItems, setTextItems] = useState<TextItem[]>([]);
+  const [selectedTextId, setSelectedTextId] = useState<number | null>(null);
+  // Text overlay controls (step 5 sidebar state)
+  const [textInput, setTextInput] = useState<string>("");
+  const [textFont, setTextFont] = useState<string>("Plus Jakarta Sans");
+  const [textSize, setTextSize] = useState<number>(140);
+  const [overlayTextColor, setOverlayTextColor] = useState<string>("#ffffff");
+  const [textStyle, setTextStyle] = useState<string>("normal");
+  const [activeStickerPack, setActiveStickerPack] = useState<string>("emoji");
   const [tempBackgroundImage, setTempBackgroundImage] = useState<string | null>(
     null
   );
@@ -118,6 +128,8 @@ const App: React.FC = () => {
     setIsMirrored(true);
     setCombinedImage(null);
     setLoading(false);
+    setTextItems([]);
+    setSelectedTextId(null);
   };
 
   const handlePhotoCapture = (photo: string) => {
@@ -479,6 +491,29 @@ const App: React.FC = () => {
     );
   };
 
+  const addTextToCanvas = () => {
+    if (!textInput.trim()) return;
+    const newText: TextItem = {
+      id: Date.now(),
+      text: textInput.trim(),
+      x: currentLayout.canvas.width / 2 - 60,
+      y: currentLayout.canvas.height / 2 - 20,
+      fontSize: textSize,
+      fontFamily: textFont,
+      fontStyle: textStyle,
+      color: overlayTextColor,
+      rotation: 0,
+    };
+    setTextItems((prev) => [...prev, newText]);
+    setTextInput("");
+  };
+
+  const addEmojiStickerToCanvas = async (emoji: string) => {
+    const img = await createEmojiSticker(emoji);
+    const withBorder = await addWhiteBorder(img);
+    addStickerToCanvas(withBorder);
+  };
+
   const addStickerToCanvas = (stickerImg: HTMLImageElement) => {
     const aspectRatio = stickerImg.width / stickerImg.height;
     const defaultWidth = 300;
@@ -519,6 +554,7 @@ const App: React.FC = () => {
       !photoStripRef.current.contains(e.target as Node)
     ) {
       setSelectedStickerId(null);
+      setSelectedTextId(null);
     }
   };
 
@@ -528,6 +564,7 @@ const App: React.FC = () => {
       !photoStripRef.current.contains(e.target as Node)
     ) {
       setSelectedStickerId(null);
+      setSelectedTextId(null);
     }
   };
 
@@ -673,6 +710,7 @@ const App: React.FC = () => {
                         onTimerChange={handleTimeChange}
                         onMirrorToggle={setIsMirrored}
                         captureMode={captureMode}
+                        filter={filter}
                       />
                     </div>
                   </div>
@@ -713,6 +751,10 @@ const App: React.FC = () => {
                       setStickers={setStickers}
                       selectedStickerId={selectedStickerId}
                       setSelectedStickerId={setSelectedStickerId}
+                      textItems={textItems}
+                      setTextItems={setTextItems}
+                      selectedTextId={selectedTextId}
+                      setSelectedTextId={setSelectedTextId}
                       stageRef={stageRef}
                       filter={filter}
                     />
@@ -747,7 +789,7 @@ const App: React.FC = () => {
             )}
             {step === 5 && (
               <div className="step-5">
-                <h2 className="step-title">Add Stickers</h2>
+                <h2 className="step-title">Add Text & Stickers</h2>
                 <div className="edit-container">
                   <div className="edit-main">
                     <PhotoStrip
@@ -770,13 +812,85 @@ const App: React.FC = () => {
                       setStickers={setStickers}
                       selectedStickerId={selectedStickerId}
                       setSelectedStickerId={setSelectedStickerId}
+                      textItems={textItems}
+                      setTextItems={setTextItems}
+                      selectedTextId={selectedTextId}
+                      setSelectedTextId={setSelectedTextId}
                       stageRef={stageRef}
                     />
                   </div>
                   <div className="edit-sidebar-right">
-                    <div className="sticker-controls">
-                      <label className="upload-button">
-                        <FontAwesomeIcon icon={faPlus} /> Upload Stickers
+                    {/* ── Text overlay panel ── */}
+                    <div className="overlay-panel">
+                      <h4 className="overlay-panel-title">Text Overlay</h4>
+                      <input
+                        className="text-input"
+                        placeholder="Type something…"
+                        value={textInput}
+                        onChange={(e) => setTextInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") addTextToCanvas(); }}
+                        maxLength={80}
+                      />
+                      <div className="text-controls-row">
+                        <select
+                          className="frame-controls-select text-font-select"
+                          value={textFont}
+                          onChange={(e) => setTextFont(e.target.value)}
+                        >
+                          <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                          <option value="Geo">Geo</option>
+                          <option value="IBM Plex Mono">IBM Plex Mono</option>
+                          <option value="Georgia">Georgia</option>
+                          <option value="Arial">Arial</option>
+                          <option value="Comic Sans MS">Comic Sans MS</option>
+                        </select>
+                      </div>
+                      <div className="text-size-row">
+                        <span className="text-size-label">Size</span>
+                        <input
+                          type="range" min="60" max="400" step="10"
+                          value={textSize}
+                          onChange={(e) => setTextSize(parseInt(e.target.value))}
+                          className="text-size-slider"
+                        />
+                        <span className="text-size-val">{Math.round(textSize / 3.5)}px</span>
+                      </div>
+                      <div className="text-style-row">
+                        {(["normal", "bold", "italic", "bold italic"] as const).map((s) => (
+                          <button
+                            key={s}
+                            className={`text-style-btn ${textStyle === s ? "active" : ""}`}
+                            onClick={() => setTextStyle(s)}
+                          >
+                            {s === "normal" ? "Aa" : s === "bold" ? "B" : s === "italic" ? "I" : "BI"}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="text-color-swatches">
+                        {["#ffffff", "#000000", "#ff69b4", "#ffff00", "#00ff88", "#4d96ff", "#ff6b6b", "#ffd93d"].map((c) => (
+                          <div
+                            key={c}
+                            className={`text-color-swatch ${overlayTextColor === c ? "active" : ""}`}
+                            style={{ background: c }}
+                            onClick={() => setOverlayTextColor(c)}
+                          />
+                        ))}
+                      </div>
+                      <button
+                        className="cta-button add-text-btn"
+                        onClick={addTextToCanvas}
+                        disabled={!textInput.trim()}
+                      >
+                        + Add Text
+                      </button>
+                    </div>
+
+                    {/* ── Sticker panel ── */}
+                    <div className="overlay-panel">
+                      <h4 className="overlay-panel-title">Stickers</h4>
+                      {/* Upload custom stickers */}
+                      <label className="upload-button" style={{ marginBottom: 12 }}>
+                        <FontAwesomeIcon icon={faPlus} /> Upload Sticker
                         <input
                           type="file"
                           accept="image/*"
@@ -787,7 +901,7 @@ const App: React.FC = () => {
                         />
                       </label>
                       {!!uploadedStickers?.length && (
-                        <div className="sticker-preview">
+                        <div className="sticker-preview" style={{ marginBottom: 12 }}>
                           {uploadedStickers.map((sticker, index) => (
                             <img
                               key={index}
@@ -799,6 +913,31 @@ const App: React.FC = () => {
                           ))}
                         </div>
                       )}
+                      {/* Built-in packs */}
+                      <div className="pack-tabs">
+                        {STICKER_PACKS.map((pack) => (
+                          <button
+                            key={pack.id}
+                            className={`pack-tab ${activeStickerPack === pack.id ? "active" : ""}`}
+                            onClick={() => setActiveStickerPack(pack.id)}
+                            title={pack.name}
+                          >
+                            {pack.icon}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="pack-stickers-grid">
+                        {STICKER_PACKS.find((p) => p.id === activeStickerPack)?.stickers.map((emoji, i) => (
+                          <button
+                            key={i}
+                            className="emoji-sticker-btn"
+                            onClick={() => addEmojiStickerToCanvas(emoji)}
+                            title={emoji}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -825,6 +964,10 @@ const App: React.FC = () => {
                       backgroundImage={null}
                       layout={layout}
                       foregroundImage={null}
+                      textItems={textItems}
+                      setTextItems={setTextItems}
+                      selectedTextId={selectedTextId}
+                      setSelectedTextId={setSelectedTextId}
                       stickers={stickers}
                       setStickers={setStickers}
                       selectedStickerId={selectedStickerId}
