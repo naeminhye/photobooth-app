@@ -47,7 +47,7 @@ const CropModal: React.FC<CropModalProps> = ({
       // Calculate scale to fit image within screen (e.g., 80% of viewport height or width)
       const maxWidth = window.innerWidth * 0.8;
       const maxHeight = window.innerHeight * 0.8;
-      const imgAspectRatio = img.width / img.height;
+      // const imgAspectRatio = img.width / img.height;
       let newScale = 1;
       if (img.width > maxWidth || img.height > maxHeight) {
         if (maxWidth / img.width < maxHeight / img.height) {
@@ -108,7 +108,7 @@ const CropModal: React.FC<CropModalProps> = ({
     const stageHeight = (image?.height || 0) * scale;
     const layoutAspectRatio = layoutWidth / layoutHeight;
     const newWidth = node.width() * node.scaleX();
-    const newHeight = newWidth / layoutAspectRatio;
+    // const newHeight = newWidth / layoutAspectRatio;
     // Ensure cropRect stays within image bounds and adjusts position if necessary
     const boundedWidth = Math.min(newWidth, stageWidth);
     const boundedHeight = boundedWidth / layoutAspectRatio;
@@ -137,7 +137,7 @@ const CropModal: React.FC<CropModalProps> = ({
   const cropImage = () => {
     if (!image || !stageRef.current) return;
 
-    const stage = stageRef.current;
+    // const stage = stageRef.current;
     const stageScale = scale;
 
     const canvas = document.createElement("canvas");
