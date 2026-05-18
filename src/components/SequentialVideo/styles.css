@@ -1,69 +1,54 @@
 /* src/components/SequentialVideo/styles.css */
 .sequential-video {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    max-width: 640px;
-    /* Matches CameraFeed's max baseWidth, adjust as needed */
-    margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
 }
 
 .sequential-video video {
-    max-width: 100%;
-    height: auto;
-    object-fit: cover;
-    /* Ensures video fills the container without distortion */
-    border: 1px solid #000;
-    /* Matches your original border */
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.28);
 }
 
-/* Loader styles (reused from SequentialGif) */
 .loader-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .loader {
-    border: 8px solid #f3f3f3;
-    /* Light grey */
-    border-top: 8px solid #3498db;
-    /* Blue */
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    animation: spin 1s linear infinite;
+  border: 6px solid rgba(255, 255, 255, 0.15);
+  border-top: 6px solid #a78bfa;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
-    .sequential-video {
-        max-width: 480px;
-        /* Matches CameraFeed's tablet breakpoint */
-    }
+  .sequential-video { max-width: 480px; }
 }
 
 @media (max-width: 425px) {
-    .sequential-video {
-        max-width: 380px;
-        /* Matches CameraFeed's medium mobile breakpoint */
-    }
+  .sequential-video { max-width: 380px; }
 }
 
 @media (max-width: 320px) {
-    .sequential-video {
-        max-width: 280px;
-        /* Matches CameraFeed's small mobile breakpoint */
-    }
+  .sequential-video { max-width: 280px; }
 }

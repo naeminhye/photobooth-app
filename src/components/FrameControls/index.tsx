@@ -5,6 +5,8 @@ import { faTrash, faUpload } from "@fortawesome/free-solid-svg-icons";
 
 import GradientPicker, { Gradient } from "@/components/GradientPicker";
 import ColorPicker from "@/components/ColorPicker";
+import { LAYOUTS } from "@/constants";
+import { FRAME_TEMPLATES, frameToDataURL } from "@/utils/frameTemplates";
 
 import "./styles.css";
 
@@ -32,9 +34,11 @@ const FrameControls: React.FC<FrameControlsProps> = ({
   onFilterChange,
   frameGradient,
   onSelectFrameGradient,
+  layout,
 }) => {
   const [activeTab, setActiveTab] = useState("Background");
   const [selectedFilter, setSelectedFilter] = useState("none");
+  const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
 
   const handleBackgroundColorChange = (color: string) => {
     onColorChange(color);
@@ -72,11 +76,27 @@ const FrameControls: React.FC<FrameControlsProps> = ({
     onFilterChange?.(filterValue);
   };
 
+  const handleFrameSelect = (frameId: string) => {
+    if (selectedFrameId === frameId) {
+      // Deselect: remove the frame overlay
+      setSelectedFrameId(null);
+      onForegroundChange(null);
+      return;
+    }
+    const canvas = LAYOUTS[layout ?? 0].canvas;
+    const template = FRAME_TEMPLATES.find((f) => f.id === frameId);
+    if (template) {
+      const dataURL = frameToDataURL(template, canvas.width, canvas.height);
+      setSelectedFrameId(frameId);
+      onForegroundChange(dataURL);
+    }
+  };
+
   return (
     <div className="frame-controls">
       <div className="tabs">
         <div className="tab-list">
-          {["Background", "Foreground", "Filter"].map((tab) => (
+          {["Background", "Foreground", "Frames", "Filter"].map((tab) => (
             <button
               key={tab}
               className={`tab-button ${activeTab === tab ? "active" : ""}`}
@@ -159,6 +179,33 @@ const FrameControls: React.FC<FrameControlsProps> = ({
                     hidden
                   />
                 </label>
+              )}
+            </div>
+          )}
+          {activeTab === "Frames" && (
+            <div className="frame-controls-section">
+              <label className="frame-controls-label">Frame Templates</label>
+              <div className="frames-list">
+                {FRAME_TEMPLATES.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    className={`frame-list-item ${selectedFrameId === tpl.id ? "active" : ""}`}
+                    onClick={() => handleFrameSelect(tpl.id)}
+                  >
+                    <span className="frame-list-icon">{tpl.icon}</span>
+                    <span className="frame-list-name">{tpl.name}</span>
+                    {selectedFrameId === tpl.id && <span className="frame-list-check">✓</span>}
+                  </button>
+                ))}
+              </div>
+              {selectedFrameId && (
+                <button
+                  className="upload-button"
+                  style={{ marginTop: 12, width: "100%", justifyContent: "center" }}
+                  onClick={() => { setSelectedFrameId(null); onForegroundChange(null); }}
+                >
+                  <FontAwesomeIcon icon={faTrash} /> Remove Frame
+                </button>
               )}
             </div>
           )}

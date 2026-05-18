@@ -6,19 +6,16 @@ import GIF from "gif.js";
 import { CAMERA_HEIGHT, CAMERA_WIDTH, MAX_PHOTOS } from "@/constants";
 import { getDeviceType } from "@/utils";
 import { flipFrameHorizontally } from "@/utils/canvas";
-
-// Icons
-import flipIcon from "@/assets/icons/flip.png";
-import timerOffFill from "@/assets/icons/timer_off_fill.png";
-import timerOffOutline from "@/assets/icons/timer_off_outline.png";
-import timer2Fill from "@/assets/icons/timer_2_fill.png";
-import timer2Outline from "@/assets/icons/timer_2_outline.png";
-import timer5Fill from "@/assets/icons/timer_5_fill.png";
-import timer5Outline from "@/assets/icons/timer_5_outline.png";
-import timer10Fill from "@/assets/icons/timer_10_fill.png";
-import timer10Outline from "@/assets/icons/timer_10_outline.png";
+import { playTickSound, playShutterSound } from "@/utils/sounds";
 
 import "./styles.css";
+
+const FILTER_CSS: Record<string, string> = {
+  none: "none",
+  bw: "grayscale(1)",
+  whitening: "brightness(1.28) contrast(0.88) saturate(0.75)",
+  darker: "brightness(0.65) contrast(1.1)",
+};
 
 interface CameraFeedProps {
   onCapture: (photo: string) => void;
@@ -33,6 +30,7 @@ interface CameraFeedProps {
   onTimerChange: (time: number) => void;
   onMirrorToggle: (isMirrored: boolean) => void;
   captureMode: "photostrip" | "gif" | "video";
+  filter?: string;
 }
 
 const CameraFeed: React.FC<CameraFeedProps> = ({
@@ -48,6 +46,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   onTimerChange,
   onMirrorToggle,
   captureMode,
+  filter = "none",
 }) => {
   const webcamRef = useRef<Webcam>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -57,8 +56,13 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [showGrid, setShowGrid] = useState(false);
+  const [flashEnabled, setFlashEnabled] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [flashActive, setFlashActive] = useState(false);
   const countdownRef = useRef<number>(countdownTime);
   const maxPhotosRef = useRef<number>(maxPhotos);
+  const isMutedRef = useRef<boolean>(false);
   const [cameraDimensions, setCameraDimensions] = useState({
     width: CAMERA_WIDTH,
     height: CAMERA_HEIGHT,
@@ -87,6 +91,10 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   useEffect(() => {
     maxPhotosRef.current = maxPhotos;
   }, [maxPhotos]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
 
   useEffect(() => {
     const updateCameraDimensions = () => {
@@ -145,6 +153,11 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         height: webcamRef.current.video.videoHeight || cameraDimensions.height,
       });
       if (photo) {
+        if (!isMutedRef.current) playShutterSound();
+        if (flashEnabled) {
+          setFlashActive(true);
+          setTimeout(() => setFlashActive(false), 200);
+        }
         onCapture(photo);
       } else {
         setCameraError(
@@ -156,7 +169,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         "Failed to capture photo. The video stream is not ready. Please wait a moment and try again."
       );
     }
-  }, [onCapture, cameraDimensions]);
+  }, [onCapture, cameraDimensions, flashEnabled]);
 
   const captureFrame = useCallback(() => {
     if (webcamRef.current && canvasRef.current && webcamRef.current.video) {
@@ -356,6 +369,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
       for (let sec = countdownRef.current; sec >= 0; sec--) {
         setCountdown(sec);
+        if (sec > 0 && !isMutedRef.current) playTickSound();
         if (captureMode === "gif") {
           const frame = captureFrame();
           if (frame) gifFrames.current.push(frame);
@@ -500,55 +514,76 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
   return (
     <>
       <div className="camera-control">
+        {/* Timer buttons */}
         {captureMode === "photostrip" && (
           <button
             onClick={() => handleTimerChange(0)}
-            className="camera-control-button"
+            className={`camera-control-button ${countdownTime === 0 ? "active" : ""}`}
+            title="No timer"
           >
-            <img
-              src={countdownTime === 0 ? timerOffFill : timerOffOutline}
-              alt="Off"
-            />
+            <span className="cam-btn-emoji">⏹️</span>
+            <span className="cam-btn-label">Off</span>
           </button>
         )}
         <button
           onClick={() => handleTimerChange(2)}
-          className="camera-control-button"
+          className={`camera-control-button ${countdownTime === 2 ? "active" : ""}`}
+          title="2s timer"
         >
-          <img
-            src={countdownTime === 2 ? timer2Fill : timer2Outline}
-            alt="2s"
-          />
+          <span className="cam-btn-emoji">2️⃣</span>
+          <span className="cam-btn-label">2s</span>
         </button>
         <button
           onClick={() => handleTimerChange(5)}
-          className="camera-control-button"
+          className={`camera-control-button ${countdownTime === 5 ? "active" : ""}`}
+          title="5s timer"
         >
-          <img
-            src={countdownTime === 5 ? timer5Fill : timer5Outline}
-            alt="5s"
-          />
+          <span className="cam-btn-emoji">5️⃣</span>
+          <span className="cam-btn-label">5s</span>
         </button>
         <button
           onClick={() => handleTimerChange(10)}
-          className="camera-control-button"
+          className={`camera-control-button ${countdownTime === 10 ? "active" : ""}`}
+          title="10s timer"
         >
-          <img
-            src={countdownTime === 10 ? timer10Fill : timer10Outline}
-            alt="10s"
-          />
+          <span className="cam-btn-emoji">🔟</span>
+          <span className="cam-btn-label">10s</span>
         </button>
-        <button onClick={handleMirrorToggle} className="camera-control-button">
-          <img
-            src={flipIcon}
-            alt="Flip Camera"
-            style={{
-              width: "32px",
-              height: "32px",
-              opacity: facingMode === "user" ? 1 : 0.5,
-              transition: "opacity 0.2s ease",
-            }}
-          />
+        {/* Flip */}
+        <button
+          onClick={handleMirrorToggle}
+          className={`camera-control-button ${facingMode === "user" ? "active" : ""}`}
+          title="Flip camera"
+        >
+          <span className="cam-btn-emoji">🔄</span>
+          <span className="cam-btn-label">Flip</span>
+        </button>
+        {/* Grid overlay */}
+        <button
+          onClick={() => setShowGrid((v) => !v)}
+          className={`camera-control-button ${showGrid ? "active" : ""}`}
+          title="Rule-of-thirds grid"
+        >
+          <span className="cam-btn-emoji">🔲</span>
+          <span className="cam-btn-label">Grid</span>
+        </button>
+        {/* Flash */}
+        <button
+          onClick={() => setFlashEnabled((v) => !v)}
+          className={`camera-control-button ${flashEnabled ? "active" : ""}`}
+          title="Flash effect"
+        >
+          <span className="cam-btn-emoji">⚡</span>
+          <span className="cam-btn-label">Flash</span>
+        </button>
+        {/* Mute */}
+        <button
+          onClick={() => setIsMuted((v) => !v)}
+          className={`camera-control-button ${isMuted ? "active" : ""}`}
+          title={isMuted ? "Unmute sounds" : "Mute sounds"}
+        >
+          <span className="cam-btn-emoji">{isMuted ? "🔇" : "🔊"}</span>
+          <span className="cam-btn-label">{isMuted ? "Muted" : "Sound"}</span>
         </button>
       </div>
       <div
@@ -591,8 +626,23 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
               }}
               onUserMediaError={handleCameraError}
               playsInline
-              style={{ objectFit: "cover" }}
+              style={{
+                objectFit: "cover",
+                filter: FILTER_CSS[filter] ?? "none",
+                transition: "filter 0.3s ease",
+              }}
             />
+            {/* Rule-of-thirds grid overlay */}
+            {showGrid && (
+              <div className="camera-grid-overlay">
+                <div className="camera-grid-line camera-grid-v1" />
+                <div className="camera-grid-line camera-grid-v2" />
+                <div className="camera-grid-line camera-grid-h1" />
+                <div className="camera-grid-line camera-grid-h2" />
+              </div>
+            )}
+            {/* Flash overlay */}
+            {flashActive && <div className="camera-flash-overlay" />}
             {countdown !== null && <div className="countdown">{countdown}</div>}
             <button
               ref={captureButtonRef}

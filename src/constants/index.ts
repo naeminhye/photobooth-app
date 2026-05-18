@@ -1,10 +1,10 @@
 // constants/index.ts
 import basic4Cut from "@/assets/illustrators/basic-4-cut.png";
-// import basic4Cut2 from "@/assets/illustrators/basic-4-cut-2.png";
+import basic4Cut2 from "@/assets/illustrators/basic-4-cut-2.png";
 import basic6Cut from "@/assets/illustrators/basic-6-cut.png";
 import film3Cut from "@/assets/illustrators/film-3-cut.png";
 import wide4Cut from "@/assets/illustrators/wide-4-cut.png";
-// import rizz4Cut from "@/assets/illustrators/rizz-4-cut.png";
+import rizz4Cut from "@/assets/illustrators/rizz-4-cut.png";
 
 export const SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".svg", ".gif"];
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
@@ -43,7 +43,10 @@ export interface TextItem {
   y: number;
   fontSize: number;
   fontFamily: string;
+  fontStyle: string; // 'normal' | 'bold' | 'italic' | 'bold italic'
   color: string;
+  strokeColor: string;
+  strokeWidth: number; // 0 = no stroke; canvas-coordinate units
   rotation: number;
 }
 
@@ -98,23 +101,24 @@ export const LAYOUTS: PhotoStripLayout[] = [
     ],
     templatePath: basic4Cut,
     timestamp: {
-      x: 76, y: 56
-    }
+      x: 76,
+      y: 56,
+    },
   },
-  // {
-  //   name: "basic 4-cut 2",
-  //   canvas: {
-  //     width: 1080,
-  //     height: 1612,
-  //   },
-  //   rectangles: [
-  //     { x: 44, y: 90, width: 452, height: 363 },
-  //     { x: 44, y: 461, width: 452, height: 363 },
-  //     { x: 44, y: 833, width: 452, height: 363 },
-  //     { x: 44, y: 1206, width: 452, height: 363 },
-  //   ],
-  //   templatePath: basic4Cut2,
-  // },
+  {
+    name: "basic 4-cut 2",
+    canvas: {
+      width: 1080,
+      height: 1612,
+    },
+    rectangles: [
+      { x: 44, y: 90, width: 452, height: 363 },
+      { x: 44, y: 461, width: 452, height: 363 },
+      { x: 44, y: 833, width: 452, height: 363 },
+      { x: 44, y: 1206, width: 452, height: 363 },
+    ],
+    templatePath: basic4Cut2,
+  },
   {
     name: "basic 6-cut",
     canvas: {
@@ -131,8 +135,9 @@ export const LAYOUTS: PhotoStripLayout[] = [
     ],
     templatePath: basic6Cut,
     timestamp: {
-      x: 75, y: 60
-    }
+      x: 75,
+      y: 60,
+    },
   },
   {
     name: "film 3-cut",
@@ -161,17 +166,17 @@ export const LAYOUTS: PhotoStripLayout[] = [
     ],
     templatePath: wide4Cut,
   },
-  // {
-  //   name: "rizz 4-cut",
-  //   canvas: { width: 1080, height: 1347 },
-  //   rectangles: [
-  //     { x: 136, y: 164, width: 388, height: 556 },
-  //     { x: 555, y: 46, width: 388, height: 556 },
-  //     { x: 136, y: 756, width: 388, height: 556 },
-  //     { x: 555, y: 638, width: 388, height: 556 },
-  //   ],
-  //   templatePath: rizz4Cut,
-  // },
+  {
+    name: "rizz 4-cut",
+    canvas: { width: 1080, height: 1347 },
+    rectangles: [
+      { x: 136, y: 164, width: 388, height: 556 },
+      { x: 555, y: 46, width: 388, height: 556 },
+      { x: 136, y: 756, width: 388, height: 556 },
+      { x: 555, y: 638, width: 388, height: 556 },
+    ],
+    templatePath: rizz4Cut,
+  },
 ];
 //   name: "layer 4-cut",
 // Basic 4 cut: 1652 x 4920
