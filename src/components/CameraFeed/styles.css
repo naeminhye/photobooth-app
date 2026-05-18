@@ -1,77 +1,95 @@
 /* Camera Feed */
 .camera-feed {
-    width: 600px;
-    height: 450px;
-    position: relative;
-    background: #000;
-    border: 2px solid #000;
-    overflow: hidden;
-    transition: transform 0.3s ease;
-    box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 0.2);
+  width: 600px;
+  height: 450px;
+  position: relative;
+  background: #000;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.camera-feed:hover {
+  box-shadow: 0 12px 48px rgba(31, 38, 135, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
 .shutter-button {
-    position: absolute;
-    bottom: 20px;
-    left: calc(50% - 30px);
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
-    z-index: 10;
+  position: absolute;
+  bottom: 20px;
+  left: calc(50% - 30px);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  z-index: 10;
 }
 
 .shutter-button div {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: #fff;
-    transition: background 0.2s ease, transform 0.2s ease;
-    border: 1px solid #000;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.2s ease, transform 0.2s ease;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .shutter-button:hover div {
-    background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  transform: scale(1.05);
 }
 
 .shutter-button:active div {
-    transform: scale(0.9);
+  transform: scale(0.9);
 }
 
 /* Countdown */
 .countdown {
-    position: absolute;
-    top: 5px;
-    left: 10px;
-    color: white;
-    font-size: 64px;
-    font-weight: bold;
-    padding: 5px 10px;
-    border-radius: 5px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  top: 5px;
+  left: 10px;
+  color: white;
+  font-size: 64px;
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: 10px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7), 0 0 24px rgba(167, 139, 250, 0.8);
 }
 
-/* Camera control */
+/* Camera controls */
 .camera-control {
-    display: flex;
-    gap: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 button.camera-control-button {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #000;
-    background: #fff;
-    width: 50px;
-    height: 50px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(31, 38, 135, 0.15);
+}
+
+button.camera-control-button:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(31, 38, 135, 0.22);
 }
 
 .camera-control-button img {
-    max-width: 100%;
-    max-height: 100%;
-    transition: opacity 0.2s ease;
-    background-color: #fff3;
-    border-radius: 16px;
+  max-width: 60%;
+  max-height: 60%;
+  transition: opacity 0.2s ease;
 }
