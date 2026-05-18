@@ -45,6 +45,8 @@ export interface TextItem {
   fontFamily: string;
   fontStyle: string; // 'normal' | 'bold' | 'italic' | 'bold italic'
   color: string;
+  strokeColor: string;
+  strokeWidth: number; // 0 = no stroke; canvas-coordinate units
   rotation: number;
 }
 

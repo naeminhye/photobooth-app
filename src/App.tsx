@@ -70,6 +70,8 @@ const App: React.FC = () => {
   const [textSize, setTextSize] = useState<number>(140);
   const [overlayTextColor, setOverlayTextColor] = useState<string>("#ffffff");
   const [textStyle, setTextStyle] = useState<string>("normal");
+  const [textStrokeWidth, setTextStrokeWidth] = useState<number>(0);
+  const [textStrokeColor, setTextStrokeColor] = useState<string>("#000000");
   const [activeStickerPack, setActiveStickerPack] = useState<string>("emoji");
   const [tempBackgroundImage, setTempBackgroundImage] = useState<string | null>(
     null
@@ -502,6 +504,8 @@ const App: React.FC = () => {
       fontFamily: textFont,
       fontStyle: textStyle,
       color: overlayTextColor,
+      strokeColor: textStrokeColor,
+      strokeWidth: textStrokeWidth,
       rotation: 0,
     };
     setTextItems((prev) => [...prev, newText]);
@@ -823,6 +827,22 @@ const App: React.FC = () => {
                     {/* ── Text overlay panel ── */}
                     <div className="overlay-panel">
                       <h4 className="overlay-panel-title">Text Overlay</h4>
+                      {/* Live preview */}
+                      <div
+                        className="text-live-preview"
+                        style={{
+                          fontFamily: textFont,
+                          fontSize: Math.round(textSize / 3.5),
+                          fontWeight: textStyle.includes("bold") ? "bold" : "normal",
+                          fontStyle: textStyle.includes("italic") ? "italic" : "normal",
+                          color: overlayTextColor,
+                          WebkitTextStroke: textStrokeWidth > 0
+                            ? `${Math.round(textStrokeWidth / 3.5)}px ${textStrokeColor}`
+                            : undefined,
+                        }}
+                      >
+                        {textInput || "Preview text…"}
+                      </div>
                       <input
                         className="text-input"
                         placeholder="Type something…"
@@ -876,6 +896,29 @@ const App: React.FC = () => {
                           />
                         ))}
                       </div>
+                      {/* Stroke / border controls */}
+                      <div className="text-stroke-row">
+                        <span className="text-size-label">Border</span>
+                        <input
+                          type="range" min="0" max="80" step="4"
+                          value={textStrokeWidth}
+                          onChange={(e) => setTextStrokeWidth(parseInt(e.target.value))}
+                          className="text-size-slider"
+                        />
+                        <span className="text-size-val">{textStrokeWidth > 0 ? `${Math.round(textStrokeWidth / 3.5)}px` : "off"}</span>
+                      </div>
+                      {textStrokeWidth > 0 && (
+                        <div className="text-color-swatches">
+                          {["#000000", "#ffffff", "#ff69b4", "#ffff00", "#00ff88", "#4d96ff", "#ff6b6b", "#ffd93d"].map((c) => (
+                            <div
+                              key={c}
+                              className={`text-color-swatch ${textStrokeColor === c ? "active" : ""}`}
+                              style={{ background: c }}
+                              onClick={() => setTextStrokeColor(c)}
+                            />
+                          ))}
+                        </div>
+                      )}
                       <button
                         className="cta-button add-text-btn"
                         onClick={addTextToCanvas}

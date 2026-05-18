@@ -916,6 +916,84 @@ button {
   line-height: 1.2;
 }
 
+/* ── Text live preview ──────────────────────────────── */
+.text-live-preview {
+  min-height: 44px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  word-break: break-word;
+  line-height: 1.3;
+  transition: all 0.15s ease;
+  overflow: hidden;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+/* Stroke / border row (reuses text-size-row layout) */
+.text-stroke-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Frames list (name-only) ────────────────────────── */
+.frames-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.frame-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  width: 100%;
+  text-align: left;
+}
+
+.frame-list-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(3px);
+}
+
+.frame-list-item.active {
+  background: rgba(167, 139, 250, 0.3);
+  border-color: rgba(167, 139, 250, 0.7);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.3);
+  color: #fff;
+}
+
+.frame-list-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.frame-list-name {
+  flex: 1;
+}
+
+.frame-list-check {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 /* ── Device info */
 .device-info-text {
   position: absolute;

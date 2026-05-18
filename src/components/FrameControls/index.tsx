@@ -185,26 +185,18 @@ const FrameControls: React.FC<FrameControlsProps> = ({
           {activeTab === "Frames" && (
             <div className="frame-controls-section">
               <label className="frame-controls-label">Frame Templates</label>
-              <div className="frames-grid">
-                {FRAME_TEMPLATES.map((tpl) => {
-                  const canvas = LAYOUTS[layout ?? 0].canvas;
-                  const previewUrl = frameToDataURL(tpl, canvas.width, canvas.height);
-                  return (
-                    <div
-                      key={tpl.id}
-                      className={`frame-card ${selectedFrameId === tpl.id ? "active" : ""}`}
-                      onClick={() => handleFrameSelect(tpl.id)}
-                      title={tpl.name}
-                    >
-                      <img
-                        src={previewUrl}
-                        alt={tpl.name}
-                        className="frame-card-img"
-                      />
-                      <span className="frame-card-name">{tpl.icon} {tpl.name}</span>
-                    </div>
-                  );
-                })}
+              <div className="frames-list">
+                {FRAME_TEMPLATES.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    className={`frame-list-item ${selectedFrameId === tpl.id ? "active" : ""}`}
+                    onClick={() => handleFrameSelect(tpl.id)}
+                  >
+                    <span className="frame-list-icon">{tpl.icon}</span>
+                    <span className="frame-list-name">{tpl.name}</span>
+                    {selectedFrameId === tpl.id && <span className="frame-list-check">✓</span>}
+                  </button>
+                ))}
               </div>
               {selectedFrameId && (
                 <button
