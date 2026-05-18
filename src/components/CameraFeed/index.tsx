@@ -6,6 +6,7 @@ import GIF from "gif.js";
 import { CAMERA_HEIGHT, CAMERA_WIDTH, MAX_PHOTOS } from "@/constants";
 import { getDeviceType } from "@/utils";
 import { flipFrameHorizontally } from "@/utils/canvas";
+import { playTickSound, playShutterSound } from "@/utils/sounds";
 
 // Icons
 import flipIcon from "@/assets/icons/flip.png";
@@ -145,6 +146,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
         height: webcamRef.current.video.videoHeight || cameraDimensions.height,
       });
       if (photo) {
+        playShutterSound();
         onCapture(photo);
       } else {
         setCameraError(
@@ -356,6 +358,7 @@ const CameraFeed: React.FC<CameraFeedProps> = ({
 
       for (let sec = countdownRef.current; sec >= 0; sec--) {
         setCountdown(sec);
+        if (sec > 0) playTickSound();
         if (captureMode === "gif") {
           const frame = captureFrame();
           if (frame) gifFrames.current.push(frame);

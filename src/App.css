@@ -12,16 +12,140 @@
   --text-primary: #1e1b4b;
   --text-light: rgba(255, 255, 255, 0.9);
   --text-muted: rgba(255, 255, 255, 0.65);
+  --font-main: "Plus Jakarta Sans", "Geo", sans-serif;
 }
 
 body {
   margin: 0;
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
 }
 
 button {
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
   text-transform: uppercase;
+}
+
+/* ── App header ─────────────────────────────────────── */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  background: rgba(15, 10, 50, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.app-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo {
+  font-size: 18px;
+  color: var(--accent);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.app-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Step progress stepper ───────────────────────────── */
+.step-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 28px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.step-node-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.5);
+  transition: background 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+.step-node-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transition: color 0.3s;
+}
+
+.step-node--done .step-node-dot {
+  background: rgba(167, 139, 250, 0.3);
+  border-color: rgba(167, 139, 250, 0.7);
+  color: #c4b5fd;
+}
+
+.step-node--done .step-node-label {
+  color: rgba(196, 181, 253, 0.75);
+}
+
+.step-node--active .step-node-dot {
+  background: rgba(167, 139, 250, 0.5);
+  border-color: #a78bfa;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.2), 0 4px 16px rgba(167, 139, 250, 0.3);
+}
+
+.step-node--active .step-node-label {
+  color: #c4b5fd;
+  font-weight: 700;
+}
+
+.step-connector {
+  width: 36px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+  flex-shrink: 0;
+  margin-bottom: 20px;
+  transition: background 0.3s;
+}
+
+.step-connector--done {
+  background: rgba(167, 139, 250, 0.5);
 }
 
 .app {
@@ -37,7 +161,7 @@ button {
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 80px 24px 40px;
   box-sizing: border-box;
 }
 
@@ -47,10 +171,11 @@ button {
 
 /* Step titles */
 .step-title {
-  font-size: 32px;
-  font-weight: 600;
+  font-family: var(--font-main);
+  font-size: 28px;
+  font-weight: 700;
   color: #fff;
-  letter-spacing: 1px;
+  letter-spacing: -0.01em;
   margin-bottom: 10px;
   text-shadow: 0 2px 12px rgba(80, 40, 160, 0.4);
   text-align: center;
@@ -104,7 +229,7 @@ button {
   color: var(--text-light);
   cursor: pointer;
   transition: border-color 0.3s ease;
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
 }
 
 .layout-select:hover {
@@ -376,7 +501,7 @@ button {
   transition: background 0.3s ease, transform 0.2s ease;
   border-radius: var(--glass-radius-sm);
   border: 1px solid rgba(167, 139, 250, 0.5);
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
   text-transform: uppercase;
 }
 
@@ -391,7 +516,7 @@ button {
 
 /* CTA Buttons */
 .cta-button {
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
   text-transform: uppercase;
   border-radius: var(--glass-radius-sm);
   background: var(--glass-bg-solid);
@@ -457,7 +582,7 @@ button {
   text-align: center;
   color: var(--text-light);
   transition: all 0.3s ease;
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
   text-transform: uppercase;
   font-size: 14px;
 }
@@ -512,7 +637,7 @@ button {
 
 .modal-actions button {
   padding: 10px 20px;
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
   text-transform: uppercase;
   background: var(--glass-bg-solid);
   backdrop-filter: var(--glass-blur);

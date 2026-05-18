@@ -29,7 +29,7 @@
   text-align: left;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.8);
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
   text-transform: uppercase;
   transition: background 0.25s ease, color 0.25s ease;
   letter-spacing: 0.3px;
@@ -88,7 +88,7 @@
   color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: border-color 0.3s ease;
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
 }
 
 .frame-controls-select option {
@@ -136,7 +136,7 @@
   border: 1px solid rgba(167, 139, 250, 0.5);
   border-radius: 8px;
   text-transform: uppercase;
-  font-family: "Geo", sans-serif;
+  font-family: var(--font-main);
   transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 

@@ -430,13 +430,48 @@ const App: React.FC = () => {
     }
   };
 
+  const addWhiteBorder = (img: HTMLImageElement, borderSize = 12): Promise<HTMLImageElement> => {
+    return new Promise((resolve) => {
+      const w = img.width + borderSize * 2;
+      const h = img.height + borderSize * 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+
+      // Draw the image at 24 circular offsets to build an opaque outline
+      const steps = 24;
+      for (let i = 0; i < steps; i++) {
+        const angle = (i / steps) * 2 * Math.PI;
+        ctx.drawImage(
+          img,
+          Math.round(borderSize + Math.cos(angle) * borderSize),
+          Math.round(borderSize + Math.sin(angle) * borderSize)
+        );
+      }
+
+      // Fill all touched pixels with white
+      ctx.globalCompositeOperation = "source-in";
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw original image centered on top
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(img, borderSize, borderSize);
+
+      const result = new Image();
+      result.onload = () => resolve(result);
+      result.src = canvas.toDataURL("image/png");
+    });
+  };
+
   const handleStickerUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     const newStickers = files.map((file) => {
       const img = new Image();
       img.src = URL.createObjectURL(file);
       return new Promise<HTMLImageElement>((resolve) => {
-        img.onload = () => resolve(img);
+        img.onload = () => addWhiteBorder(img).then(resolve);
       });
     });
     Promise.all(newStickers).then((images) =>
@@ -531,6 +566,8 @@ const App: React.FC = () => {
     setTempBackgroundImage(null);
   };
 
+  const STEP_LABELS = ["Layout", "Mode", "Capture", "Edit", "Stickers", "Download"];
+
   return (
     <div
       className="app"
@@ -538,9 +575,32 @@ const App: React.FC = () => {
       onTouchStart={handleOuterTouch}
     >
       <GradientBackground />
+      <div className="app-header">
+        <div className="app-header-inner">
+          <span className="app-logo">&#9632;</span>
+          <span className="app-title">Photobooth</span>
+        </div>
+      </div>
       <div className="main-container">
         {hasPermission ? (
           <div className="app-content">
+            <nav className="step-progress" aria-label="Steps">
+              {STEP_LABELS.map((label, i) => {
+                const s = i + 1;
+                const state = s < step ? "done" : s === step ? "active" : "pending";
+                return (
+                  <React.Fragment key={s}>
+                    <div className={`step-node step-node--${state}`}>
+                      <div className="step-node-dot">{s < step ? "✓" : s}</div>
+                      <span className="step-node-label">{label}</span>
+                    </div>
+                    {i < STEP_LABELS.length - 1 && (
+                      <div className={`step-connector ${s < step ? "step-connector--done" : ""}`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </nav>
             {step === 1 && (
               <div className="step-1">
                 <h2 className="step-title">Select Your Layout</h2>
